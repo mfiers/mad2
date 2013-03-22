@@ -37,6 +37,41 @@ class MadFile(object):
 
         self.load()
 
+    def defer(self, cl):
+        if not 'mad_defer' in  self.mad:
+            self.mad.mad_defer = []
+        if not cl in self.mad.mad_defer:
+            self.mad.mad_defer.append(cl)
+            
+    def catchup(self):
+        """
+        execute all commands!
+
+        Execute all deferred commands - first step is to extract the
+        list of commands that need to run and save the madfile without
+        that list. This allows the commands to change the madfile
+        without this operation re-overwriting the madfile
+        """
+        from jinja2 import Template
+        import copy
+
+        cls = self.mad.mad_defer
+        self.mad.mad_defer = []
+        self.save()
+
+        data = copy.copy(self.mad.get_data())
+        data['madname'] = self.madname
+        data['filename'] = self.filename
+
+        for cl in cls:
+
+            template = Template(cl)
+
+            rendered = template.render(data)
+            lg.warning("Executing: {}".format(rendered))
+            os.system(rendered)
+            
+
     def load(self):
         
         if os.path.exists(self.madname):

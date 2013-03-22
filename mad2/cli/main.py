@@ -1,10 +1,12 @@
 
 from __future__ import print_function,  unicode_literals
+import logging
 import sys
-import leip
+import select
 
 from mad2.madfile import MadFile
-import logging
+import leip
+
 
 lg = logging.getLogger(__name__)
 
@@ -18,12 +20,15 @@ def dispatch():
 ## First, define hooks and make them discoverable using the @leip.hook
 ## decorator. 
 ##
-# @leip.hook("madfile_save")
-# def check_shasum(app, madfile):
-#     lg.debug("check shasum for %s" % madfile)
-#     if not 'checksum' in madfile.mad:
-#         madfile.checksum()
-
+@leip.hook("madfile_save")
+def check_shasum(app, madfile):
+    lg.debug("check shasum for %s" % madfile)
+    command = app.trans.args.command
+    if command in ['catchup', 'defer']:
+        #do not do this when cathcing up or deferring
+        return
+    if not 'checksum' in madfile.mad:
+        madfile.defer('mad checksum {{filename}}')
 
 ## 
 ## Helper function - instantiate a madfile, and provide it with a
@@ -33,6 +38,7 @@ def get_mad_file(app, filename):
     """
     Instantiate a mad file & add hooks
     """
+    lg.debug("instantiating madfile for {}".format(filename))
     madfile = MadFile(filename)
 
     def run_hook(hook_name):
@@ -41,18 +47,69 @@ def get_mad_file(app, filename):
     madfile.hook_method = run_hook
     return madfile
 
+def get_all_mad_files(app, args):
+    """
+    get input files from sys.stdin and args.file
+    """
+    if select.select([sys.stdin,],[],[],0.0)[0]:
+        for filename in sys.stdin.read().split():
+            yield get_mad_file(app, filename)
+    if 'file'in args and len(args.file) > 0:
+        for filename in args.file:
+            yield get_mad_file(app, filename)
+
 ##
 ## define Mad commands
 ##
+
 @leip.arg('-f', '--force', action='store_true', help='apply force')
-@leip.arg('file', nargs='+')
+@leip.arg('file', nargs='*')
+@leip.command
+def checksum(app, args):
+    """
+    Calculate a checksum
+    """
+    for madfile in get_all_mad_files(app, args):
+        if not args.force and 'checksum' in madfile.mad:
+            #exists - and not forcing
+            lg.warning("Skipping checksum - exists")
+            continue
+        madfile.checksum()
+        madfile.save()
+
+@leip.arg('file', nargs='*')
+@leip.command
+def catchup(app, args):
+    """
+    execute all deferred commands
+    """
+    for madfile in get_all_mad_files(app, args):
+        madfile.catchup()
+
+
+@leip.arg('file', nargs='*')
+@leip.arg('command', help='command to execute')
+@leip.command
+def defer(app, args):
+    """
+    defer a command for later execution (using mad catchup)
+
+    An example command would be:
+ 
+    """
+    for madfile in get_all_mad_files(app, args):
+        madfile.defer(command)
+        madfile.save()
+
+
+@leip.arg('-f', '--force', action='store_true', help='apply force')
+@leip.arg('file', nargs='*')
 @leip.arg('value', help='value to set')
 @leip.arg('key', help='key to set')
 @leip.command
 def set(app, args):
-    for filename in args.file:
-        lg.debug("processing file: %s" % filename)
-        madfile = get_mad_file(app, filename)
+    for madfile in get_all_mad_files(app, args):
+
         key = args.key
         val = args.value
 
@@ -88,7 +145,6 @@ def set(app, args):
         else:
             #not listmode
             madfile.mad[key] = val
-
         
         madfile.save()
 
@@ -110,8 +166,7 @@ def show(app, args):
 @leip.command
 def unset(app, args):
     lg.debug("unsetting: %s".format(args.key))
-    for filename in args.file:
-        madfile = get_mad_file(app, filename)
+    for madfile in get_all_mad_files(app, args):
         if args.key in madfile.mad:
             del(madfile.mad[args.key])
         madfile.save()

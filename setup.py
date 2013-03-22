@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 DESCRIPTION = """
 file metadata tagger
@@ -18,8 +18,9 @@ setup(name='mad2',
       author_email='mark.fiers42@gmail.com',
       entry_points = entry_points,
       url='http://mfiers.github.com/mad2',
-      packages=['mad2', ],
+      packages=find_packages(),
       requires=['Leip',
+                'Yaco',
                 ],
       classifiers = [
         'Development Status :: 4 - Beta',
@@ -27,7 +28,10 @@ setup(name='mad2',
         'Intended Audience :: Developers',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
+        'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.3',
         ]
       
      )
