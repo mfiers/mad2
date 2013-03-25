@@ -4,11 +4,13 @@ import logging
 import sys
 
 import xlrd
+import csv
 
 import leip
 from mad2.util import  get_filenames, get_all_mad_files
 
 lg = logging.getLogger(__name__)
+    
 
 @leip.arg('file', nargs='*')
 @leip.arg('samplesheet', help='sheet with information')
@@ -20,7 +22,6 @@ lg = logging.getLogger(__name__)
 def samplesheet(app, args):
     """
     Apply samplesheet data
-
     """
     wb = xlrd.open_workbook(args.samplesheet)
     lg.debug("discovered sheets: %s" % ', '.join(wb.sheet_names()))

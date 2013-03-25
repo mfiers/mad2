@@ -1,9 +1,10 @@
 
 from __future__ import print_function,  unicode_literals
 import logging
+import os
 import sys
-import select
 
+from mad2.util import  get_mad_file, get_all_mad_files
 from mad2.madfile import MadFile
 import leip
 
@@ -16,47 +17,22 @@ def dispatch():
     """
     app.run()
 
-##
-## First, define hooks and make them discoverable using the @leip.hook
-## decorator. 
-##
-@leip.hook("madfile_save")
-def check_shasum(app, madfile):
-    lg.debug("check shasum for %s" % madfile)
-    command = app.trans.args.command
-    if command in ['catchup', 'defer']:
-        #do not do this when cathcing up or deferring
-        return
-    if not 'checksum' in madfile.mad:
-        madfile.defer('mad checksum {{filename}}')
 
-## 
-## Helper function - instantiate a madfile, and provide it with a
-## method to run hooks
-##
-def get_mad_file(app, filename):
-    """
-    Instantiate a mad file & add hooks
-    """
-    lg.debug("instantiating madfile for {}".format(filename))
-    madfile = MadFile(filename)
+# ##
+# ## First, define hooks and make them discoverable using the @leip.hook
+# ## decorator. 
+# ##
+# @leip.hook("madfile_save")
+# def check_shasum(app, madfile):
+#     lg.debug("check shasum for %s" % madfile)
+#     command = app.trans.args.command
+#     if command in ['catchup', 'defer']:
+#         #do not do this when cathcing up or deferring
+#         return
+#     if 
+#     if not 'checksum' in madfile.mad:
+#         madfile.defer('mad checksum {{filename}}')
 
-    def run_hook(hook_name):
-        app.run_hook(hook_name, madfile)
-        
-    madfile.hook_method = run_hook
-    return madfile
-
-def get_all_mad_files(app, args):
-    """
-    get input files from sys.stdin and args.file
-    """
-    if select.select([sys.stdin,],[],[],0.0)[0]:
-        for filename in sys.stdin.read().split():
-            yield get_mad_file(app, filename)
-    if 'file'in args and len(args.file) > 0:
-        for filename in args.file:
-            yield get_mad_file(app, filename)
 
 ##
 ## define Mad commands
@@ -184,8 +160,22 @@ def find(app, args):
 ##
 
 import pkg_resources
-base_config = pkg_resources.resource_string('mad2', 'etc/mad2.config')
+base_config = pkg_resources.resource_string('mad2', 'etc/mad.config')
 
-app = leip.app(name='mad2', set_name='config', base_config = base_config)
+#trail of config files???
+config_files = [
+    ('system', '/etc/mad.config'),
+    ('user', '~/.config/mad/mad.config')]
+
+path = os.getcwd()
+config_no = 0
+while path:
+    config_no += 1
+    config_files.append(('dd{0}'.format(config_no), os.path.join(path, '.mad')))
+    path = path.rsplit(os.sep, 1)[0]
+
+app = leip.app(name='mad', set_name='config', base_config = base_config,
+               config_files = config_files)
+
 #discover hooks in this module!
 app.discover(globals())
