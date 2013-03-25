@@ -169,11 +169,14 @@ config_files = [
 
 path = os.getcwd()
 config_no = 0
+xtra_config = []
 while path:
     config_no += 1
-    config_files.append(('dd{0}'.format(config_no), os.path.join(path, '.mad')))
+    xtra_config.append(('dd{0}'.format(config_no), os.path.join(path, '.mad')))
     path = path.rsplit(os.sep, 1)[0]
 
+config_files.extend(list(reversed(xtra_config)))
+print(config_files)
 app = leip.app(name='mad', set_name='config', base_config = base_config,
                config_files = config_files)
 
