@@ -1,8 +1,9 @@
 import os
 import Yaco
+import copy
 #import hashlib
 import logging
-from functools import partial
+from jinja2 import Template
 
 lg = logging.getLogger(__name__)
 
@@ -44,15 +45,10 @@ class MadFile(object):
             if iteration > 0 and rendered == last:
                 #no improvement
                 break
-        template = Template(text)   
-        rendered = template.render(data)
+            template = Template(rendered)   
+            rendered = template.render(data)
+        return rendered
 
-        
-    #     if dry:
-    #         lg.warning("Executing: {}".format(rendered))
-    #     else:
-    #         lg.warning("Executing: {}".format(rendered))
-    #         os.system(rendered)
     # def execute(self, cl, dry=False):
     #     """
     #     execute a command line in the context of this object
