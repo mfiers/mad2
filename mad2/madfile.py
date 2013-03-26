@@ -2,7 +2,6 @@ import os
 import Yaco
 #import hashlib
 import logging
-from functools import partial
 
 lg = logging.getLogger(__name__)
 
@@ -87,7 +86,7 @@ class MadFile(object):
 
     def load(self):        
         if os.path.exists(self.madname):
-            lg.debug("loading madfile {}".format(self.madname))
+            lg.debug("loading madfile {0}".format(self.madname))
             self.mad.load(self.madname)
         self.hook_method('madfile_load')
         

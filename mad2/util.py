@@ -16,7 +16,7 @@ def get_mad_file(app, filename):
     """
     Instantiate a mad file & add hooks
     """
-    lg.debug("instantiating madfile for {}".format(filename))
+    lg.debug("instantiating madfile for {0}".format(filename))
     madfile = MadFile(filename)
 
     def run_hook(hook_name):
