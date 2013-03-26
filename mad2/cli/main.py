@@ -8,7 +8,6 @@ from mad2.util import  get_mad_file, get_all_mad_files
 from mad2.madfile import MadFile
 import leip
 
-
 lg = logging.getLogger(__name__)
 
 def dispatch():
@@ -16,7 +15,6 @@ def dispatch():
     Run the app - this is the actual entry point
     """
     app.run()
-
 
 # ##
 # ## First, define hooks and make them discoverable using the @leip.hook
@@ -32,8 +30,6 @@ def dispatch():
 #     if 
 #     if not 'checksum' in madfile.mad:
 #         madfile.defer('mad checksum {{filename}}')
-
-
 ##
 ## define Mad commands
 ##
@@ -96,7 +92,7 @@ def set(app, args):
             
         keywords = app.conf.keywords
         if not args.force and not key in keywords:
-            print("invalid key: {}".format(key))
+            print("invalid key: {0}".format(key))
 
         keyinfo = keywords[key]
         keytype = keyinfo.get('type', 'str')
@@ -107,7 +103,7 @@ def set(app, args):
 
         if keytype == 'restricted' and \
                 not val in keyinfo.allowed:
-            print("Value '{}' not allowed".format(val))
+            print("Value '{0}' not allowed".format(val))
             sys.exit(-1)
                     
         if list_mode:
@@ -176,7 +172,6 @@ while path:
     path = path.rsplit(os.sep, 1)[0]
 
 config_files.extend(list(reversed(xtra_config)))
-print(config_files)
 app = leip.app(name='mad', set_name='config', base_config = base_config,
                config_files = config_files)
 
