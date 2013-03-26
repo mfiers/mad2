@@ -23,21 +23,35 @@ class MadFile(object):
         self.mad = Yaco.Yaco()
         self.hook_method = dummy_hook_method
         
-        # #set a default hash func - unless something is specified
-        # def sha1(filename):
-        #     with open(self.filename, 'rb') as F:
-        #         sha = hashlib.sha1()
-        #         for buf in iter(lambda: F.read(4096), b''):
-        #             sha.update(buf)
-        #     return sha.hexdigest()
-        # if hash_func is None:
-        #     self.hash_func = sha1
-        # else:
-        #     self.hash_func = hash_func
-
         self.load()
 
+    def render(self, text, base):
 
+        if isinstance(base, Yaco.PolyYaco):
+            data= base.merge()
+        else:
+            data = copy.copy(base)
+
+        data.update(self.mad)
+        data['madname'] = self.madname
+        data['filename'] = self.filename
+
+        rendered = text
+        last = rendered
+        iteration = 0
+        while '{{' in rendered or '{%' in rendered:
+            if iteration > 0 and rendered == last:
+                #no improvement
+                break
+        template = Template(text)   
+        rendered = template.render(data)
+
+        
+    #     if dry:
+    #         lg.warning("Executing: {}".format(rendered))
+    #     else:
+    #         lg.warning("Executing: {}".format(rendered))
+    #         os.system(rendered)
     # def execute(self, cl, dry=False):
     #     """
     #     execute a command line in the context of this object
