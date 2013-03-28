@@ -15,17 +15,34 @@ class MadFile(object):
     
     """
     #def __init__(self, filename, hash_func=None):
-    def __init__(self, filename):
+    def __init__(self, filename, hook_method = dummy_hook_method):
 
         if filename[-4:] == '.mad':
             filename = filename[:-4]
 
-        self.filename = filename
-        self.madname = self.filename + '.mad'
         self.mad = Yaco.Yaco()
-        self.hook_method = dummy_hook_method
-        
+        self.otf = Yaco.Yaco() # on the fly stuff
+
+        self.otf.filename = filename
+        self.otf.madname = self.filename + '.mad'
+
+        self.hook_method = hook_method
         self.load()
+
+
+    def __getitem__(self, item):
+        if item in self.mad:
+            return self.mad[item]
+        elif item in self.otf:
+            return self.otf[item]
+        raise KeyError()
+
+    __getattr__ = __getitem__
+
+    def data(self):
+        data = self.otf.simple()
+        data.update(self.mad.simple())
+        return data
 
     def render(self, text, base):
 
@@ -99,10 +116,10 @@ class MadFile(object):
         if os.path.exists(self.madname):
             lg.debug("loading madfile {0}".format(self.madname))
             self.mad.load(self.madname)
-        self.hook_method('madfile_load')
+            self.hook_method('madfile_load', self)
         
     def save(self):
-        self.hook_method('madfile_save')
+        self.hook_method('madfile_save', self)
         self.mad.save(self.madname)
 
     # def checksum(self):

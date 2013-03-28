@@ -1,6 +1,5 @@
 
 import logging
-import select
 import sys
 import re
 
@@ -17,13 +16,10 @@ def get_mad_file(app, filename):
     Instantiate a mad file & add hooks
     """
     lg.debug("instantiating madfile for {0}".format(filename))
-    madfile = MadFile(filename)
-
-    def run_hook(hook_name):
-        app.run_hook(hook_name, madfile)
-        
-    madfile.hook_method = run_hook
+    madfile = MadFile(filename,
+                hook_method = app.run_hook)
     return madfile
+
 
 
 def get_filenames(args):

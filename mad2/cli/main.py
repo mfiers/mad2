@@ -5,7 +5,6 @@ import os
 import sys
 
 from mad2.util import  get_mad_file, get_all_mad_files
-from mad2.madfile import MadFile
 import leip
 
 lg = logging.getLogger(__name__)
