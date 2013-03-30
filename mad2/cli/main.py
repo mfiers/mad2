@@ -15,20 +15,7 @@ def dispatch():
     """
     app.run()
 
-# ##
-# ## First, define hooks and make them discoverable using the @leip.hook
-# ## decorator. 
-# ##
-# @leip.hook("madfile_save")
-# def check_shasum(app, madfile):
-#     lg.debug("check shasum for %s" % madfile)
-#     command = app.trans.args.command
-#     if command in ['catchup', 'defer']:
-#         #do not do this when cathcing up or deferring
-#         return
-#     if 
-#     if not 'checksum' in madfile.mad:
-#         madfile.defer('mad checksum {{filename}}')
+
 ##
 ## define Mad commands
 ##
@@ -47,31 +34,6 @@ def checksum(app, args):
             continue
         madfile.checksum()
         madfile.save()
-
-@leip.arg('file', nargs='*')
-@leip.command
-def catchup(app, args):
-    """
-    execute all deferred commands
-    """
-    for madfile in get_all_mad_files(app, args):
-        madfile.catchup()
-
-
-@leip.arg('file', nargs='*')
-@leip.arg('command', help='command to execute')
-@leip.command
-def defer(app, args):
-    """
-    defer a command for later execution (using mad catchup)
-
-    An example command would be:
- 
-    """
-    for madfile in get_all_mad_files(app, args):
-        madfile.defer(command)
-        madfile.save()
-
 
 @leip.arg('-f', '--force', action='store_true', help='apply force')
 @leip.arg('file', nargs='*')
