@@ -1,0 +1,4 @@
+#turning of mongodb in this directory
+plugin:
+  mongo:
+    enabled: false
