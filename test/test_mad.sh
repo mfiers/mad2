@@ -1,74 +1,56 @@
 #/bin/bash -el
 
+######################################################################
+# colors
+
+bold="\033[1m"
+red="\033[38;5;197m"
+green="\033[38;5;76m"
+blue="\033[38;5;69m"
+purple="\033[38;5;129m"
+reset="\033[0m"
+
+######################################################################
 #catch errors
 function on_error {
-    echo "Caught an error :("
-    echo "in $0, line: $1"
+    echo -e "${bold}${red}Caught an error ${purple}:(${reset}"
+    echo -e "in ${green}$2${reset}, line: ${red}$1${reset}"
     exit -1
 }
 
-trap 'on_error ${LINENO}' ERR
+trap 'on_error ${LINENO} ${test_script}' ERR
 
 #create dummy data
 function test_data {
-    rm -rf test || true
-    mkdir test
     for x in $(seq -w 1 $1)
     do
 	for y in $(seq -w 1 $x)
 	do 
-	    echo $x $y >> test/a00$x.test
+	    echo $x $y >> a00$x.test
 	done
     done
 }
 
 function start_test {
-    echo "###### Test: $*"
+    echo -e "${red}#### ${green}Test${purple}: ${blue}${*}${reset} ($test_script)"  
 }
 
-#basic functionality
-start_test General
-test_data 1
-cd test
-mad set analyst Mark a001.test
-[[ -f "a001.test.mad" ]] || false
-grep 'analyst: Mark' a001.test.mad > /dev/null
-cd ..
+if [ -z "$1" ]
+then
+    pattern='???.*'
+else    
+    pattern="*${1}*"
+fi
+for test_script in $(find scripts/ -name "$pattern")
+do
+    rm -rf test
+    mkdir test
+    cd test
+    . ../$test_script
+    cd ..
+done
 
-start_test Samplesheet
-test_data 7
-cd test
-mad samplesheet --id identifier --apply ../metadata.xlsx a*.test
-grep age a004.test.mad | grep -q 55
-cd ..
-
-start_test .mad configuration
-test_data 9
-cd test
-mad config testkey testval
-cat .mad | grep -q 'testkey: testval'
-cd ..
-
-start_test Render variables
-test_data 9
-cd test
-mad config testkey testval
-mad set -f interdummy blabloe a008.test
-mad set -f dummy 'interpolate {{testkey}} {{ interdummy }}' a008.test
-grep -q interpolate a008.test.mad 
-mad print dummy a008.test | grep -q "interpolate testval blabloe"
-cd ..
-
-start_test templates
-test_data 9
-cd test
-mad = raw *.test
-grep -q 'category: raw' a009.test.mad
-mad = intermediate *.test
-#should not overwrite!
-grep -q 'category: raw' a009.test.mad
-cd ..
-
+######################################################################
 set +v
 echo "Success."
 
