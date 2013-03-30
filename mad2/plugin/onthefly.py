@@ -5,6 +5,7 @@ import socket
 import leip
 from pwd import getpwuid
 import hashlib
+from mad2.util import get_all_mad_files
 
 lg = logging.getLogger(__name__)
 #lg.setLevel(logging.DEBUG)
@@ -42,3 +43,9 @@ def onthefly(app, madfile):
     madfile.otf.userid = userinfo.pw_name 
     madfile.otf.username = userinfo.pw_gecos
     madfile.otf.qdhash = qd_hash(madfile.filename)
+
+@leip.arg('file', nargs='*')
+@leip.command
+def qdhash(app, args):
+    for madfile in get_all_mad_files(app, args):
+        print("{0}  {1}".format(qd_hash(madfile.filename), madfile.filename))
