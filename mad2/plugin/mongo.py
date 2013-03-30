@@ -11,7 +11,7 @@ from mad2.util import get_all_mad_files
 
 
 lg = logging.getLogger(__name__)
-lg.setLevel(logging.DEBUG)
+#lg.setLevel(logging.DEBUG)
 
 @leip.hook("madfile_save")
 def store_in_mongodb(app, madfile):
