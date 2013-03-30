@@ -1,0 +1,4 @@
+start_test Configuration using .mad
+test_data 9
+mad config testkey testval
+cat .mad | grep -q 'testkey: testval'
