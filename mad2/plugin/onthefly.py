@@ -36,13 +36,15 @@ def qd_hash(filename):
 def onthefly(app, madfile):
     lg.debug("running onthelfy")
     madfile.otf.fullpath = os.path.abspath(madfile.filename)
-    madfile.otf.host = socket.getfqdn()
+    lg.debug("get fqdn")
+    madfile.otf.host = socket.gethostname()
     filestat = os.stat(madfile.filename)
     madfile.otf.filesize = filestat.st_size
     userinfo = getpwuid(filestat.st_uid)
     madfile.otf.userid = userinfo.pw_name 
     madfile.otf.username = userinfo.pw_gecos
     madfile.otf.qdhash = qd_hash(madfile.filename)
+    lg.debug("finished onthefly")
 
 @leip.arg('file', nargs='*')
 @leip.command

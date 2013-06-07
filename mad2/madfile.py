@@ -39,10 +39,17 @@ class MadFile(object):
 
     __getattr__ = __getitem__
 
-    def data(self):
-        data = self.otf.simple()
+    def data(self, on_top_of = {}):
+        """Render data into a dict like format
+        """
+        if isinstance(on_top_of, Yaco.Yaco) or \
+            isinstance(on_top_of, Yaco.PolyYaco):
+            data = on_top_of.simple()
+
+        data.update(self.otf.simple())
         data.update(self.mad.simple())
         return data
+
 
     def render(self, text, base):
 
@@ -66,52 +73,7 @@ class MadFile(object):
             rendered = template.render(data)
         return rendered
 
-    # def execute(self, cl, dry=False):
-    #     """
-    #     execute a command line in the context of this object
-
-    #     :param dry: do a dry run
-    #     :type dry: boolean
-    #     """
-    #     from jinja2 import Template
-    #     import copy
-
-    #     data = copy.copy(self.mad.get_data())
-    #     data['madname'] = self.madname
-    #     data['filename'] = self.filename
-
-    #     template = Template(cl)
-    #     rendered = template.render(data)
-    #     if dry:
-    #         lg.warning("Executing: {}".format(rendered))
-    #     else:
-    #         lg.warning("Executing: {}".format(rendered))
-    #         os.system(rendered)
         
-        
-    # def defer(self, cl):
-    #     lg.debug("deferring for later execution: {0}".format(cl))
-    #     if not 'mad_defer' in  self.mad:
-    #         self.mad.mad_defer = []
-    #     if not cl in self.mad.mad_defer:
-    #         self.mad.mad_defer.append(cl)
-            
-    # def catchup(self):
-    #     """
-    #     execute all commands!
-
-    #     Execute all deferred commands - first step is to extract the
-    #     list of commands that need to run and save the madfile without
-    #     that list. This allows the commands to change the madfile
-    #     without this operation re-overwriting the madfile
-    #     """
-
-    #     cls = self.mad.mad_defer
-    #     self.mad.mad_defer = []
-    #     self.save()
-    #     for cl in cls:
-    #         self.execute(cl)
-
     def load(self):        
         if os.path.exists(self.madname):
             lg.debug("loading madfile {0}".format(self.madname))

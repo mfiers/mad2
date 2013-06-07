@@ -12,7 +12,7 @@ entry_points = {
         ]}
 
 setup(name='mad2',
-      version='0.0.3',
+      version='0.0.4',
       description=DESCRIPTION,
       author='Mark Fiers',
       author_email='mark.fiers42@gmail.com',
@@ -21,6 +21,7 @@ setup(name='mad2',
       packages=find_packages(),
       requires=['Leip',
                 'Yaco',
+                'xlrd',
                 ],
       classifiers = [
         'Development Status :: 4 - Beta',
@@ -33,5 +34,5 @@ setup(name='mad2',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.3',
         ]
-      
+
      )

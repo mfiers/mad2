@@ -30,7 +30,7 @@ def catchup(app, args):
                 madfile.save()
                 execute(app, madfile, command)
 
-        if madfile.execute.queue:
+        if madfile.mad.execute.queue:
             queue = madfile.execute.queue
             if not args.dry:
                 del(madfile.execute.queue)
@@ -74,14 +74,34 @@ def x(app, args):
             if madfile.mad.command and command != madfile.mad.command:
                 if not madfile.mad.execute.queue:
                     madfile.mad.execute.queue = []
-                madfile.execute.queue.append(command)
+                madfile.mad.execute.queue.append(command)
             else:
                 madfile.mad.command = command
             madfile.save()
         else:
             execute(app, madfile, command, dry=args.dry)
 
+@leip.command
+def schedule(app, args):
+    """
+    schedule a command for execution
     
+    working of a number of assumptions here
+    """
 
+    command = args.comm
+    lg.info("command to execute: {0}".format(command))
+
+    for madfile in get_all_mad_files(app, args):
+        if args.save:
+            if madfile.mad.command and command != madfile.mad.command:
+                if not madfile.mad.execute.queue:
+                    madfile.mad.execute.queue = []
+                madfile.mad.execute.queue.append(command)
+            else:
+                madfile.mad.command = command
+            madfile.save()
+        else:
+            execute(app, madfile, command, dry=args.dry)
 
             

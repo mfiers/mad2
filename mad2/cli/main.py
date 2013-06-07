@@ -1,11 +1,16 @@
-
+# -*- coding: utf-8 -*-
 from __future__ import print_function,  unicode_literals
 import logging
 import os
 import sys
+import subprocess
+import tempfile
 
-from mad2.util import  get_mad_file, get_all_mad_files
 import leip
+import Yaco
+
+import mad2.ui
+from mad2.util import  get_mad_file, get_all_mad_files
 
 lg = logging.getLogger(__name__)
 
@@ -14,7 +19,6 @@ def dispatch():
     Run the app - this is the actual entry point
     """
     app.run()
-
 
 ##
 ## define Mad commands
@@ -35,17 +39,73 @@ def checksum(app, args):
         madfile.checksum()
         madfile.save()
 
+
+@leip.arg('file', nargs='?')
+@leip.arg('key', help='key to set')
+@leip.command
+def edit(app, args):
+    """
+    Edit a key in a full screen editor
+    """
+    key = args.key
+    editor = os.environ.get('EDITOR','vim')
+
+    if args.file:
+        madfile = get_mad_file(app, args.file)
+        default = madfile.mad.get(key, "")
+    else:
+        #if no file is defined, use the configuration
+        default = app.conf.get(key, "")
+
+    #write default value to a temp file, and start the editor
+    tmp_file = tempfile.NamedTemporaryFile('wb', delete=False)
+    if default:
+        tmp_file.write(default)
+    tmp_file.close()
+    subprocess.call([editor, tmp_file.name])
+
+    #read tmp file
+    with open(tmp_file.name, 'r') as F:
+        #removing trailing space
+        val = F.read().rstrip()
+
+    if args.file:
+        madfile.mad[key] = val
+        madfile.save()
+    else:
+        app.conf[key] = val
+        app.conf.save()
+
+    os.unlink(tmp_file.name)
+
 @leip.arg('-f', '--force', action='store_true', help='apply force')
 @leip.arg('file', nargs='*')
 @leip.arg('value', help='value to set')
 @leip.arg('key', help='key to set')
 @leip.command
 def set(app, args):
-    for madfile in get_all_mad_files(app, args):
 
-        key = args.key
-        val = args.value
+    key = args.key
+    val = args.value
 
+    madfiles = list(get_all_mad_files(app, args))
+    
+    if val == '-':
+        if len(madfiles) == 1:
+            data = madfiles[0].data(app.conf)
+            default = madfiles[0].mad.get(key, "")
+        else:
+            data = app.conf.simple()
+
+        val = mad2.ui.askUser(key, default, data)
+
+    if len(madfiles) == 0:
+        #apply conf to the local user config if no madfiles are defined
+        app.conf[key] = val
+        app.conf.save()
+        return 
+
+    for madfile in madfiles:
         list_mode = False
         if key[0] == '+':
             list_mode = True
@@ -77,19 +137,28 @@ def set(app, args):
             madfile.mad[key] = oldval + [val]
         else:
             #not listmode
-            madfile.mad[key] = val
-        
+            madfile.mad[key] = val        
         madfile.save()
+
 
 ##
 ## define show
 ##
-@leip.arg('file')
+@leip.arg('-a', '--all', action='store_true')
+@leip.arg('file', nargs='*')
 @leip.command
 def show(app, args):
     lg.debug("processing file: %s" % args.file)
-    madfile = get_mad_file(app, args.file)
-    print(madfile.pretty().decode())
+    if args.file or args.all:
+        data = Yaco.Yaco()
+        if args.file:   
+            madfile = get_mad_file(app, args.file)
+            data.update(madfile.otf)
+            data.update(madfile.mad)
+        data.update(app.conf)
+        print(data.pretty().decode())
+    else:
+        print(madfile.pretty().decode())
         
 ##
 ## define show
@@ -112,6 +181,7 @@ def unset(app, args):
 def find(app, args):
     lg.info("searching dir %s" % args.dir)
 
+
 ## 
 ## Instantiate the app and discover hooks & commands
 ##
@@ -133,7 +203,7 @@ while path:
     path = path.rsplit(os.sep, 1)[0]
 
 config_files.extend(list(reversed(xtra_config)))
-app = leip.app(name='mad', set_name='config', base_config = base_config,
+app = leip.app(name='mad', set_name=None, base_config = base_config,
                config_files = config_files)
 
 #discover hooks in this module!
