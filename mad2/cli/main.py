@@ -181,15 +181,15 @@ base_config = pkg_resources.resource_string('mad2', 'etc/mad.config')
 
 #trail of config files???
 config_files = [
-    ('system', '/etc/mad.config'),
-    ('user', '~/.config/mad/mad.config')]
+    '/etc/mad.config',
+    '~/.config/mad/mad.config']
 
 path = os.getcwd()
 config_no = 0
 xtra_config = []
 while path:
     config_no += 1
-    xtra_config.append(('dd{0}'.format(config_no), os.path.join(path, '.mad')))
+    xtra_config.append(os.path.join(path, '.mad'))
     path = path.rsplit(os.sep, 1)[0]
 
 config_files.extend(list(reversed(xtra_config)))
