@@ -1,4 +1,3 @@
-
 import logging
 import re
 import select
@@ -8,7 +7,7 @@ from mad2.madfile import MadFile
 
 lg = logging.getLogger(__name__)
 
-## 
+##
 ## Helper function - instantiate a madfile, and provide it with a
 ## method to run hooks
 ##
@@ -33,10 +32,9 @@ def get_filenames(args):
                          for x in args.file])
     else:
         #nothing in args - see if there is something on stdin
-        if select.select([sys.stdin,],[],[],0.0)[0]:
-            filenames.extend(
-                    [demad.sub('', x)
-                     for x in sys.stdin.read().split()])
+        filenames.extend(
+                [demad.sub('', x)
+                 for x in sys.stdin.read().split()])
 
     filenames = sorted(list(set(filenames)))
     return filenames
