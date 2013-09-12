@@ -12,7 +12,7 @@ entry_points = {
         ]}
 
 setup(name='mad2',
-      version='0.0.9',
+      version='0.0.11',
       description=DESCRIPTION,
       author='Mark Fiers',
       author_email='mark.fiers42@gmail.com',
@@ -23,6 +23,7 @@ setup(name='mad2',
       requires=['Leip',
                 'Yaco',
                 'xlrd',
+                'Jinja2'
                 ],
       classifiers = [
         'Development Status :: 4 - Beta',
