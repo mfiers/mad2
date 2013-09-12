@@ -1,7 +1,7 @@
 import os
 import logging
 import sys
-from os import path
+
 
 # Put site-packages in front of sys.path so we don't end up importing the global
 # readline.so
@@ -24,7 +24,7 @@ def untangle(txt):
     print("untangle", txt)
     return txt
     #return sysConf.job.conf.interpret(txt)
-    
+
 ## Handle mad directories
 _FSCOMPLETECACHE = {}
 
@@ -66,7 +66,7 @@ def fsCompleter(text, state):
         g("no detangle")
 
     g("utext : " + utext)
-    
+
     #find the last word - to expand
     #string: stored in 'ctext'. The rest is in 'prefix'
     if ' ' in utext:
@@ -78,12 +78,12 @@ def fsCompleter(text, state):
 
     g('prefix :', prefix)
     g('uptext :', uptext)
-        
-    if os.path.isdir(uptext) and not uptext[-1] == '/': 
+
+    if os.path.isdir(uptext) and not uptext[-1] == '/':
         sep = '/'
     else: sep = ''
 
-    
+
     if prefix or uptext[:2] == './' or \
             uptext[:3] == '../' or uptext[0] == '/':
         #try to expand path
@@ -91,7 +91,7 @@ def fsCompleter(text, state):
         pos = glob.glob(uptext + sep + '*')
     else:
         pos = []
-        
+
     np = []
     for i, p in enumerate(pos):
         g("found %s" % p)
@@ -115,7 +115,7 @@ def fsCompleter(text, state):
         return rv
     except IndexError:
         return None
-    
+
 
 def _get_mad_history_file(n):
     """
@@ -148,7 +148,7 @@ def askUser(parameter, default="", data = {}, xtra_history=None):
       history item
     :param xtra_history: extra history file to show to the user
     """
-    
+
     if not default:
         default = ""
     lg.debug("askUser {0} ({1})".format(parameter, default))
@@ -156,7 +156,7 @@ def askUser(parameter, default="", data = {}, xtra_history=None):
     def startup_hook():
         lg.debug("readline starup hook ({0})".format(default))
         readline.insert_text("x" + str(default))
-        readline.redisplay()  
+        readline.redisplay()
 
     if xtra_history:
         history_file = xtra_history
@@ -170,7 +170,7 @@ def askUser(parameter, default="", data = {}, xtra_history=None):
 
     readline.set_completer(fsCompleter)
     readline.parse_and_bind("tab: complete")
-    
+
     if history_file and os.path.exists(history_file):
         readline.read_history_file(history_file)
 
@@ -179,10 +179,10 @@ def askUser(parameter, default="", data = {}, xtra_history=None):
     try:
         vl = raw_input('%s\n> ' % parameter)
     finally:
-        readline.set_startup_hook() 
+        readline.set_startup_hook()
 
     if not xtra_history:
-        # if we're note reading from an xtra history file - 
+        # if we're note reading from an xtra history file -
         # save it to the parameter history
         _check_history_duplicates(vl)
         readline.write_history_file(history_file)
@@ -199,5 +199,5 @@ def askUser(parameter, default="", data = {}, xtra_history=None):
 
         readline.write_history_file(history_file)
 
-    return vl 
-    
+    return vl
+

@@ -21,26 +21,26 @@ def catchup(app, args):
     """
     for madfile in get_all_mad_files(app, args):
 
-        if madfile.mad.command:
-            command = madfile.mad.command
-            if args.dry:
-                print(command)
-            else:
-                del(madfile.mad.command)
-                madfile.save()
-                execute(app, madfile, command)
-
         if madfile.mad.execute.queue:
             queue = madfile.execute.queue
             if not args.dry:
                 del(madfile.execute.queue)
                 madfile.save()
 
+            executed = []
             for command in queue:
                 if args.dry:
                     print(command)
                 else:
-                    execute(app, madfile, command)
+                    cl = execute(app, madfile, command)
+                    executed.append(cl)
+
+            madfile.load()
+            if not madfile.execute.history:
+                madfile.execute.history = []
+            madfile.execute.history.extend(executed)
+            madfile.save()
+
 
 def execute(app, madfile, cl, dry=False):
     """
@@ -56,11 +56,25 @@ def execute(app, madfile, cl, dry=False):
     else:
         os.system(rendered)
 
+    return rendered
+
+def update_history(madfile, executed):
+    """
+    Add a list of commands to the history
+
+    :param executed: a list of executed commands
+    """
+    madfile.load()
+    if not madfile.execute.history:
+        madfile.execute.history = []
+    madfile.execute.history.extend(executed)
+    madfile.save()
+
 
 @leip.arg('file', nargs='*')
 @leip.arg('comm', metavar='command', help='command to execute (use quotes!)')
 @leip.arg('-s', '--save', action='store_true', help='save for later execution')
-@leip.arg('--dry', help = 'dry run', action='store_true')
+@leip.arg('--dry', help='dry run', action='store_true')
 @leip.command
 def x(app, args):
     """
@@ -71,37 +85,9 @@ def x(app, args):
 
     for madfile in get_all_mad_files(app, args):
         if args.save:
-            if madfile.mad.command and command != madfile.mad.command:
-                if not madfile.mad.execute.queue:
-                    madfile.mad.execute.queue = []
-                madfile.mad.execute.queue.append(command)
-            else:
-                madfile.mad.command = command
+            if not madfile.mad.execute.queue:
+                madfile.mad.execute.queue = []
+            madfile.mad.execute.queue.append(command)
             madfile.save()
         else:
-            execute(app, madfile, command, dry=args.dry)
-
-@leip.command
-def schedule(app, args):
-    """
-    schedule a command for execution
-    
-    working of a number of assumptions here
-    """
-
-    command = args.comm
-    lg.info("command to execute: {0}".format(command))
-
-    for madfile in get_all_mad_files(app, args):
-        if args.save:
-            if madfile.mad.command and command != madfile.mad.command:
-                if not madfile.mad.execute.queue:
-                    madfile.mad.execute.queue = []
-                madfile.mad.execute.queue.append(command)
-            else:
-                madfile.mad.command = command
-            madfile.save()
-        else:
-            execute(app, madfile, command, dry=args.dry)
-
-            
+            cl = execute(app, madfile, command, dry=args.dry)

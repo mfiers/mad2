@@ -24,22 +24,6 @@ def dispatch():
 ## define Mad commands
 ##
 
-@leip.arg('-f', '--force', action='store_true', help='apply force')
-@leip.arg('file', nargs='*')
-@leip.command
-def checksum(app, args):
-    """
-    Calculate a checksum
-    """
-    for madfile in get_all_mad_files(app, args):
-        if not args.force and 'checksum' in madfile.mad:
-            #exists - and not forcing
-            lg.warning("Skipping checksum - exists")
-            continue
-        madfile.checksum()
-        madfile.save()
-
-
 @leip.arg('file', nargs='?')
 @leip.arg('key', help='key to set')
 @leip.command
@@ -78,6 +62,7 @@ def edit(app, args):
 
     os.unlink(tmp_file.name)
 
+
 @leip.arg('-f', '--force', action='store_true', help='apply force')
 @leip.arg('file', nargs='*')
 @leip.arg('value', help='value to set')
@@ -89,7 +74,7 @@ def set(app, args):
     val = args.value
 
     madfiles = list(get_all_mad_files(app, args))
-    
+
     if val == '-':
         if len(madfiles) == 1:
             data = madfiles[0].data(app.conf)
@@ -103,30 +88,33 @@ def set(app, args):
         #apply conf to the local user config if no madfiles are defined
         app.conf[key] = val
         app.conf.save()
-        return 
+        return
 
     for madfile in madfiles:
         list_mode = False
         if key[0] == '+':
             list_mode = True
             key = key[1:]
-            
+
         keywords = app.conf.keywords
         if not args.force and not key in keywords:
-            print("invalid key: {0}".format(key))
+            print("invalid key: {0} (use -f?)".format(key))
+            sys.exit(-1)
 
         keyinfo = keywords[key]
         keytype = keyinfo.get('type', 'str')
-        
+
         if list_mode and keyinfo.cardinality == '1':
             print("Cardinality == 1 - no lists!")
             sys.exit(-1)
+        elif keyinfo.cardinality == '+':
+            list_mode = True
 
         if keytype == 'restricted' and \
                 not val in keyinfo.allowed:
             print("Value '{0}' not allowed".format(val))
             sys.exit(-1)
-                    
+
         if list_mode:
             if not key in madfile.mad:
                 oldval = []
@@ -137,7 +125,8 @@ def set(app, args):
             madfile.mad[key] = oldval + [val]
         else:
             #not listmode
-            madfile.mad[key] = val        
+            madfile.mad[key] = val
+
         madfile.save()
 
 
@@ -148,18 +137,12 @@ def set(app, args):
 @leip.arg('file', nargs='*')
 @leip.command
 def show(app, args):
-    lg.debug("processing file: %s" % args.file)
-    if args.file or args.all:
-        data = Yaco.Yaco()
-        if args.file:   
-            madfile = get_mad_file(app, args.file)
-            data.update(madfile.otf)
-            data.update(madfile.mad)
-        data.update(app.conf)
-        print(data.pretty().decode())
-    else:
-        print(madfile.pretty().decode())
-        
+    for madfile in get_all_mad_files(app, args):
+        d = madfile.mad.copy()
+        d.update(madfile.otf)
+        print('---')
+        print(d.pretty().strip())
+
 ##
 ## define show
 ##
@@ -168,12 +151,17 @@ def show(app, args):
 @leip.command
 def unset(app, args):
     lg.debug("unsetting: %s".format(args.key))
+    key = args.key
+    keyinfo = keywords[key]
+    if keyinfo.cardinality =='+':
+        print("Not implemented - unsetting keys with cardinality > 1")
+        sys.exit(-1)
     for madfile in get_all_mad_files(app, args):
         if args.key in madfile.mad:
             del(madfile.mad[args.key])
         madfile.save()
 
-##        
+##
 ## define find
 ##
 @leip.arg('dir', default='.', help='directory to search from')
@@ -182,7 +170,7 @@ def find(app, args):
     lg.info("searching dir %s" % args.dir)
 
 
-## 
+##
 ## Instantiate the app and discover hooks & commands
 ##
 

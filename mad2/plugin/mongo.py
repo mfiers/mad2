@@ -45,14 +45,14 @@ def _get_mng_collection(app):
 @leip.command
 def mongo_show(app, args):
     """
-    Show the associated mongodb record  
+    Show the associated mongodb record
     """
     mng_mad, mng_hist = _get_mng_collection(app)
     for madfile in get_all_mad_files(app, args):
         if 'mongoid' in madfile.mad:
             mongoid = madfile.mad.mongoid
             rec = mng_mad.find_one({'_id': ObjectId(mongoid)})
-            print(madfile.filename)
+            #print(madfile.filename)
             for key in rec:
                 print('- {0}: {1}'.format(key, rec[key]))
-        
+

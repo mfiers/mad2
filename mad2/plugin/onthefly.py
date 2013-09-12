@@ -19,10 +19,10 @@ def qd_hash(filename):
     slim that a duplicate will arise
     """
     sha1sum = hashlib.sha1()
-    filesize = os.stat(filename).st_size 
+    filesize = os.stat(filename).st_size
     if filesize < 10000:
         with open(filename) as F:
-            sha1sum.update(F.read())
+            sha1sum.update(F.read().encode())
     else:
         with open(filename) as F:
             sha1sum.update(F.read(2000))
@@ -41,7 +41,7 @@ def onthefly(app, madfile):
     filestat = os.stat(madfile.filename)
     madfile.otf.filesize = filestat.st_size
     userinfo = getpwuid(filestat.st_uid)
-    madfile.otf.userid = userinfo.pw_name 
+    madfile.otf.userid = userinfo.pw_name
     madfile.otf.username = userinfo.pw_gecos
     madfile.otf.qdhash = qd_hash(madfile.filename)
     lg.debug("finished onthefly")
