@@ -1,10 +1,11 @@
 from __future__ import print_function
+
 import os
 import logging
 import socket
 import leip
 from pwd import getpwuid
-import hashlib
+
 from mad2.util import get_all_mad_files
 
 lg = logging.getLogger(__name__)
