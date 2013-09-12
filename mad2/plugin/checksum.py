@@ -63,6 +63,7 @@ def md5(app, args):
         cs = hashit(hashlib.md5, madfile.filename)
         madfile.mad.hash.md5 = cs
         madfile.save()
+        print(madfile.filename)
 
 @leip.arg('-f', '--force', action='store_true', help='apply force')
 @leip.arg('file', nargs='*')
@@ -79,6 +80,7 @@ def sha1(app, args):
         cs = hashit(hashlib.sha1, madfile.filename)
         madfile.mad.hash.sha1 = cs
         madfile.save()
+        print(madfile.filename)
 
 @leip.arg('-f', '--force', action='store_true', help='apply force')
 @leip.arg('file', nargs='*')
@@ -95,4 +97,5 @@ def qdhash(app, args):
         cs = _get_qdhash(madfile.filename)
         madfile.mad.hash.qdhash = cs
         madfile.save()
+        print(madfile.filename)
 
