@@ -84,11 +84,13 @@ def set(app, args):
 
         val = mad2.ui.askUser(key, default, data)
 
-    if len(madfiles) == 0:
-        #apply conf to the local user config if no madfiles are defined
-        app.conf[key] = val
-        app.conf.save()
-        return
+    lg.warning("processing %d files" % len(madfiles))
+
+    #if len(madfiles) == 0:
+    #    #apply conf to the local user config if no madfiles are defined
+    #    app.conf[key] = val
+    #    app.conf.save()
+    #    return
 
     for madfile in madfiles:
         list_mode = False
