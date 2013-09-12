@@ -36,3 +36,13 @@ for example:
 
     mad set project dummy *.txt
 
+but you could also have executed:
+
+    ls *txt | mad set project dummy
+
+which would also allow something more fancy:
+
+    find -size +1M -name '*.bam' | mad set project dummy
+
+
+
