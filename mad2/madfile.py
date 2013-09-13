@@ -20,13 +20,15 @@ class MadFile(object):
     def __init__(self, filename, hook_method=dummy_hook_method):
 
         if filename[-4:] == '.mad':
-            filename = filename[:-4]
+            if filename[0] == '.':
+                filename = filename[1:-4]
+
 
         self.mad = Yaco.Yaco()
-        self.otf = Yaco.Yaco()  # on the fly stuff
+        self.otf = Yaco.Yaco()  # on the fly calculated information
 
         self.otf.filename = filename
-        self.otf.madname = self.otf.filename + '.mad'
+        self.otf.madname = '.' + self.otf.filename + '.mad'
 
         self.hook_method = hook_method
         self.load()

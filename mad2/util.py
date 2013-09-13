@@ -26,14 +26,15 @@ def get_filenames(args):
     Get all incoming filenames
     """
     filenames = []
-    demad = re.compile(r'\.mad$')
+    demad = re.compile(r'^\.(.*)\.mad$')
+
     if 'file'in args and len(args.file) > 0:
-        filenames.extend([demad.sub('', x)
+        filenames.extend([demad.sub(r'\1', x)
                          for x in args.file])
     else:
         #nothing in args - see if there is something on stdin
         filenames.extend(
-                [demad.sub('', x)
+                [demad.sub(r'\1', x)
                  for x in sys.stdin.read().split()])
 
     filenames = sorted(list(set(filenames)))
