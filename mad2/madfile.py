@@ -19,16 +19,29 @@ class MadFile(object):
     #def __init__(self, filename, hash_func=None):
     def __init__(self, filename, hook_method=dummy_hook_method):
 
-        if filename[-4:] == '.mad':
-            if filename[0] == '.':
-                filename = filename[1:-4]
+        dirname = os.path.dirname(filename)
+        basename = os.path.basename(filename)
 
+        if basename[-4:] == '.mad':
+
+            if basename[0] == '.':
+                basename = basename[1:-4]
+            else:
+                basename = basename[:-4]
+
+            madname = filename
+            filename = os.path.join(dirname, basename)
+        else:
+            filename = filename
+            madname = os.path.join(dirname, '.' + basename + '.mad')
 
         self.mad = Yaco.Yaco()
         self.otf = Yaco.Yaco()  # on the fly calculated information
 
         self.otf.filename = filename
-        self.otf.madname = '.' + self.otf.filename + '.mad'
+        self.otf.dirname = os.path.abspath(dirname)
+        self.otf.basename = basename
+        self.otf.madname = madname
 
         self.hook_method = hook_method
         self.load()
