@@ -15,8 +15,8 @@ def find(app, args):
     (recursively) find and print files already mad annotated
     """
     for dirpath, dirnames, filenames in os.walk('.'):
-        if dirpath == '.' and args.no_recurse:
-            break
         for f in filenames:
             if f[0] == '.' and f[-4:] == '.mad':
                 print(os.path.join(dirpath, f[1:-4]))
+        if dirpath == '.' and args.no_recurse:
+            break
