@@ -84,7 +84,7 @@ def set(app, args):
 
         val = mad2.ui.askUser(key, default, data)
 
-    lg.warning("processing %d files" % len(madfiles))
+    lg.debug("processing %d files" % len(madfiles))
 
     #if len(madfiles) == 0:
     #    #apply conf to the local user config if no madfiles are defined
@@ -154,6 +154,7 @@ def show(app, args):
 def unset(app, args):
     lg.debug("unsetting: %s".format(args.key))
     key = args.key
+    keywords = app.conf.keywords
     keyinfo = keywords[key]
     if keyinfo.cardinality =='+':
         print("Not implemented - unsetting keys with cardinality > 1")
@@ -163,14 +164,16 @@ def unset(app, args):
             del(madfile.mad[args.key])
         madfile.save()
 
-##
-## define find
-##
-@leip.arg('dir', default='.', help='directory to search from')
-@leip.command
-def find(app, args):
-    lg.info("searching dir %s" % args.dir)
 
+@leip.arg('comm', metavar='command', help='command to check')
+@leip.command
+def has_command(app, args):
+    comm = args.comm
+    lg.info("checking if we know command %s" % comm)
+    if comm in app.leip_commands:
+        sys.exit(0)
+    else:
+        sys.exit(-1)
 
 ##
 ## Instantiate the app and discover hooks & commands
@@ -193,7 +196,7 @@ while path:
     path = path.rsplit(os.sep, 1)[0]
 
 config_files.extend(list(reversed(xtra_config)))
-app = leip.app(name='mad', set_name=None, base_config = base_config,
+app = leip.app(name='mad', set_name=None, base_config=base_config,
                config_files = config_files)
 
 #discover hooks in this module!

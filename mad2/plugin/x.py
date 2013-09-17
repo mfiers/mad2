@@ -10,7 +10,6 @@ import leip
 from mad2.util import  get_filenames, get_all_mad_files
 
 lg = logging.getLogger(__name__)
-#lg.setLevel(logging.DEBUG)
 
 @leip.arg('file', nargs='*')
 @leip.arg('--dry', help = 'dry run', action='store_true')

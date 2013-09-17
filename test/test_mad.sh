@@ -20,25 +20,31 @@ function on_error {
 
 trap 'on_error ${LINENO} ${test_script}' ERR
 
+
 #create dummy data
 function test_data {
     for x in $(seq -w 1 $1)
     do
 	for y in $(seq -w 1 $x)
-	do 
+	do
 	    echo $x $y >> a00$x.test
 	done
     done
 }
 
+function skip_test {
+    echo -e "${red}#### ${purple}Skipping${reset} ($test_script)"
+
+}
+
 function start_test {
-    echo -e "${red}#### ${green}Test${purple}: ${blue}${*}${reset} ($test_script)"  
+    echo -e "${red}#### ${green}Test${purple}: ${blue}${*}${reset} ($test_script)"
 }
 
 if [ -z "$1" ]
 then
     pattern='???.*'
-else    
+else
     pattern="*${1}*"
 fi
 for test_script in $(find scripts/ -name "$pattern")
