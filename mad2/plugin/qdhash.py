@@ -36,8 +36,11 @@ def qdhash(app, madfile):
     Calculate a sha1 checksum
     """
     cs = get_qdhash(madfile.filename)
-    if madfile.hash.qdhash:
-        if cs != madfile.hash.qdhash:
+    qdh = madfile.mad.hash.qdhash
+
+    if madfile.mad.hash.qdhash:
+        qdh = madfile.mad.hash.qdhash
+        if qdh != cs:
             print("{} has changed!".format(madfile.filename),
                 file=sys.stderr)
 
