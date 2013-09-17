@@ -139,11 +139,14 @@ def set(app, args):
 @leip.arg('file', nargs='*')
 @leip.command
 def show(app, args):
+    i = 0
     for madfile in get_all_mad_files(app, args):
         d = madfile.mad.copy()
         d.update(madfile.otf)
-        print('---')
+        if i > 0:
+            print('---')
         print(d.pretty().strip())
+        i += 1
 
 ##
 ## define show
