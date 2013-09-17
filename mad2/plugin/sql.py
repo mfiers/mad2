@@ -6,7 +6,12 @@ import leip
 import os
 import re
 
+lg = logging.getLogger(__name__)
+#lg.setLevel(logging.DEBUG)
+
+from sqlalchemy.exc import OperationalError
 from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String
 
@@ -39,20 +44,24 @@ class SqlMadFile(Base):
         self.username = maf.username
 
     def __repr__(self):
-       return "<File('%s','%s', '%s')>" % (self.basename)
+       return "<SqlMadFile('%s')>" % (self.basename)
 
-
-from mad2.util import get_all_mad_files
-
-lg = logging.getLogger(__name__)
-lg.setLevel(logging.DEBUG)
-
-def get_engine():
+def get_session(app):
+    global Base
     enginestr = app.conf.plugin.sql.engine
     engine = create_engine(enginestr)
+    Session = sessionmaker(bind=engine)
+    Base.metadata.create_all(engine)
+    return Session()
 
+def save_madfile(app, madfile):
+    session = get_session(app)
+    M = SqlMadFile(madfile)
+    session.add(M)
+    session.commit()
 
 @leip.hook("madfile_save", 200)
 def sqlsave(app, madfile):
 
     lg.debug("start save to %s" % app.conf.plugin.sql.engine)
+    save_madfile(app, madfile)
