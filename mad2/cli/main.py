@@ -12,6 +12,13 @@ import Yaco
 import mad2.ui
 from mad2.util import  get_mad_file, get_all_mad_files
 
+from signal import signal, SIGPIPE, SIG_DFL
+
+#Ignore SIG_PIPE and don't throw exceptions
+#otherwise it crashes when you pipe into, for example, a head
+#see http://newbebweb.blogspot.be/2012/02/python-head-ioerror-errno-32-broken.html
+#see http://docs.python.org/library/signal.html
+signal(SIGPIPE,SIG_DFL)
 lg = logging.getLogger(__name__)
 
 def dispatch():
@@ -189,6 +196,8 @@ base_config = pkg_resources.resource_string('mad2', 'etc/mad.config')
 config_files = [
     '/etc/mad.config',
     '~/.config/mad/mad.config']
+
+print(config_files)
 
 path = os.getcwd()
 config_no = 0
