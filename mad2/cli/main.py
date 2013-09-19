@@ -2,6 +2,7 @@
 from __future__ import print_function,  unicode_literals
 import logging
 import os
+import pkg_resources
 import sys
 import subprocess
 import tempfile
@@ -189,15 +190,12 @@ def has_command(app, args):
 ## Instantiate the app and discover hooks & commands
 ##
 
-import pkg_resources
 base_config = pkg_resources.resource_string('mad2', 'etc/mad.config')
 
 #trail of config files???
 config_files = [
     '/etc/mad.config',
     '~/.config/mad/mad.config']
-
-print(config_files)
 
 path = os.getcwd()
 config_no = 0
