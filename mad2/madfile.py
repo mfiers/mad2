@@ -38,9 +38,10 @@ class MadFile(object):
             madname = os.path.join(dirname, '.' + basename + '.mad')
 
 
-        if os.path.isdir(basename):
+        if os.path.isdir(filename):
             raise MadNotAFile()
-        if not os.access(madname, os.R_OK):
+
+        if os.path.exists(madname) and not os.access(madname, os.R_OK):
             raise MadPermissionDenied()
 
         self.mad = Yaco.Yaco()
