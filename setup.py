@@ -12,7 +12,7 @@ entry_points = {
         ]}
 
 setup(name='mad2',
-      version='0.0.14',
+      version='0.0.18',
       description=DESCRIPTION,
       author='Mark Fiers',
       author_email='mark.fiers42@gmail.com',
@@ -20,7 +20,8 @@ setup(name='mad2',
       include_package_data=True,
       url='http://mfiers.github.com/mad2',
       packages=find_packages(),
-      requires=['Leip',
+      install_requires=[
+                'Leip',
                 'Yaco',
                 'xlrd',
                 'Jinja2'
@@ -34,5 +35,4 @@ setup(name='mad2',
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
         ]
-
      )
