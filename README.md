@@ -2,13 +2,13 @@
 
 A poor man's system for tracking file metadata.
 
-I guess that any computational lab needs to track the files and data that they are accumulating, certainly if it is accross a wide variety of different projects. Mad2 is a system that allows you to do this with maximum flexibility and minimal demands.
+Many computational labs will needs to track files and data that they are accumulating, certainly if it is accross a wide variety of different filetypes, directories, projects and types of workflows. Mad2 is a lightweight system that allows you to do this, retaining maximum flexibility.
 
-Mad2 allows you to track file metadata, basically, it creates a sidecar file for each file tracked (`.*.mad`). This sidecar contains the metadata in YAML format, which means that it is easy to parse, edit & change (even manually).
+Mad2 allows you to track file metadata, basically, it creates a hidden sidecar file for each file tracked (`.*.mad`). This sidecar contains the metadata in YAML format, which means that it is easy to parse, edit & change (even manually) - no vendor tie in.
 
 ## Why Mad2?
 
- - Because I could not find anything remotely useful. Most of the available software is vastly overblown or involves MS Excel. I wanted something light & simple until something really briljant comes along.
+ - Because I could not find anything remotely useful. Most of the available software is vastly overblown or involves MS Excel. I wanted something light & simple, possibly until something briljant comes along.
  - Sidecar files because:
     - They are easy to copy along with the file (if they need to be copied).
     - Central databases are difficult to keep in sync with actual data. So, I wanted the information as close to the annotated file as possible.
