@@ -3,6 +3,7 @@ import re
 import select
 import sys
 
+from mad2.exception import MadPermissionDenied, MadNotAFile
 from mad2.madfile import MadFile
 
 lg = logging.getLogger(__name__)
@@ -16,10 +17,7 @@ def get_mad_file(app, filename):
     Instantiate a mad file & add hooks
     """
     lg.debug("instantiating madfile for {0}".format(filename))
-    madfile = MadFile(filename,
-                hook_method = app.run_hook)
-    return madfile
-
+    return MadFile(filename, hook_method = app.run_hook)
 
 def get_filenames(args):
     """
@@ -40,12 +38,19 @@ def get_filenames(args):
     filenames = sorted(list(set(filenames)))
     return filenames
 
+
 def get_all_mad_files(app, args):
     """
     get input files from sys.stdin and args.file
     """
     for filename in get_filenames(args):
-        yield get_mad_file(app, filename)
+        try:
+            yield get_mad_file(app, filename)
+        except MadNotAFile:
+            pass
+        except MadPermissionDenied:
+            lg.warning("Permission denied: {}".format(
+                filename))
 
 
 def render(txt, data):

@@ -170,6 +170,7 @@ def unset(app, args):
     if keyinfo.cardinality =='+':
         print("Not implemented - unsetting keys with cardinality > 1")
         sys.exit(-1)
+
     for madfile in get_all_mad_files(app, args):
         if args.key in madfile.mad:
             del(madfile.mad[args.key])
