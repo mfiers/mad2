@@ -5,6 +5,8 @@ import logging
 
 from jinja2 import Template
 
+from mad2.exception import MadPermissionDenied, MadNotAFile
+
 lg = logging.getLogger(__name__)
 
 
@@ -35,6 +37,12 @@ class MadFile(object):
             filename = filename
             madname = os.path.join(dirname, '.' + basename + '.mad')
 
+
+        if os.path.isdir(basename):
+            raise MadNotAFile()
+        if not os.access(madname, os.R_OK):
+            raise MadPermissionDenied()
+
         self.mad = Yaco.Yaco()
         self.otf = Yaco.Yaco()  # on the fly calculated information
 
@@ -44,6 +52,7 @@ class MadFile(object):
         self.otf.madname = madname
 
         self.hook_method = hook_method
+
         self.load()
 
     def __getitem__(self, item):

@@ -169,6 +169,7 @@ def unset(app, args):
     if keyinfo.cardinality =='+':
         print("Not implemented - unsetting keys with cardinality > 1")
         sys.exit(-1)
+
     for madfile in get_all_mad_files(app, args):
         if args.key in madfile.mad:
             del(madfile.mad[args.key])
@@ -196,8 +197,6 @@ base_config = pkg_resources.resource_string('mad2', 'etc/mad.config')
 config_files = [
     '/etc/mad.config',
     '~/.config/mad/mad.config']
-
-print(config_files)
 
 path = os.getcwd()
 config_no = 0
