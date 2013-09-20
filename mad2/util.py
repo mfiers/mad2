@@ -33,7 +33,7 @@ def get_filenames(args):
         #nothing in args - see if there is something on stdin
         filenames.extend(
                 [demad.sub(r'\1', x)
-                 for x in sys.stdin.read().split()])
+                 for x in sys.stdin.read().split("\n") if x != ''])
 
     filenames = sorted(list(set(filenames)))
     return filenames
