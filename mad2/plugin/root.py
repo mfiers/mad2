@@ -17,7 +17,7 @@ def lbconthefly(app, madfile):
         #only do something when root
         return
 
-    lg.critical("changing .madfile permission")
+    lg.debug("changing .madfile permission")
 
     filename = madfile.otf.filename
     madname = madfile.otf.madname
