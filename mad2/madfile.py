@@ -107,6 +107,8 @@ class MadFile(object):
     def save(self):
         self.hook_method('madfile_save', self)
         self.mad.save(self.madname)
+        self.hook_method('madfile_post_save', self)
+
 
     def pretty(self):
         return self.mad.pretty()
