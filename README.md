@@ -18,12 +18,13 @@ Mad2 allows you to track file metadata, basically, it creates a hidden sidecar f
 
 ## Installation
 
-I'd recommend creating a virtual environment - but that is optional.
+I'd recommend creating a virtual environment:
+
+    mkvirtualenv mad
 
 Install using (possibly using `sudo`):
 
     pip install Mad2
-
 
 ## Basic usage
 
@@ -43,5 +44,7 @@ which would allow for something more fancy:
 
     find -size +1M -name '*.bam' | mad set project dummy
 
+or to generate the md5 sums:
 
+    find . -size +1M  | mad md5
 
