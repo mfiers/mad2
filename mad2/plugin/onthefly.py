@@ -72,9 +72,3 @@ def onthefly(app, madfile):
     apply_file_format(app, madfile)
 
     lg.debug("finished onthefly")
-
-@leip.arg('file', nargs='*')
-@leip.command
-def qdhash(app, args):
-    for madfile in get_all_mad_files(app, args):
-        print("{0}  {1}".format(qd_hash(madfile.filename), madfile.filename))
