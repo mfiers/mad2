@@ -35,7 +35,7 @@ def get_qdhash(filename):
     return sha1sum.hexdigest()
 
 
-@leip.hook("madfile_load", 150)
+@leip.hook("madfile_save", 150)
 def hashhelper(app, madfile):
     """
     Calculate a quick&dirty checksum
@@ -54,7 +54,6 @@ def hashhelper(app, madfile):
 
     madfile.mad.hash.qdhash = cs
     madfile.mad.hash.mtime = mtime
-    #print(madfile.mad)
 
 
 def hashit(hasher, filename):
