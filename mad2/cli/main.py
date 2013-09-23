@@ -77,6 +77,19 @@ def edit(app, args):
 @leip.arg('key', help='key to set')
 @leip.command
 def set(app, args):
+    """
+    Set a key/value for one or more files.
+
+    Use this command to set a key value pair for one or more files.
+
+    This command can take the following forms:
+
+        mad set project test genome.fasta
+        ls *.fasta | mad set project test
+        find . -size +10k | mad set project test
+        mad set project - genome.fasta
+        >
+    """
 
     key = args.key
     val = args.value
@@ -84,6 +97,7 @@ def set(app, args):
     madfiles = list(get_all_mad_files(app, args))
 
     if val == '-':
+        #Show a prompt asking for the question
         if len(madfiles) == 1:
             data = madfiles[0].data(app.conf)
             default = madfiles[0].mad.get(key, "")
@@ -138,6 +152,24 @@ def set(app, args):
             madfile.mad[key] = val
 
         madfile.save()
+
+
+
+##
+## define show
+##
+@leip.arg('-a', '--all', action='store_true')
+@leip.arg('file', nargs='*')
+@leip.command
+def show(app, args):
+    i = 0
+    for madfile in get_all_mad_files(app, args):
+        d = madfile.mad.copy()
+        d.update(madfile.otf)
+        if i > 0:
+            print('---')
+        print(d.pretty().strip())
+        i += 1
 
 
 ##
@@ -207,6 +239,7 @@ while path:
     path = path.rsplit(os.sep, 1)[0]
 
 config_files.extend(list(reversed(xtra_config)))
+#print(config_file)
 app = leip.app(name='mad', set_name=None, base_config=base_config,
                config_files = config_files)
 
