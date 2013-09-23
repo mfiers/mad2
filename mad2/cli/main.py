@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function,  unicode_literals
+
+from dateutil.parser import parse as dateparse
 import logging
 import os
 import pkg_resources
@@ -8,7 +10,6 @@ import subprocess
 import tempfile
 
 import leip
-import Yaco
 
 import mad2.ui
 from mad2.util import  get_mad_file, get_all_mad_files
@@ -106,6 +107,7 @@ def set(app, args):
 
         val = mad2.ui.askUser(key, default, data)
 
+
     lg.debug("processing %d files" % len(madfiles))
 
     #if len(madfiles) == 0:
@@ -114,19 +116,50 @@ def set(app, args):
     #    app.conf.save()
     #    return
 
+    keywords = app.conf.keywords
+    if not args.force and not key in keywords:
+        print("invalid key: {0} (use -f?)".format(key))
+        sys.exit(-1)
+
+    keyinfo = keywords[key]
+    keytype = keyinfo.get('type', 'str')
+
+    if keytype == 'int':
+        try:
+            val = int(val)
+        except ValueError:
+            lg.error("Invalid integer: %s" % val)
+            sys.exit(-1)
+    elif keytype == 'float':
+        try:
+            val = float(val)
+        except ValueError:
+            lg.error("Invalid float: %s" % val)
+            sys.exit(-1)
+    elif keytype == 'boolean':
+        if val.lower() in ['1', 'true', 't', 'yes', 'aye', 'y', 'yep']:
+            val = True
+        elif val.lower() in ['0', 'false', 'f', 'no', 'n', 'nope']:
+            val = False
+        else:
+            lg.error("Invalid boolean: %s" % val)
+            sys.exit(-1)
+    elif keytype == 'date':
+        try:
+            val = dateparse(val)
+        except ValueError:
+            lg.error("Invalid date: %s" % val)
+            sys.exit(-1)
+        lg.warning("date interpreted as: %s" % val)
+
+
     for madfile in madfiles:
         list_mode = False
         if key[0] == '+':
             list_mode = True
             key = key[1:]
 
-        keywords = app.conf.keywords
-        if not args.force and not key in keywords:
-            print("invalid key: {0} (use -f?)".format(key))
-            sys.exit(-1)
 
-        keyinfo = keywords[key]
-        keytype = keyinfo.get('type', 'str')
 
         if list_mode and keyinfo.cardinality == '1':
             print("Cardinality == 1 - no lists!")
