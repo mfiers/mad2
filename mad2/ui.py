@@ -155,8 +155,8 @@ def askUser(parameter, default="", data = {}, xtra_history=None):
 
     def startup_hook():
         lg.debug("readline starup hook ({0})".format(default))
-        readline.insert_text("x" + str(default))
-        readline.redisplay()
+        readline.insert_text(str(default))
+        #readline.redisplay()
 
     if xtra_history:
         history_file = xtra_history
@@ -174,10 +174,8 @@ def askUser(parameter, default="", data = {}, xtra_history=None):
     if history_file and os.path.exists(history_file):
         readline.read_history_file(history_file)
 
-
-
     try:
-        vl = raw_input('%s\n> ' % parameter)
+        vl = raw_input('%s: ' % parameter)
     finally:
         readline.set_startup_hook()
 
