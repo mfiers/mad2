@@ -45,4 +45,4 @@ def qdhash(app, madfile):
                 file=sys.stderr)
 
     madfile.mad.hash.qdhash = cs
-    madfile.save()
+    #madfile.save()
