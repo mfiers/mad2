@@ -8,21 +8,6 @@ from mad2.util import get_all_mad_files
 
 lg = logging.getLogger(__name__)
 
-@leip.arg('file', nargs='*')
-@leip.command
-def init(app, args):
-    """
-    Initialize a file, based on extension
-    """
-
-    exti = app.conf.plugin.init.ext
-
-    for madfile in get_all_mad_files(app, args):
-        for ext in exti:
-            extdot = '.' + ext
-            if madfile.filename[-1 * len(extdot):] == extdot:
-                madfile.mad.update(exti[ext])
-        madfile.save()
 
 @leip.arg('file', nargs='*')
 @leip.arg('category', help='category to assign to these files')
