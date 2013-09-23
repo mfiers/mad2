@@ -35,26 +35,32 @@ def get_qdhash(filename):
     return sha1sum.hexdigest()
 
 
-@leip.hook("madfile_save", 150)
+def get_mtime(fn):
+    return datetime.datetime.utcfromtimestamp(
+        os.stat(fn).st_mtime).isoformat()
+
+@leip.hook("madfile_load", 150)
 def hashhelper(app, madfile):
     """
     Calculate a quick&dirty checksum
 
     """
-    cs = get_qdhash(madfile.filename)
 
-    mtime = datetime.datetime.utcfromtimestamp(
-        os.stat(madfile.filename).st_mtime).isoformat()
-
+    may_have_changed = False
     if madfile.mad.hash.qdhash:
+        qmt = madfile.mad.hash.mtime
+        mtime =get_mtime(madfile.filename)
+        if qmt != mtime:
+            may_have_changed = True
+    elif madfile.mad.hash.mtime:
         qdh = madfile.mad.hash.qdhash
+        cs = get_qdhash(madfile.filename)
         if qdh != cs:
-            print("{} has changed!".format(madfile.filename),
-                  file=sys.stdout)
+            may_have_changed = True
 
-    madfile.mad.hash.qdhash = cs
-    madfile.mad.hash.mtime = mtime
-
+    if may_have_changed:
+        print("{} may have changed! (rerun mad sha1)".format(madfile.filename),
+              file=sys.stderr)
 
 def hashit(hasher, filename):
     """
@@ -75,35 +81,26 @@ def hashit(hasher, filename):
 @leip.arg('-f', '--force', action='store_true', help='apply force')
 @leip.arg('file', nargs='*')
 @leip.command
-def md5(app, args):
-    """
-    Calculate a checksum
-    """
-    for madfile in get_all_mad_files(app, args):
-        if not args.force and 'md5' in madfile.mad:
-            #exists - and not forcing
-            lg.warning("Skipping md5 checksum - exists")
-            continue
-        lg.info("Processing %s for md5sum" % madfile.filename)
-        cs = hashit(hashlib.md5, madfile.filename)
-        madfile.mad.hash.md5 = cs
-        madfile.save()
-        print(madfile.filename)
-
-@leip.arg('-f', '--force', action='store_true', help='apply force')
-@leip.arg('file', nargs='*')
-@leip.command
 def sha1(app, args):
     """
     Calculate a sha1 checksum
     """
+
     for madfile in get_all_mad_files(app, args):
         if not args.force and 'sha1' in madfile.mad:
             #exists - and not forcing
             lg.warning("Skipping sha1 checksum - exists")
             continue
+
+        qd = get_qdhash(madfile.filename)
+        mtime =get_mtime(madfile.filename)
+
+        madfile.mad.hash.qdhash = qd
+        madfile.mad.hash.mtime = mtime
+
         cs = hashit(hashlib.sha1, madfile.filename)
         madfile.mad.hash.sha1 = cs
+
         madfile.save()
         print(madfile.filename)
 
