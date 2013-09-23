@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import datetime
 import logging
 import sys
 import os
@@ -19,33 +20,41 @@ def get_qdhash(filename):
     """
     sha1sum = hashlib.sha1()
     filesize = os.stat(filename).st_size
-    if filesize < 5000:
-        with open(filename) as F:
+    if filesize < 20000:
+        with open(filename, 'rb') as F:
             sha1sum.update(F.read().encode())
     else:
-        with open(filename) as F:
-            sha1sum.update(F.read(2000))
-            F.seek(int(filesize * 0.4))
-            sha1sum.update(F.read(2000))
+        with open(filename, 'rb') as F:
+            for x in range(9):
+                F.seek(int(filesize * (x/10.0)))
+                sha1sum.update(F.read(2000))
+
             F.seek(-2000, 2)
             sha1sum.update(F.read())
+
     return sha1sum.hexdigest()
 
 
 @leip.hook("madfile_load", 150)
-def qdhash(app, madfile):
+def hashhelper(app, madfile):
     """
-    Calculate a sha1 checksum
+    Calculate a quick&dirty checksum
+
     """
     cs = get_qdhash(madfile.filename)
+
+    mtime = datetime.datetime.utcfromtimestamp(
+        os.stat(madfile.filename).st_mtime).isoformat()
 
     if madfile.mad.hash.qdhash:
         qdh = madfile.mad.hash.qdhash
         if qdh != cs:
             print("{} has changed!".format(madfile.filename),
-                file=sys.stderr)
+                  file=sys.stdout)
 
     madfile.mad.hash.qdhash = cs
+    madfile.mad.hash.mtime = mtime
+    #print(madfile.mad)
 
 
 def hashit(hasher, filename):
