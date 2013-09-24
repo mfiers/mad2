@@ -242,6 +242,14 @@ def unset(app, args):
         madfile.save()
 
 
+@leip.commandName('key')
+def madkeylist(app, args):
+    kyw = sorted(app.conf.keywords)
+    mxlen = str(max([len(x) for x in kyw])+1)
+    for c in sorted(app.conf.keywords):
+        print(("{:<" + mxlen + "} {}").format(c, app.conf.keywords[c].description))
+
+
 @leip.arg('comm', metavar='command', help='command to check')
 @leip.command
 def has_command(app, args):
