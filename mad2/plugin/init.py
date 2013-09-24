@@ -24,5 +24,5 @@ def apply_category(app, args):
         sys.exit()
     template_data = app.conf.template[args.category]
     for madfile in get_all_mad_files(app, args):
-        madfile.mad.soft_update(template_data)
+        madfile.mad.update(template_data)
         madfile.save()
