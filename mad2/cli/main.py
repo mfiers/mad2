@@ -250,6 +250,21 @@ def madkeylist(app, args):
         print(("{:<" + mxlen + "} {}").format(c, app.conf.keywords[c].description))
 
 
+@leip.commandName('category')
+def madcatlist(app, args):
+    kyw = sorted(app.conf.keywords.category.allowed)
+    mxlen = str(max([len(x) for x in kyw])+1)
+    for c in sorted(kyw):
+        dsc = app.conf.keywords.category.allowed[c]
+        print(("{:<" + mxlen + "} {}").format(c, dsc))
+        tmpl = app.conf.template[c]
+        if not tmpl: continue
+        mxlen2 = str(max([len(x) for x in tmpl])+1)
+        for k in sorted(tmpl):
+            print(("  - {:<" + mxlen2 + "} {}").format(k, app.conf.template[c][k]))
+
+
+
 @leip.arg('comm', metavar='command', help='command to check')
 @leip.command
 def has_command(app, args):
