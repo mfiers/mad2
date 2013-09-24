@@ -12,7 +12,7 @@ entry_points = {
         ]}
 
 setup(name='mad2',
-      version='0.0.24',
+      version='0.0.25',
       description=DESCRIPTION,
       author='Mark Fiers',
       author_email='mark.fiers42@gmail.com',
@@ -24,7 +24,8 @@ setup(name='mad2',
                 'Leip',
                 'Yaco',
                 'xlrd',
-                'Jinja2'
+                'Jinja2',
+                'python-dateutil',
                 ],
       classifiers = [
         'Development Status :: 4 - Beta',
