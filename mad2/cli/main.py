@@ -4,7 +4,6 @@ from __future__ import print_function,  unicode_literals
 from dateutil.parser import parse as dateparse
 import logging
 import os
-import pkg_resources
 import sys
 import subprocess
 import tempfile
@@ -12,6 +11,7 @@ import tempfile
 import leip
 
 import mad2.ui
+
 from mad2.util import  get_mad_file, get_all_mad_files
 
 from signal import signal, SIGPIPE, SIG_DFL
@@ -20,14 +20,17 @@ from signal import signal, SIGPIPE, SIG_DFL
 #otherwise it crashes when you pipe into, for example, a head
 #see http://newbebweb.blogspot.be/2012/02/python-head-ioerror-errno-32-broken.html
 #see http://docs.python.org/library/signal.html
-signal(SIGPIPE,SIG_DFL)
+signal(SIGPIPE, SIG_DFL)
 lg = logging.getLogger(__name__)
+
+
 
 def dispatch():
     """
     Run the app - this is the actual entry point
     """
     app.run()
+
 
 ##
 ## define Mad commands
@@ -279,13 +282,10 @@ def has_command(app, args):
 ## Instantiate the app and discover hooks & commands
 ##
 
-base_config = pkg_resources.resource_string('mad2', 'etc/mad.config')
-
 #trail of config files???
 config_files = [
-    '/etc/mad.config',
-    '~/.config/mad/mad.config']
-
+    '/etc/mad2.config',
+    '~/.config/mad/mad2.config']
 path = os.getcwd()
 config_no = 0
 xtra_config = []
@@ -296,7 +296,7 @@ while path:
 
 config_files.extend(list(reversed(xtra_config)))
 #print(config_file)
-app = leip.app(name='mad', set_name=None, base_config=base_config,
+app = leip.app(name='mad2', set_name=None,
                config_files = config_files)
 
 #discover hooks in this module!
