@@ -1,7 +1,7 @@
 import os
 import logging
 import sys
-import cStringIO
+import glob
 
 
 # Put site-packages in front of sys.path so we don't end up importing the global
@@ -10,17 +10,12 @@ sys.path = (
     [p for p in sys.path if 'site-packages' in p] + \
     [p for p in sys.path if 'site-packages' not in p])
 
-print('startmad')
-
 #hack - otherwise readline outputs anunwanted control
 #character
 if os.environ['TERM'] == 'xterm':
     os.environ['TERM'] = 'vt100'
 
 import readline
-
-print('readlinimport')
-
 
 lg =logging.getLogger(__name__)
 
