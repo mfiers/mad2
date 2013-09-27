@@ -83,10 +83,10 @@ def onthefly(app, madfile):
         filestat.st_atime)
 
     madfile.otf.atime = atime.isoformat()
-    madfile.otf.atime_simple = atime.strftime("%m%y")
+    madfile.otf.atime_simple = atime.strftime("%Y:%m")
 
     madfile.otf.mtime = mtime.isoformat()
-    madfile.otf.mtime_simple = mtime.strftime("%m%y")
+    madfile.otf.mtime_simple = mtime.strftime("%Y:%m")
 
     apply_file_format(app, madfile)
 
