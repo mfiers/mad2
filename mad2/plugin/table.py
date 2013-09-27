@@ -2,13 +2,12 @@ from __future__ import print_function
 
 import collections
 import logging
-import re
 import sys
 
 from Yaco import Yaco
 import leip
 
-from mad2.util import  get_filenames, get_all_mad_files
+from mad2.util import get_all_mad_files
 
 lg = logging.getLogger(__name__)
 
@@ -92,7 +91,7 @@ def groupby(app, args):
         #print(gv, nm, data[tuple(gv)][0] / 1000.)
 
     for k in sorted(data.keys()):
-        rv = list(k)
+        rv = map(str, list(k))
         rv.extend(map(str, data[k]))
         print(args.sep.join(rv))
 
