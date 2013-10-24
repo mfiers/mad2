@@ -189,25 +189,6 @@ def set(app, args):
 
         madfile.save()
 
-
-
-##
-## define show
-##
-@leip.arg('-a', '--all', action='store_true')
-@leip.arg('file', nargs='*')
-@leip.command
-def show(app, args):
-    i = 0
-    for madfile in get_all_mad_files(app, args):
-        d = madfile.mad.copy()
-        d.update(madfile.otf)
-        if i > 0:
-            print('---')
-        print(d.pretty().strip())
-        i += 1
-
-
 ##
 ## define show
 ##
@@ -225,7 +206,7 @@ def show(app, args):
         i += 1
 
 ##
-## define show
+## define unset
 ##
 @leip.arg('file', nargs="+")
 @leip.arg('key')
@@ -267,6 +248,11 @@ def madcatlist(app, args):
             print(("  - {:<" + mxlen2 + "} {}").format(k, app.conf.template[c][k]))
 
 
+@leip.arg('section', help='section to print', default='', nargs='?')
+@leip.command
+def sysconf(app, args):
+    c = app.conf[args.section]
+    print(c.pretty())
 
 @leip.arg('comm', metavar='command', help='command to check')
 @leip.command
@@ -284,8 +270,10 @@ def has_command(app, args):
 
 #trail of config files???
 config_files = [
-    '/etc/mad2.config',
-    '~/.config/mad/mad2.config']
+    'pkg://mad2/etc/*.config',
+    '/etc/mad2/',
+    '~/.config/mad2/']
+
 path = os.getcwd()
 config_no = 0
 xtra_config = []
@@ -295,7 +283,7 @@ while path:
     path = path.rsplit(os.sep, 1)[0]
 
 config_files.extend(list(reversed(xtra_config)))
-#print(config_file)
+
 app = leip.app(name='mad2', set_name=None,
                config_files = config_files)
 
