@@ -1,7 +1,5 @@
-start_test Data types
+start_test Data types - boolean
 test_data 1
-mad set analyst Mark a001.test
-mad set organism arabidopsis a001.test
 
 #
 # boolean
@@ -25,11 +23,4 @@ grep -q 'backup: false' .a001.test.mad
 mad set backup no a001.test
 grep -q 'backup: false' .a001.test.mad
 
-mad set keep 3 a001.test
-grep -q 'keep: 3' .a001.test.mad
 
-mad set backup_until '3 march' a001.test 2>/dev/null
-grep 'backup_until' .a001.test.mad | grep -q '03-03'
-
-mad set backup_until '2014' a001.test 2>/dev/null
-grep 'backup_until' .a001.test.mad | grep -q '2014'

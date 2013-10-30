@@ -43,7 +43,7 @@ function start_test {
 
 if [ -z "$1" ]
 then
-    pattern='???.*'
+    pattern='????.*.sh'
 else
     pattern="*${1}*"
 fi
