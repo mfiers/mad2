@@ -1,33 +1,34 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function,  unicode_literals
 
-from dateutil.parser import parse as dateparse
+from collections import Counter
 import logging
 import os
-import sys
+from signal import signal, SIGPIPE, SIG_DFL
 import subprocess
+import sys
 import tempfile
+
+from dateutil.parser import parse as dateparse
 
 import leip
 
 import mad2.ui
-
 from mad2.util import  get_mad_file, get_all_mad_files
 
-from signal import signal, SIGPIPE, SIG_DFL
 
 #Ignore SIG_PIPE and don't throw exceptions
-#otherwise it crashes when you pipe into, for example, a head
+#otherwise it crashes when you pipe into, for example, head
 #see http://newbebweb.blogspot.be/2012/02/python-head-ioerror-errno-32-broken.html
 #see http://docs.python.org/library/signal.html
 signal(SIGPIPE, SIG_DFL)
+
+
 lg = logging.getLogger(__name__)
-
-
 
 def dispatch():
     """
-    Run the app - this is the actual entry point
+    Run the app - this is the actual application entry point
     """
     app.run()
 
@@ -36,48 +37,11 @@ def dispatch():
 ## define Mad commands
 ##
 
-@leip.arg('file', nargs='?')
-@leip.arg('key', help='key to set')
-@leip.command
-def edit(app, args):
-    """
-    Edit a key in a full screen editor
-    """
-    key = args.key
-    editor = os.environ.get('EDITOR','vim')
-
-    if args.file:
-        madfile = get_mad_file(app, args.file)
-        default = madfile.mad.get(key, "")
-    else:
-        #if no file is defined, use the configuration
-        default = app.conf.get(key, "")
-
-    #write default value to a temp file, and start the editor
-    tmp_file = tempfile.NamedTemporaryFile('wb', delete=False)
-    if default:
-        tmp_file.write(default)
-    tmp_file.close()
-    subprocess.call([editor, tmp_file.name])
-
-    #read tmp file
-    with open(tmp_file.name, 'r') as F:
-        #removing trailing space
-        val = F.read().rstrip()
-
-    if args.file:
-        madfile.mad[key] = val
-        madfile.save()
-    else:
-        app.conf[key] = val
-        app.conf.save()
-
-    os.unlink(tmp_file.name)
-
-
 @leip.arg('-f', '--force', action='store_true', help='apply force')
+@leip.arg('-p', '--prompt', action='store_true', help='show a prompt')
+@leip.arg('-e', '--editor', action='store_true', help='open an editor')
 @leip.arg('file', nargs='*')
-@leip.arg('value', help='value to set')
+@leip.arg('value', help='value to set', nargs='?')
 @leip.arg('key', help='key to set')
 @leip.command
 def set(app, args):
@@ -86,46 +50,93 @@ def set(app, args):
 
     Use this command to set a key value pair for one or more files.
 
-    This command can take the following forms:
+    This command can take the following forms::
 
         mad set project test genome.fasta
         ls *.fasta | mad set project test
         find . -size +10k | mad set project test
-        mad set project - genome.fasta
-        >
+
+
     """
 
     key = args.key
     val = args.value
 
+    if args.prompt or args.editor:
+        if not args.value is None:
+            # when asking for a prompt - the value is assumed to be a file, and
+            # needs to be pushed into args.file
+            args.file = [args.value] + args.file
+
     madfiles = list(get_all_mad_files(app, args))
 
-    if val == '-':
-        #Show a prompt asking for the question
+    if val is None and not (args.prompt or args.editor):
+        args.prompt = True
+
+    if args.prompt or args.editor:
+        # get a value from the user
+
+        default = ''
+        #Show a prompt asking for a value
         if len(madfiles) == 1:
             data = madfiles[0].data(app.conf)
             default = madfiles[0].mad.get(key, "")
         else:
             data = app.conf.simple()
 
-        val = mad2.ui.askUser(key, default, data)
+        if args.prompt:
+            sys.stdin = open('/dev/tty')
+            val = mad2.ui.askUser(key, default, data)
+            sys.stdin = sys.__stdin__
+        elif args.editor:
+            editor = os.environ.get('EDITOR','vim')
+            tmp_file = tempfile.NamedTemporaryFile('wb', delete=False)
+
+            #write default value to the tmp file
+            if default:
+                tmp_file.write(default + "\n")
+            else:
+                tmp_file.write("\n")
+            tmp_file.close()
+
+            tty = open('/dev/tty')
+
+            subprocess.call('{} {}'.format(editor, tmp_file.name),
+                stdin=tty, shell=True)
+            sys.stdin = sys.__stdin__
+
+
+            #read value back in
+            with open(tmp_file.name, 'r') as F:
+                #removing trailing space
+                val = F.read().rstrip()
+            #remove tmp file
+            os.unlink(tmp_file.name)
 
 
     lg.debug("processing %d files" % len(madfiles))
 
-    #if len(madfiles) == 0:
-    #    #apply conf to the local user config if no madfiles are defined
-    #    app.conf[key] = val
-    #    app.conf.save()
-    #    return
+    list_mode = False
+    if key[0] == '+':
+        lg.info("treating {} as a list".format(key))
+        list_mode = True
+        key = key[1:]
 
     keywords = app.conf.keywords
+    keyinfo = keywords[key]
+    keytype = keyinfo.get('type', 'str')
+
+    if list_mode and keyinfo.cardinality == '1':
+        print("Cardinality == 1 - no lists!")
+        sys.exit(-1)
+    elif keyinfo.cardinality == '+':
+        list_mode = True
+
+
     if not args.force and not key in keywords:
         print("invalid key: {0} (use -f?)".format(key))
         sys.exit(-1)
 
-    keyinfo = keywords[key]
-    keytype = keyinfo.get('type', 'str')
 
     if keytype == 'int':
         try:
@@ -155,25 +166,12 @@ def set(app, args):
             sys.exit(-1)
         lg.warning("date interpreted as: %s" % val)
 
+    if keytype == 'restricted' and \
+            not val in keyinfo.allowed:
+        print("Value '{0}' not allowed".format(val))
+        sys.exit(-1)
 
     for madfile in madfiles:
-        list_mode = False
-        if key[0] == '+':
-            list_mode = True
-            key = key[1:]
-
-
-
-        if list_mode and keyinfo.cardinality == '1':
-            print("Cardinality == 1 - no lists!")
-            sys.exit(-1)
-        elif keyinfo.cardinality == '+':
-            list_mode = True
-
-        if keytype == 'restricted' and \
-                not val in keyinfo.allowed:
-            print("Value '{0}' not allowed".format(val))
-            sys.exit(-1)
 
         if list_mode:
             if not key in madfile.mad:
