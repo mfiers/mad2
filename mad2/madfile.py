@@ -21,25 +21,39 @@ class MadFile(object):
     #def __init__(self, filename, hash_func=None):
     def __init__(self, filename, hook_method=dummy_hook_method):
 
+        self.dirmode = False
         dirname = os.path.dirname(filename)
         basename = os.path.basename(filename)
 
-        if basename[-4:] == '.mad':
-
-            if basename[0] == '.':
-                basename = basename[1:-4]
-            else:
-                basename = basename[:-4]
-
-            madname = filename
-            filename = os.path.join(dirname, basename)
-        else:
-            filename = filename
-            madname = os.path.join(dirname, '.' + basename + '.mad')
-
+        lg.debug("madfile for '{}' / '{}'".format(dirname, basename))
 
         if os.path.isdir(filename):
-            raise MadNotAFile()
+            self.dirmode = True
+            maddir = os.path.join(filename, '.mad', 'config')
+            if not os.path.exists(maddir):
+                os.makedirs(maddir)
+            lg.debug("'{}' is a dir".format(filename))
+            madname = os.path.join(maddir, '_root.config')
+            filename = filename
+        else:
+            #looking at a filename
+            if basename[-4:] == '.mad':
+
+                if basename[0] == '.':
+                    basename = basename[1:-4]
+                else:
+                    #old style - prob needs to go
+                    basename = basename[:-4]
+
+                madname = filename
+                filename = os.path.join(dirname, basename)
+            else:
+                filename = filename
+                madname = os.path.join(dirname, '.' + basename + '.mad')
+
+        lg.debug("madname: {}".format(madname))
+        lg.debug("filename: {}".format(filename))
+
 
         if os.path.exists(madname) and not os.access(madname, os.R_OK):
             raise MadPermissionDenied()
