@@ -1,9 +1,13 @@
-start_test Configuration using .mad
+start_test Directory level configuration
 
-if mad has_command config; then
-	test_data 9
-	mad config testkey testval
-	cat .mad | grep -q 'testkey: testval'
-else
-	skip_test
-fi
+test_data 1
+mad set ape kool a001.test
+mad set testkey testval .
+grep -q 'testkey: testval' .mad/config/_root.config
+mad show a001.test | grep -q testkey
+
+mkdir subsub
+cd subsub
+test_data 1
+mad show . | grep -q 'testkey'
+cd ..

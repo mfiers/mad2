@@ -51,9 +51,10 @@ for test_script in $(find scripts/ -name "$pattern")
 do
     rm -rf test
     mkdir test
-    cd test
-    . ../$test_script
-    cd ..
+    (   cd test
+        . ../$test_script
+    )
+    rm -rf test
 done
 
 ######################################################################
