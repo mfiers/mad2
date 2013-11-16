@@ -19,8 +19,8 @@ def root(app, madfile):
 
     lg.debug("changing .madfile permission")
 
-    filename = madfile.otf.filename
-    madname = madfile.otf.madname
+    filename = madfile.all.filename
+    madname = madfile.all.madname
 
     if os.path.exists(madname):
         fstats = os.stat(filename)

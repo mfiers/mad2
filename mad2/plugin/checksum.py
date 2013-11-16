@@ -39,7 +39,7 @@ def get_mtime(fn):
     return datetime.datetime.utcfromtimestamp(
         os.stat(fn).st_mtime).isoformat()
 
-@leip.hook("madfile_load", 150)
+@leip.hook("madfile_post_load", 250)
 def hashhelper(app, madfile):
     """
     Calculate a quick&dirty checksum
@@ -49,17 +49,17 @@ def hashhelper(app, madfile):
     may_have_changed = False
     if madfile.mad.hash.qdhash:
         qmt = madfile.mad.hash.mtime
-        mtime =get_mtime(madfile.filename)
+        mtime =get_mtime(madfile.fullpath)
         if qmt != mtime:
             may_have_changed = True
     elif madfile.mad.hash.mtime:
         qdh = madfile.mad.hash.qdhash
-        cs = get_qdhash(madfile.filename)
+        cs = get_qdhash(madfile.fullpath)
         if qdh != cs:
             may_have_changed = True
 
     if may_have_changed:
-        print("{} may have changed! (rerun mad sha1)".format(madfile.filename),
+        print("{} may have changed! (rerun mad sha1)".format(madfile.fullpath),
               file=sys.stderr)
 
 def hashit(hasher, filename):

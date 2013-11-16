@@ -35,7 +35,7 @@ class SqlMadFile(Base):
     def __init__(self, maf):
         self.basename = maf.basename
         self.dirname = maf.dirname
-        self.filesize = maf.otf.filesize
+        self.filesize = maf.all.filesize
         self.host = maf.host
         self.madname = maf.madname
         self.owner = maf.owner

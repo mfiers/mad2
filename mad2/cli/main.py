@@ -12,8 +12,9 @@ import tempfile
 from dateutil.parser import parse as dateparse
 
 import leip
-
+import Yaco
 import mad2.ui
+
 from mad2.util import  get_mad_file, get_all_mad_files
 
 
@@ -190,17 +191,26 @@ def set(app, args):
 ##
 ## define show
 ##
-@leip.arg('-a', '--all', action='store_true')
+@leip.arg('-y', '--yaml', action='store_true')
 @leip.arg('file', nargs='*')
 @leip.command
 def show(app, args):
     i = 0
+
     for madfile in get_all_mad_files(app, args):
-        d = madfile.mad.copy()
-        d.update(madfile.otf)
         if i > 0:
             print('---')
-        print(d.pretty().strip())
+
+        if args.yaml:
+            print(madfile.all.pretty())
+        else:
+            for k in sorted(madfile.all.keys()):
+                v = madfile.all[k]
+
+                if isinstance(v, Yaco.Yaco):
+                    continue
+                print("{}\t{}".format(k,v))
+
         i += 1
 
 ##
@@ -219,6 +229,8 @@ def unset(app, args):
         sys.exit(-1)
 
     for madfile in get_all_mad_files(app, args):
+        #print(madfile)
+        #print(madfile.mad.pretty())
         if args.key in madfile.mad:
             del(madfile.mad[args.key])
         madfile.save()
@@ -269,18 +281,20 @@ def has_command(app, args):
 #trail of config files???
 config_files = [
     'pkg://mad2/etc/*.config',
-    '/etc/mad2/',
-    '~/.config/mad2/']
+    '/etc/mad/',
+    '~/.config/mad/']
 
-path = os.getcwd()
-config_no = 0
-xtra_config = []
-while path:
-    config_no += 1
-    xtra_config.append(os.path.join(path, '.mad'))
-    path = path.rsplit(os.sep, 1)[0]
+for c in config_files:
+    lg.debug("using config file: {}".format(c))
 
-config_files.extend(list(reversed(xtra_config)))
+# path = os.getcwd()
+# config_no = 0
+# xtra_config = []
+# while path:
+#     config_no += 1
+#     xtra_config.append(os.path.join(path, '.mad'))
+#     path = path.rsplit(os.sep, 1)[0]
+# config_files.extend(list(reversed(xtra_config)))
 
 app = leip.app(name='mad2', set_name=None,
                config_files = config_files)

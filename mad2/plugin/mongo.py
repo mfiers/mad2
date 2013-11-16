@@ -14,7 +14,7 @@ lg = logging.getLogger(__name__)
 #lg.setLevel(logging.DEBUG)
 
 def mongo_prep_mad(mf):
-    d = mf.otf.copy()
+    d = mf.all.copy()
     d.update(mf.mad)
     d.sha1 = d.hash.sha1
     d.mtime = d.hash.mtime

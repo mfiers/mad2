@@ -17,7 +17,7 @@ def get_mad_file(app, filename):
     Instantiate a mad file & add hooks
     """
     lg.debug("instantiating madfile for {0}".format(filename))
-    return MadFile(filename, hook_method = app.run_hook)
+    return MadFile(filename, base=app.conf.madfile, hook_method = app.run_hook)
 
 def get_filenames(args):
     """

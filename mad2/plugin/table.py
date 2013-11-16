@@ -33,7 +33,7 @@ def table(app, args):
         for k in args.key:
             vv = _getter(madfile.mad, k)
             if str(vv) == '{}':
-                vv = _getter(madfile.otf, k)
+                vv = _getter(madfile.all, k)
             if str(vv) == '{}':
                 vv = ""
             values.append(vv)
@@ -70,7 +70,7 @@ def groupby(app, args):
         for g in groups:
             vv = _getter(madfile.mad, g)
             if str(vv) == '{}':
-                vv = _getter(madfile.otf, g)
+                vv = _getter(madfile.all, g)
             if str(vv) == '{}':
                 vv = 'n.d.'
             gv.append(vv)
@@ -78,7 +78,7 @@ def groupby(app, args):
         for n in numers:
             vv = _getter(madfile.mad, n)
             if str(vv) == '{}':
-                vv = _getter(madfile.otf, n)
+                vv = _getter(madfile.all, n)
 
             if str(vv) == '{}':
                 vv = 0
