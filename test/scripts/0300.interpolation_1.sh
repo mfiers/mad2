@@ -9,12 +9,12 @@ mad print dummy a001.test | grep -q "interpolate testval blabloe"
 ### two level interpolation
 
 mad set va 'eine' a001.test
-mad set vb '{{ va }} kleine ' a001.test
-mad set vc '{{ vb }} nachtmusik ' a001.test
+mad set vb '{{ va }} kleine' a001.test
+mad set vc '{{ vb }} nachtmusik' a001.test
 mad print vc a001.test | grep -q '^eine kleine nachtmusik$'
 
 ### use directory configuration
 
 mad set va 'keine' .
 mad unset va a001.test
-mad print vc a001.test | grep -qF '^keine kleine nachtmusik$'
+mad print vc a001.test | grep -q '^keine kleine nachtmusik$'

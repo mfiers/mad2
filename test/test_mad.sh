@@ -1,5 +1,5 @@
 #/bin/bash -el
-
+set -e
 ######################################################################
 # colors
 
@@ -51,14 +51,14 @@ for test_script in $(find scripts/ -name "$pattern")
 do
     rm -rf test
     mkdir test
-    (   cd test
-        . ../$test_script
-    )
+    cd test
+    . ../$test_script
+    cd ..
     rm -rf test
 done
 
 ######################################################################
-set +v
+#set +v
 echo "Success."
 
 
