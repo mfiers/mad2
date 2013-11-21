@@ -22,7 +22,7 @@ def get_qdhash(filename):
     filesize = os.stat(filename).st_size
     if filesize < 20000:
         with open(filename, 'rb') as F:
-            sha1sum.update(F.read().encode())
+            sha1sum.update(F.read())
     else:
         with open(filename, 'rb') as F:
             for x in range(9):
@@ -45,6 +45,10 @@ def hashhelper(app, madfile):
     Calculate a quick&dirty checksum
 
     """
+
+    if madfile.orphan:
+        #cannot deal with orphaned files
+        return
 
     may_have_changed = False
     if madfile.mad.hash.qdhash:
@@ -78,6 +82,7 @@ def hashit(hasher, filename):
     return h.hexdigest()
 
 
+@leip.arg('-e', '--echo', action='store_true', help='echo name')
 @leip.arg('-f', '--force', action='store_true', help='apply force')
 @leip.arg('file', nargs='*')
 @leip.command
@@ -87,6 +92,10 @@ def sha1(app, args):
     """
 
     for madfile in get_all_mad_files(app, args):
+
+        if madfile.all.orphan:
+            return
+
         if not args.force and 'sha1' in madfile.mad:
             #exists - and not forcing
             lg.warning("Skipping sha1 checksum - exists")
@@ -102,6 +111,7 @@ def sha1(app, args):
         madfile.mad.hash.sha1 = cs
 
         madfile.save()
-        print(madfile.filename)
+        if args.echo:
+            print(madfile.filename)
 
 

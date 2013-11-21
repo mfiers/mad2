@@ -67,8 +67,14 @@ def recursive_dir_data(app, madfile):
 
     #print ('x' * 80)
     #find existsing configurations
+    last = here
     while True:
-        assert(os.path.isdir(here))
+        try:
+            assert(os.path.isdir(here))
+        except AssertionError:
+            print(last, here)
+            print(madfile.all.pretty())
+            raise
         here_c = os.path.join(here, '.mad', 'config')
         if os.path.exists(here_c):
             conf.append(here_c)
@@ -76,7 +82,9 @@ def recursive_dir_data(app, madfile):
         parent = os.path.dirname(here)
         if parent == '/': #no config in the root - that would be evil!
             break
+        last = here
         here = parent
+
 
     #load (or get from cache)
     for c in conf[::-1]:
@@ -102,7 +110,11 @@ def onthefly(app, madfile):
     lg.debug("get fqdn")
     madfile.all.host = socket.gethostname()
 
-    filestat = os.stat(madfile.filename)
+    if madfile.orphan:
+        #if file is orphaned - little we can do
+        return
+
+    filestat = os.stat(madfile.all.fullpath)
     madfile.all.filesize = filestat.st_size
     userinfo = getpwuid(filestat.st_uid)
     madfile.all.userid = userinfo.pw_name

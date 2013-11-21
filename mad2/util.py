@@ -8,6 +8,7 @@ from mad2.madfile import MadFile
 
 lg = logging.getLogger(__name__)
 
+
 ##
 ## Helper function - instantiate a madfile, and provide it with a
 ## method to run hooks
@@ -24,20 +25,31 @@ def get_filenames(args):
     Get all incoming filenames
     """
     filenames = []
-    demad = re.compile(r'^\.(.*)\.mad$')
+
+    demad = re.compile(r'^(?P<path>.*?/)?\.(?P<fn>[^/].+)\.mad$')
+    def demadder(m):
+        if not m.group('path') is None:
+            return '{}{}'.format(m.group('path'), m.group('fn'))
+        else:
+            return m.group('fn')
 
     if 'file'in args and len(args.file) > 0:
-        filenames.extend([demad.sub(r'\1', x)
-                         for x in args.file])
+        filenames.extend([demad.sub(demadder, x)
+                         for x in args.file
+                         if (len(x) > 0 and not '.mad/' in x)])
     else:
         #nothing in args - see if there is something on stdin
         filenames.extend(
-                [demad.sub(r'\1', x)
-                 for x in sys.stdin.read().split("\n") if x != ''])
+                [demad.sub(demadder, x)
+                 for x in sys.stdin.read().split("\n")
+                 if (len(x) > 0 and not '.mad/' in x)])
 
     filenames = sorted(list(set(filenames)))
-    return filenames
 
+    #remove directories as well
+    filenames = [x for x in filenames if not '.mad' in x]
+
+    return filenames
 
 def get_all_mad_files(app, args):
     """
@@ -52,6 +64,13 @@ def get_all_mad_files(app, args):
             lg.warning("Permission denied: {}".format(
                 filename))
 
+def boolify(v):
+    """
+    return a boolean from a string
+    yes, y, true, True, t, 1 -> True
+    otherwise -> False
+    """
+    return v.lower() in ['yes', 'y', 'true', 't', '1']
 
 def render(txt, data):
 

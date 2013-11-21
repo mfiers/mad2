@@ -66,6 +66,10 @@ class MadFile(object):
         self.all.basename = basename
         self.all.madname = madname
 
+        if os.path.exists(madname) and not os.path.exists(filename):
+            lg.warning("Orphaned mad file: {}".format(madname))
+            self.all.orphan = True
+
         self.hook_method = hook_method
 
         self.load()
@@ -127,7 +131,14 @@ class MadFile(object):
 
     def save(self):
         self.hook_method('madfile_save', self)
-        self.mad.save(self.madname)
+        try:
+            self.mad.save(self.madname)
+        except IOError, e:
+            if e.errno == 63:
+                lg.warning("Can't save - filename too long: {}".format(self.fullpath))
+            else:
+                raise
+
         self.hook_method('madfile_post_save', self)
 
     def pretty(self):
