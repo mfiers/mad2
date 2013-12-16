@@ -1,4 +1,5 @@
 import logging
+import os
 import re
 import select
 import sys
@@ -19,6 +20,13 @@ def get_mad_file(app, filename):
     """
     lg.debug("instantiating madfile for {0}".format(filename))
     return MadFile(filename, base=app.conf.madfile, hook_method = app.run_hook)
+
+def to_mad(fn):
+    if '/' in fn:
+        a, b = fn.rsplit('/')
+        return os.path.join(a, '.{}.mad'.format(b))
+    else:
+        return '.{}.mad'.format(fn)
 
 def get_filenames(args):
     """

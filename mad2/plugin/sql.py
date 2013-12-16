@@ -6,6 +6,8 @@ import leip
 import os
 import re
 
+import Yaco
+
 lg = logging.getLogger(__name__)
 #lg.setLevel(logging.DEBUG)
 
@@ -17,34 +19,49 @@ from sqlalchemy import Column, Integer, String
 
 Base = declarative_base()
 
+class SqlMadInfo(Base):
+    __tablename__ = 'madinfo'
+    id = Column(Integer, primary_key=True)
+    madfile = Column(Integer, index=True)
+    key = Column(String, index=True)
+    val = Column(String, index=True)
+
+    def __init__(self, madfileId, key, value):
+        self.madfile = madfileId
+        self.key = key
+        self.val = str(value)
+
 class SqlMadFile(Base):
     __tablename__ = 'madfile'
 
     id = Column(Integer, primary_key=True)
-
-    basename = Column(String)
-    dirname = Column(String)
-    filesize = Column(Integer)
-    host = Column(String)
-    madname = Column(String)
-    owner = Column(String)
-    project = Column(String)
-    userid = Column(String)
-    username = Column(String)
+    sha1 = Column(String, index=True)
+    basename = Column(String, index=True)
+    dirname = Column(String, index=True)
+    host = Column(String, index=True)
+    #filesize = Column(Integer)
+    #madname = Column(String)
+    #userid = Column(String)
+    #userid = Column(String)
+    #username = Column(String)
 
     def __init__(self, maf):
+        if maf.hash.has_key('sha_1'):
+            self.sha1 = maf.hash.sha1
+        else:
+            self.sha1 = ""
         self.basename = maf.basename
         self.dirname = maf.dirname
-        self.filesize = maf.all.filesize
         self.host = maf.host
-        self.madname = maf.madname
-        self.owner = maf.owner
-        self.project = maf.project
-        self.userid = maf.userid
-        self.username = maf.username
+        
+        #self.filesize = maf.all.filesize
+        #self.madname = maf.madname
+        #self.owner = maf.username
+        #self.userid = maf.userid
+        #self.username = maf.username
 
     def __repr__(self):
-       return "<SqlMadFile('%s')>" % (self.basename)
+       return "<SqlMadFile('%s|%s')>" % (self.basename, self.id)
 
 def get_session(app):
     global Base
@@ -55,11 +72,43 @@ def get_session(app):
     Base.metadata.create_all(engine)
     return Session()
 
-def save_madfile(app, madfile):
+def save_madfile(app, maf):
+    lg.warning("saving {}".format(maf.basename))
     session = get_session(app)
-    M = SqlMadFile(madfile)
-    session.add(M)
+    allrecs = session.query(SqlMadFile)\
+            .filter(SqlMadFile.basename==maf.basename)\
+            .filter(SqlMadFile.dirname==maf.dirname)\
+            .filter(SqlMadFile.host==maf.host).all()
+    if len(allrecs) > 1:
+        lg.error("duplicates in database :(")
+        m = allrecs[0]
+    elif len(allrecs) == 0:
+        m = SqlMadFile(maf)
+        session.add(m)
+        session.commit()
+    else:
+        m = allrecs[0]
+
+    #remove all old key/value pairs
+
+    session.query(SqlMadInfo)\
+            .filter(SqlMadInfo.madfile == m.id)\
+            .delete()
     session.commit()
+
+    for ky in maf.keys():
+        vl = maf.get(ky, None)
+        if vl is None: 
+            continue
+        if isinstance(vl, Yaco.Yaco):
+            continue
+        #print(m.id, ky, vl)
+        m = SqlMadInfo(m.id, ky, vl)
+        session.add(m)
+    session.commit()
+
+    return
+
 
 @leip.hook("madfile_save", 200)
 def sqlsave(app, madfile):

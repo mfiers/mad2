@@ -24,7 +24,7 @@ def execute(app, madfile, cl, dry=False):
         t = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         h = madfile.mad.execute.history[t]
         h.cl = cl
-        madfile.save()#
+        madfile.save()
 #        madfile.execute.history:
 #           madfile.execute.history = []           madfile.execute.history.extend(executed)
 #     madfile.save()

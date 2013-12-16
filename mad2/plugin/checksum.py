@@ -39,17 +39,7 @@ def get_mtime(fn):
     return datetime.datetime.utcfromtimestamp(
         os.stat(fn).st_mtime).isoformat()
 
-@leip.hook("madfile_post_load", 250)
-def hashhelper(app, madfile):
-    """
-    Calculate a quick&dirty checksum
-
-    """
-
-    if madfile.orphan:
-        #cannot deal with orphaned files
-        return
-
+def may_have_changed(madfile):
     may_have_changed = False
     if madfile.mad.hash.qdhash:
         qmt = madfile.mad.hash.mtime
@@ -61,8 +51,21 @@ def hashhelper(app, madfile):
         cs = get_qdhash(madfile.fullpath)
         if qdh != cs:
             may_have_changed = True
+    return may_have_changed
 
-    if may_have_changed:
+@leip.hook("madfile_post_load", 250)
+def hashhelper(app, madfile):
+    """
+    Calculate a quick&dirty checksum
+
+    """
+
+    if madfile.orphan:
+        #cannot deal with orphaned files
+        return
+
+    changed = may_have_changed(madfile)
+    if changed and not 'sha1' in sys.argv:
         print("{} may have changed! (rerun mad sha1)".format(madfile.fullpath),
               file=sys.stderr)
 
@@ -96,10 +99,14 @@ def sha1(app, args):
         if madfile.all.orphan:
             return
 
-        if not args.force and 'sha1' in madfile.mad:
+        changed = may_have_changed(madfile)
+
+        if not args.force and 'sha1' in madfile.hash and not changed:
             #exists - and not forcing
-            lg.warning("Skipping sha1 checksum - exists")
+            lg.warning("Skipping sha1 checksum - exists & likely unchanged")
             continue
+
+        lg.warning("Skipping sha1 checksum - exists & likely unchanged")
 
         qd = get_qdhash(madfile.filename)
         mtime =get_mtime(madfile.filename)
@@ -111,6 +118,7 @@ def sha1(app, args):
         madfile.mad.hash.sha1 = cs
 
         madfile.save()
+
         if args.echo:
             print(madfile.filename)
 

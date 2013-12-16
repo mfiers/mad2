@@ -18,8 +18,8 @@ class MadFile(object):
     """
 
     """
-    #def __init__(self, filename, hash_func=None):
-    def __init__(self, filename, base=Yaco.Yaco(), hook_method=dummy_hook_method):
+    def __init__(self, filename, base=Yaco.Yaco(), 
+            hook_method=dummy_hook_method):
 
         self.dirmode = False
         dirname = os.path.dirname(filename)
@@ -76,6 +76,9 @@ class MadFile(object):
 
     def __str__(self):
         return '<mad2.madfile.MadFile {}>'.format(self.all.madname)
+
+    def get(self, key, default):
+        return self.all.get(key, default)
 
     def __getitem__(self, item):
         return self.all[item]
@@ -135,7 +138,8 @@ class MadFile(object):
             self.mad.save(self.madname)
         except IOError, e:
             if e.errno == 63:
-                lg.warning("Can't save - filename too long: {}".format(self.fullpath))
+                lg.warning("Can't save - filename too long: {}"\
+                        .format(self.fullpath))
             else:
                 raise
 
