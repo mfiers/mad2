@@ -47,7 +47,7 @@ then
 else
     pattern="*${1}*"
 fi
-for test_script in $(find scripts/ -name "$pattern")
+for test_script in $(find scripts/ -name "${pattern}" | grep "\.sh$")
 do
     rm -rf test
     mkdir test
