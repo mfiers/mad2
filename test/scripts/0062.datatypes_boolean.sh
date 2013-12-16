@@ -23,4 +23,3 @@ grep -q 'backup: false' .a001.test.mad
 mad set backup no a001.test
 grep -q 'backup: false' .a001.test.mad
 
-
