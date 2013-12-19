@@ -24,7 +24,6 @@ from mad2.util import  get_mad_file, get_all_mad_files
 #see http://docs.python.org/library/signal.html
 signal(SIGPIPE, SIG_DFL)
 
-
 lg = logging.getLogger(__name__)
 
 def dispatch():
@@ -69,8 +68,10 @@ def set(app, args):
             # needs to be pushed into args.file
             args.file = [args.value] + args.file
 
-    madfiles = list(get_all_mad_files(app, args))
-    print (madfiles)
+    madfiles = []
+    for m in get_all_mad_files(app, args):
+        #print ('xxxxxxx', m, m.madname)
+        madfiles.append(m)
 
     if val is None and not (args.prompt or args.editor):
         args.prompt = True
@@ -174,7 +175,7 @@ def set(app, args):
         sys.exit(-1)
 
     for madfile in madfiles:
-
+        lg.debug('madmadmad')
         if list_mode:
             if not key in madfile.mad:
                 oldval = []

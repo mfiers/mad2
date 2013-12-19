@@ -66,14 +66,14 @@ class SqlMadFile(Base):
 def get_session(app):
     global Base
     enginestr = app.conf.plugin.sql.engine
-    lg.warning("opening db @ {}".format(enginestr))
+    lg.debug("opening db @ {}".format(enginestr))
     engine = create_engine(enginestr)
     Session = sessionmaker(bind=engine)
     Base.metadata.create_all(engine)
     return Session()
 
 def save_madfile(app, maf):
-    lg.warning("saving {}".format(maf.basename))
+    lg.debug("saving {}".format(maf.basename))
     session = get_session(app)
     allrecs = session.query(SqlMadFile)\
             .filter(SqlMadFile.basename==maf.basename)\
@@ -113,5 +113,5 @@ def save_madfile(app, maf):
 @leip.hook("madfile_save", 200)
 def sqlsave(app, madfile):
 
-    lg.critical("start save to %s" % app.conf.plugin.sql.engine)
+    lg.debug("start save to %s" % app.conf.plugin.sql.engine)
     save_madfile(app, madfile)
