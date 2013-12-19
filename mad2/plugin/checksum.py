@@ -87,6 +87,8 @@ def hashit(hasher, filename):
 
 @leip.arg('-e', '--echo', action='store_true', help='echo name')
 @leip.arg('-f', '--force', action='store_true', help='apply force')
+@leip.arg('-w', '--warn', action='store_true', help='warn when skipping')
+
 @leip.arg('file', nargs='*')
 @leip.command
 def sha1(app, args):
@@ -101,12 +103,14 @@ def sha1(app, args):
 
         changed = may_have_changed(madfile)
 
-        if not args.force and 'sha1' in madfile.hash and not changed:
-            #exists - and not forcing
-            lg.warning("Skipping sha1 checksum - exists & likely unchanged")
-            continue
+        if not args.force and 'sha1':
+            if madfile.hash.sha1:
+                if not changed:
+                    if args.warn:
+                        #exists - and not forcing
+                        lg.warning("Skipping sha1 checksum - exists & likely unchanged")
+                    continue
 
-        lg.warning("Skipping sha1 checksum - exists & likely unchanged")
 
         qd = get_qdhash(madfile.filename)
         mtime =get_mtime(madfile.filename)
