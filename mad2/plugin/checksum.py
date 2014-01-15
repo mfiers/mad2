@@ -101,7 +101,7 @@ def sha1(app, args):
 
         changed = may_have_changed(madfile)
 
-        if not args.force and 'sha1' in madfile.hash and not changed:
+        if (not args.force) and 'sha1' in madfile.hash and not changed:
             #exists - and not forcing
             lg.warning("Skipping sha1 checksum - exists & likely unchanged")
             continue
