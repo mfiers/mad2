@@ -81,7 +81,8 @@ def select(app, args):
             continue
 
         if compare_func(kv):
-            print(madfile.fullpath)
+            print(madfile.filename)
+#            print(madfile.fullpath)
 
 
 
