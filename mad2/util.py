@@ -8,7 +8,7 @@ from mad2.exception import MadPermissionDenied, MadNotAFile
 from mad2.madfile import MadFile
 
 lg = logging.getLogger(__name__)
-
+#lg.setLevel(logging.DEBUG)
 
 ##
 ## Helper function - instantiate a madfile, and provide it with a
@@ -18,8 +18,10 @@ def get_mad_file(app, filename):
     """
     Instantiate a mad file & add hooks
     """
+    global CACHE
+
     lg.debug("instantiating madfile for {0}".format(filename))
-    return MadFile(filename, base=app.conf.madfile, hook_method = app.run_hook)
+    return  MadFile(filename, base=app.conf.madfile, hook_method=app.run_hook)
 
 def to_mad(fn):
     if '/' in fn:
@@ -65,7 +67,9 @@ def get_all_mad_files(app, args):
     """
     for filename in get_filenames(args):
         try:
-            yield get_mad_file(app, filename)
+            maf = get_mad_file(app, filename)
+            #print(maf.madname)
+            yield maf
         except MadNotAFile:
             pass
         except MadPermissionDenied:

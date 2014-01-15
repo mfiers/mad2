@@ -1,5 +1,5 @@
-import os
 import logging
+import os
 
 import jinja2
 
@@ -8,24 +8,27 @@ import Yaco
 from mad2.exception import MadPermissionDenied
 
 lg = logging.getLogger(__name__)
+#lg.setLevel(logging.DEBUG)
 
-BASEMAD = None
 
 def dummy_hook_method(*args, **kw):
     return None
+
 
 class MadFile(object):
     """
 
     """
-    def __init__(self, filename, base=Yaco.Yaco(), 
-            hook_method=dummy_hook_method):
+    def __init__(self, 
+                 filename, 
+                 base=Yaco.Yaco(), 
+                 hook_method=dummy_hook_method):
 
         self.dirmode = False
         dirname = os.path.dirname(filename)
         basename = os.path.basename(filename)
 
-        lg.debug("madfile for '{}' / '{}'".format(dirname, basename))
+        lg.debug("Instantiating a madfile for '{}' / '{}'".format(dirname, basename))
 
         if os.path.isdir(filename):
             self.dirmode = True
@@ -51,14 +54,17 @@ class MadFile(object):
                 filename = filename
                 madname = os.path.join(dirname, '.' + basename + '.mad')
 
-        lg.debug("madname: {}".format(madname))
-        lg.debug("filename: {}".format(filename))
-
+        #lg.debug("madname: {}".format(madname))
+        #lg.debug("filename: {}".format(filename))
 
         if os.path.exists(madname) and not os.access(madname, os.R_OK):
             raise MadPermissionDenied()
 
-        self.all = base
+        #must make a copy - otherwise we're overwriting the same 
+        #object for the next instantiation
+        self.all = base.copy()
+
+        #for local data
         self.mad = Yaco.Yaco()
 
         self.all.filename = filename
@@ -102,7 +108,6 @@ class MadFile(object):
         return data
 
     def render(self, text, base):
-        #print(text)
 
         jenv = jinja2.Environment(
             undefined=jinja2.DebugUndefined )
@@ -123,6 +128,8 @@ class MadFile(object):
         return rendered
 
     def load(self):
+        #print(self.madname)
+
         self.hook_method('madfile_pre_load', self)
         if os.path.exists(self.madname):
             lg.debug("loading madfile {0}".format(self.madname))
@@ -135,6 +142,7 @@ class MadFile(object):
     def save(self):
         self.hook_method('madfile_save', self)
         try:
+            lg.debug("saving to %s" % self.madname)
             self.mad.save(self.madname)
         except IOError, e:
             if e.errno == 63:
