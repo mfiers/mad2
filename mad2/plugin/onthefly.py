@@ -116,9 +116,15 @@ def onthefly(app, madfile):
 
     filestat = os.stat(madfile.all.fullpath)
     madfile.all.filesize = filestat.st_size
-    userinfo = getpwuid(filestat.st_uid)
-    madfile.all.userid = userinfo.pw_name
-    madfile.all.username = userinfo.pw_gecos
+    try:
+        userinfo = getpwuid(filestat.st_uid)
+    except KeyError:
+        #cannot find username based on uid
+        madfile.all.userid = str(filestat.st_uid)
+        madfile.all.username = str(filestat.st_uid)
+    else:
+        madfile.all.userid = userinfo.pw_name
+        madfile.all.username = userinfo.pw_gecos
 
     mtime = datetime.utcfromtimestamp(
         filestat.st_mtime)

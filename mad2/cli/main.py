@@ -37,6 +37,7 @@ def dispatch():
 ## define Mad commands
 ##
 
+
 @leip.arg('-f', '--force', action='store_true', help='apply force')
 @leip.arg('-p', '--prompt', action='store_true', help='show a prompt')
 @leip.arg('-e', '--editor', action='store_true', help='open an editor')
