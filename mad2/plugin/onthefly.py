@@ -110,6 +110,8 @@ def onthefly(app, madfile):
     lg.debug("get fqdn")
     madfile.all.host = socket.gethostname()
 
+    madfile.all.uri = "file://{}{}".format(
+        madfile.all.host, madfile.all.fullpath)
     if madfile.orphan:
         #if file is orphaned - little we can do
         return
