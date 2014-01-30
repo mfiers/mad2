@@ -19,9 +19,9 @@ class MadFile(object):
     """
 
     """
-    def __init__(self, 
-                 filename, 
-                 base=Yaco.Yaco(), 
+    def __init__(self,
+                 filename,
+                 base=Yaco.Yaco(),
                  hook_method=dummy_hook_method):
 
         self.dirmode = False
@@ -60,7 +60,7 @@ class MadFile(object):
         if os.path.exists(madname) and not os.access(madname, os.R_OK):
             raise MadPermissionDenied()
 
-        #must make a copy - otherwise we're overwriting the same 
+        #must make a copy - otherwise we're overwriting the same
         #object for the next instantiation
         self.all = base.copy()
 
@@ -95,6 +95,15 @@ class MadFile(object):
         return self.all
         sys.exit()
 
+    def simple(self):
+        rv = dict(self.all)
+        kys = rv.keys()
+        for k in kys:
+            if not rv[k]:
+                del rv[k]
+            elif isinstance(rv[k], dict):
+                del rv[k]
+        return rv
     def data(self, on_top_of={}):
         """Render data into a dict like format
         """
