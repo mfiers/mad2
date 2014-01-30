@@ -17,7 +17,6 @@ import mad2.ui
 
 from mad2.util import  get_mad_file, get_all_mad_files
 
-
 #Ignore SIG_PIPE and don't throw exceptions
 #otherwise it crashes when you pipe into, for example, head
 #see http://newbebweb.blogspot.be/2012/02/python-head-ioerror-errno-32-broken.html
@@ -122,7 +121,7 @@ def set(app, args):
 
     list_mode = False
     if key[0] == '+':
-        lg.info("treating {} as a list".format(key))
+        lg.debug("treating {} as a list".format(key))
         list_mode = True
         key = key[1:]
 
@@ -271,7 +270,7 @@ def sysconf(app, args):
 @leip.command
 def has_command(app, args):
     comm = args.comm
-    lg.info("checking if we know command %s" % comm)
+    lg.debug("checking if we know command %s" % comm)
     if comm in app.leip_commands:
         sys.exit(0)
     else:
