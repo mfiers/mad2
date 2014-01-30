@@ -12,7 +12,7 @@ mad set xref test2 a001.test
 #do not want to see '+xref'mad set
 if grep -F '+xref' .a001.test.mad; then false; else true; fi
 
-mad set category raw a001.test
+mad set status delete a001.test
 #category does not allow lists - so this should fail:
-(if mad set +category raw a001.test; then false; else true; fi) > /dev/null
+(if mad set +status archive a001.test; then false; else true; fi) > /dev/null
 

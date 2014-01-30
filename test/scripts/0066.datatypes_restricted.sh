@@ -6,7 +6,9 @@ test_data 1
 #
 
 #this is ok,
-mad set category raw a001.test
+mad set status delete a001.test
 
 #this should not be allowed
-( if mad set category not_allowed a001.test; then false; else true; fi ) > /dev/null
+( if mad set status not_allowed a001.test;
+    then false;
+    else true; fi ) > /dev/null
