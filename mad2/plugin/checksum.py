@@ -59,12 +59,12 @@ def hashhelper(app, madfile):
     Calculate a quick&dirty checksum
 
     """
-
     if madfile.orphan:
         #cannot deal with orphaned files
         return
 
     changed = may_have_changed(madfile)
+
     if changed and not 'sha1' in sys.argv:
         print("{} may have changed! (rerun mad sha1)".format(madfile.fullpath),
               file=sys.stderr)
