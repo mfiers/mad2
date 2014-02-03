@@ -80,36 +80,39 @@ class MadFile(object):
 
         self.load()
 
+    def collapse(self):
+        rv = self.all.copy()
+        rv.update(self.mad)
+        return rv
 
     def __str__(self):
         return '<mad2.madfile.MadFile {}>'.format(self.all.madname)
 
     def get(self, key, default):
-        if key in self.mad:
-            return self.mad.get(key)
+        data = self.collapse()
+        return data.get(key, default)
 
-        return self.all.get(key, default)
-
-    def __getitem__(self, item):
-        if item in self.mad:
-            return self.mad[item]
-        else:
-            return self.all[item]
+    def __contains__(self, key):
+        data = data.collapse()
+        return key in data
+    def __getitem__(self, key):
+        data = self.collapse()
+        return data.__getitem__(key)
 
     __getattr__ = __getitem__
 
     def keys(self):
-        return self.all
-        sys.exit()
+        data = self.collapse()
+        return data.keys()
 
     def simple(self):
-        rv = dict(self.all)
-        kys = rv.keys()
+        data = self.collapse()
+        rv = {}
+        kys = data.keys()
         for k in kys:
-            if not rv[k]:
-                del rv[k]
-            elif isinstance(rv[k], dict):
-                del rv[k]
+            if data[k] and not \
+                    isinstance(data[k], dict):
+                rv[k] = data[k]
         return rv
 
     def data(self, on_top_of={}):
