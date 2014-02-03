@@ -184,9 +184,12 @@ def set(app, args):
                 if not isinstance(oldval, list):
                     oldval = [oldval]
             madfile.mad[key] = oldval + [val]
+            madfile.all[key] = oldval + [val]
+
         else:
             #not listmode
             madfile.mad[key] = val
+            madfile.all[key] = val
 
         madfile.save()
 
@@ -220,6 +223,7 @@ def show(app, args):
 ##
 @leip.arg('file', nargs="+")
 @leip.arg('key')
+@leip.arg('-e', '--echo', help='echo ')
 @leip.command
 def unset(app, args):
     lg.debug("unsetting: %s".format(args.key))
@@ -235,6 +239,8 @@ def unset(app, args):
         #print(madfile.mad.pretty())
         if args.key in madfile.mad:
             del(madfile.mad[args.key])
+            del(madfile.mad[args.key])
+
         madfile.save()
 
 
@@ -275,6 +281,7 @@ def has_command(app, args):
         sys.exit(0)
     else:
         sys.exit(-1)
+
 
 ##
 ## Instantiate the app and discover hooks & commands
