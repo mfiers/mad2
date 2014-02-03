@@ -16,7 +16,4 @@ WHERE nosha>1
 MATCH (s:sha1)<-[r:HAS_SHA1]-(f2:file)
 
 //return
-RETURN f2.filename, f2.filesize, s.sha1, nosha
-
-//return only 10 statements
-LIMIT 10
+RETURN s.sha1, f2.filesize, f2.host, f2.fullpath

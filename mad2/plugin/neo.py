@@ -115,8 +115,12 @@ def neo(app, args):
     tx = session.create_transaction()
     tx.append(query_txt)
     res = tx.commit()
-    print(query_txt)
-    print(res)
+    cols = []
+    for i, r in enumerate(res[0]):
+        if i == 0:
+            cols = r.columns
+            print("#" + "\t".join(cols))
+        print("\t".join([str(r[c]) for c in cols]))
 
 @leip.arg('file', nargs='*')
 @leip.command
