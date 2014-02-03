@@ -290,13 +290,13 @@ def has_command(app, args):
 #trail of config files???
 config_files = [
     'pkg://mad2/etc/*.config',
-    '/etc/mad/',
-    '~/.config/mad/']
+    '/etc/mad2/',
+    '~/.config/mad2/']
 
 for c in config_files:
     lg.debug("using config file: {}".format(c))
 
-app = leip.app(name='mad2', set_name=None,
+app = leip.app(name='mad2', set_name="config",
                config_files = config_files)
 
 #discover hooks in this module!

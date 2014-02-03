@@ -9,6 +9,8 @@ import leip
 import Yaco
 
 from py2neo import neo4j
+from py2neo import cypher
+
 neo_logger = logging.getLogger(
     "py2neo.packages.httpstream.http")
 neo_logger.setLevel(logging.WARNING)
@@ -55,6 +57,7 @@ def neo_save_madfile(app, madfile):
     sha1 = madfile.all.hash.sha1
     project = madfile.all.project
 
+    #print(simple)
     del simple['username']
 
     if project:
@@ -100,6 +103,24 @@ def neo_hook_save(app, madfile):
     lg.debug("start neo4j save")
     neo_save_madfile(app, madfile)
 
+@leip.arg('query', help='cypher query to run')
+@leip.command
+def neo(app, args):
+    """
+    print a single value from a single file
+    """
+    lg.warning("running query: %s", args.query)
+
+    queries = app.conf.plugin.neo4j.query
+    query_txt = queries.get(args.query)
+
+    session = cypher.Session(app.conf.plugin.neo4j.uri)
+    tx = session.create_transaction()
+    tx.append(query_txt)
+    res = tx.commit()
+    print(query_txt)
+    print(res)
+
 @leip.arg('file', nargs='*')
 @leip.command
 def neo_save(app, args):
@@ -107,4 +128,9 @@ def neo_save(app, args):
     print a single value from a single file
     """
     for madfile in get_all_mad_files(app, args):
-        neo_save_madfile(app, madfile)
+        if madfile.orphan is True:
+            pass # not doing orphans
+        else:
+            neo_save_madfile(app, madfile)
+            print(madfile.filename)
+

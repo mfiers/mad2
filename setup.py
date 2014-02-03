@@ -26,6 +26,7 @@ setup(name='mad2',
                 'xlrd',
                 'Jinja2',
                 'python-dateutil',
+                'six',
                 ],
       classifiers = [
         'Development Status :: 4 - Beta',
