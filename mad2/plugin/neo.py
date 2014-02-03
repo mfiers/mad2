@@ -51,13 +51,13 @@ def get_db(app):
 def neo_save_madfile(app, madfile):
     db = get_db(app)
     simple = madfile.simple()
-    uri = madfile.all.uri
-    user = madfile.all.username
-    host = madfile.all.host
-    sha1 = madfile.mad.hash.sha1
-    project = madfile.all.project
+    uri = madfile.uri
+    user = madfile.username
+    host = madfile.host
+    sha1 = madfile.hash.sha1
+    project = madfile.project
 
-    del simple['username']
+    #del simple['username']
 
     if project:
         del simple['project']
@@ -110,9 +110,9 @@ def neo_query(app, args):
     print a single value from a single file
     """
     lg.warning("running query: %s", args.query)
-
     queries = app.conf.plugin.neo4j.cypher
     query_txt = queries.get(args.query)
+    print(query_txt)
 
     session = cypher.Session(app.conf.plugin.neo4j.uri)
     tx = session.create_transaction()
