@@ -80,14 +80,21 @@ class MadFile(object):
 
         self.load()
 
+
     def __str__(self):
         return '<mad2.madfile.MadFile {}>'.format(self.all.madname)
 
     def get(self, key, default):
+        if key in self.mad:
+            return self.mad.get(key)
+
         return self.all.get(key, default)
 
     def __getitem__(self, item):
-        return self.all[item]
+        if item in self.mad:
+            return self.mad[item]
+        else:
+            return self.all[item]
 
     __getattr__ = __getitem__
 

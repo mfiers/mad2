@@ -54,10 +54,9 @@ def neo_save_madfile(app, madfile):
     uri = madfile.all.uri
     user = madfile.all.username
     host = madfile.all.host
-    sha1 = madfile.all.hash.sha1
+    sha1 = madfile.mad.hash.sha1
     project = madfile.all.project
 
-    #print(simple)
     del simple['username']
 
     if project:
@@ -103,15 +102,16 @@ def neo_hook_save(app, madfile):
     lg.debug("start neo4j save")
     neo_save_madfile(app, madfile)
 
+
 @leip.arg('query', help='cypher query to run')
 @leip.command
-def neo(app, args):
+def neo_query(app, args):
     """
     print a single value from a single file
     """
     lg.warning("running query: %s", args.query)
 
-    queries = app.conf.plugin.neo4j.query
+    queries = app.conf.plugin.neo4j.cypher
     query_txt = queries.get(args.query)
 
     session = cypher.Session(app.conf.plugin.neo4j.uri)
@@ -124,6 +124,58 @@ def neo(app, args):
             cols = r.columns
             print("#" + "\t".join(cols))
         print("\t".join([str(r[c]) for c in cols]))
+
+
+def _dup_report_sum(handle, fileset):
+    filesize = fileset[0].filesize
+    used_space = 0
+    for f in fileset:
+        nlink = 1
+        if f.nlink: nlink = f.nlink
+        used_space += filesize / float(nlink)
+    if used_space > filesize:
+        for i, f in enumerate(fileset):
+            handle.write(
+                "\t".join([str(f[c]) for c in f.columns])
+                + "\n")
+        return used_space - filesize
+    else:
+        return 0
+
+@leip.arg('report_file', help="Report file")
+@leip.command
+def neo_dup(app, args):
+    """
+    Summarize duplicate files
+    """
+    query_txt = app.conf.plugin.neo4j.cypher.duplicates
+    print(query_txt)
+    session = cypher.Session(app.conf.plugin.neo4j.uri)
+    tx = session.create_transaction()
+    tx.append(query_txt)
+    res = tx.commit()
+
+    this_sha = None
+    fileset = []
+    wasted_space = 0
+    norec = 0
+    with open(args.report_file, 'w') as F:
+        for i, r in enumerate(res[0]):
+            norec += 1
+            if r.sha1 != this_sha:
+                if not this_sha is None:
+                    wasted_space += _dup_report_sum(F, fileset)
+                this_sha = r.sha1
+                fileset = []
+            fileset.append(r)
+
+        if not this_sha is None:
+            wasted_space += _dup_report_sum(F, fileset)
+    lg.info("retrieved %d records", norec)
+
+    ws_g = wasted_space / (1024**3)
+    print("Wasted space: {:.0f} ({:.2f}Gb)".format(wasted_space, ws_g))
+
 
 @leip.arg('file', nargs='*')
 @leip.command

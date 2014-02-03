@@ -1,1 +1,1 @@
-recursive-include mad2/etc/ *.config
+recursive-include mad2/etc *.config *.txt
