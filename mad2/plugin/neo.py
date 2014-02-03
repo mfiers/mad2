@@ -64,7 +64,10 @@ def neo_save_madfile(app, madfile):
         del simple['project']
 
     file_node = db.file_index.get_or_create("uri", uri, simple)
+    file_node.delete_properties()
+
     file_node.set_properties(simple)
+
     file_node.add_labels('file')
 
     if project:

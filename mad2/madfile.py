@@ -104,6 +104,7 @@ class MadFile(object):
             elif isinstance(rv[k], dict):
                 del rv[k]
         return rv
+
     def data(self, on_top_of={}):
         """Render data into a dict like format
         """
@@ -136,6 +137,7 @@ class MadFile(object):
 
         return rendered
 
+
     def load(self):
         #print(self.madname)
 
@@ -143,7 +145,6 @@ class MadFile(object):
         if os.path.exists(self.madname):
             lg.debug("loading madfile {0}".format(self.madname))
             self.mad.load(self.madname)
-            self.all.update(self.mad)
 
         self.hook_method('madfile_load', self)
         self.hook_method('madfile_post_load', self)
