@@ -65,7 +65,6 @@ def recursive_dir_data(app, madfile):
     here = madfile.all.dirname.rstrip('/')
     conf = []
 
-    #print ('x' * 80)
     #find existsing configurations
     last = here
     while True:
@@ -113,11 +112,15 @@ def onthefly(app, madfile):
     madfile.all.uri = "file://{}{}".format(
         madfile.all.host, madfile.all.fullpath)
     if madfile.orphan:
-        #if file is orphaned - little we can do
+        #orphaned is file - little we can do
         return
 
     filestat = os.stat(madfile.all.fullpath)
+    #print(filestat)
+
     madfile.all.filesize = filestat.st_size
+    madfile.all.nlink = filestat.st_nlink
+
     try:
         userinfo = getpwuid(filestat.st_uid)
     except KeyError:
