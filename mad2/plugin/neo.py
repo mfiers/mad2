@@ -26,8 +26,14 @@ class GDB:
         self.app = app #leip application - access to conf
         if 'uri' in self.app.conf.plugin.neo4j:
             uri = self.app.conf.plugin.neo4j.uri
+            if not uri[-7:] == 'db/data':
+                lg.critical("Invalid neo4j uri %s", uri)
+                lg.critical(" | should end with /db/data")
+                exit(-1)
+            lg.debug("Neo4j db: %s", uri)
             self.db = neo4j.GraphDatabaseService(uri)
         else:
+            lg.debug("Neo4j db: default")
             self.db = neo4j.GraphDatabaseService()
 
         self.file_index = self.db.get_or_create_index(
@@ -58,7 +64,7 @@ def neo_save_madfile(app, madfile):
     project = madfile.project
 
     #del simple['username']
-
+    lg.debug("Saving %s to neo4j", madfile.basename)
     if project:
         del simple['project']
 
@@ -173,8 +179,7 @@ def neo_dup(app, args):
             wasted_space += _dup_report_sum(F, fileset)
     lg.info("retrieved %d records", norec)
 
-    ws_g = wasted_space / (1024**3)
-    print("Wasted space: {:.0f} ({:.2f}Gb)".format(wasted_space, ws_g))
+    print("Wasted space: {:.0f} Mb".format(wasted_space))
 
 
 @leip.arg('file', nargs='*')
