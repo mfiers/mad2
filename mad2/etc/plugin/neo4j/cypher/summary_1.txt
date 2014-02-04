@@ -1,0 +1,7 @@
+MATCH (f:file)
+WITH
+    f.userid as userid,
+    sum(f.filesize / (1024^2)) as total_size_mb
+RETURN userid, total_size_mb
+ORDER BY total_size_mb DESC
+LIMIT 20
