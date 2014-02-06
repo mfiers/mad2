@@ -2,14 +2,48 @@ from __future__ import print_function
 
 import argparse
 import logging
+import os
 import subprocess as sp
 import shutil
 
 import leip
 
-from mad2.util import to_mad
+from mad2.util import to_mad, get_mad_file
 
 lg = logging.getLogger(__name__)
+
+# @leip.arg('to')
+# @leip.arg('fr', metavar='from')
+# @leip.command
+# def mmv(app, args):
+#     """
+#     Move a single file and the corresponding mad file.
+
+#     If the file has already been moved - must move the
+#     mad file.
+#     """
+#     fr = args.fr
+#     frex = os.path.exists(fr)
+#     frmad = get_mad_file(app, fr)
+#     frmex = os.path.exists(frmad.madfile)
+
+#     to = args.to
+#     toex = os.path.exists(to)
+#     tomad = get_mad_file(app, to)
+#     tomex = os.path.exists(tomad.madfile)
+
+#     if frex and toex:
+#         lg.warning("Can't move %s", fr)
+#         lg.warning(" | %s exists", to)
+#         exit(-1)
+# #    if frex:
+# #        shutil.m
+
+#     print("moving {} to {}".format(fr, to))
+
+# #    if frex and not toex:
+# #    if os.path.exists(fr) and not os
+
 
 @leip.arg('args', nargs=argparse.REMAINDER)
 @leip.command
