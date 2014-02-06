@@ -115,6 +115,7 @@ def onthefly(app, madfile):
         #orphaned is file - little we can do
         return
 
+#    if not os.path.exists(madfile.all.fullpath)
     filestat = os.stat(madfile.all.fullpath)
     #print(filestat)
 
