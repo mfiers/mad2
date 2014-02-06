@@ -1,0 +1,23 @@
+//Select all shasums linked to a file
+MATCH (s:sha1)<-[r:HAS_SHA1]-(f:file)
+
+//nosha is the number of files per shasum
+//important also is NOT mentioning f - i.e. it's not visible from here on
+//  i.e. the count(r) actually aggregates
+WITH s, count(r) as nosha
+
+//only those shasums that have more than one file - needed with first
+WHERE nosha>1
+
+//second match - now find the files belonging to the shasums selected so far
+MATCH (s:sha1)<-[r:HAS_SHA1]-(f2:file)
+
+//return
+RETURN
+    s.sha1 as sha1,
+    (f2.filesize / (1024^2)) as filesize,
+    f2.nlink as nlink,
+    f2.host as host,
+    f2.userid as user,
+    f2.fullpath as fullpath
+
