@@ -206,13 +206,15 @@ def show(app, args):
         if i > 0:
             print('---')
 
-        if args.yaml:
-            print(madfile.all.pretty())
-        else:
-            for k in sorted(madfile.all.keys()):
-                v = madfile.all[k]
+        d = madfile.collapse()
 
-                if isinstance(v, Yaco.Yaco):
+        if args.yaml:
+            print(d.pretty())
+        else:
+            for k in sorted(d.keys()):
+                v = d[k]
+
+                if isinstance(v, dict):
                     continue
                 print("{}\t{}".format(k,v))
 
