@@ -8,12 +8,14 @@ from mad2.exception import MadPermissionDenied, MadNotAFile
 from mad2.madfile import MadFile
 
 lg = logging.getLogger(__name__)
-#lg.setLevel(logging.DEBUG)
+# lg.setLevel(logging.DEBUG)
 
-##
-## Helper function - instantiate a madfile, and provide it with a
-## method to run hooks
-##
+#
+# Helper function - instantiate a madfile, and provide it with a
+# method to run hooks
+#
+
+
 def get_mad_file(app, filename):
     """
     Instantiate a mad file & add hooks
@@ -21,7 +23,9 @@ def get_mad_file(app, filename):
     global CACHE
 
     lg.debug("instantiating madfile for {0}".format(filename))
-    return  MadFile(filename, base=app.conf.madfile, hook_method=app.run_hook)
+    return MadFile(filename, base=app.conf.madfile,
+                   hook_method=app.run_hook)
+
 
 def to_mad(fn):
     if '/' in fn:
@@ -30,6 +34,7 @@ def to_mad(fn):
     else:
         return '.{}.mad'.format(fn)
 
+
 def get_filenames(args):
     """
     Get all incoming filenames
@@ -37,6 +42,7 @@ def get_filenames(args):
     filenames = []
 
     demad = re.compile(r'^(?P<path>.*?/)?\.(?P<fn>[^/].+)\.mad$')
+
     def demadder(m):
         if not m.group('path') is None:
             return '{}{}'.format(m.group('path'), m.group('fn'))
@@ -48,18 +54,19 @@ def get_filenames(args):
                          for x in args.file
                          if (len(x) > 0 and not '.mad/' in x)])
     else:
-        #nothing in args - see if there is something on stdin
+        # nothing in args - see if there is something on stdin
         filenames.extend(
-                [demad.sub(demadder, x)
-                 for x in sys.stdin.read().split("\n")
-                 if (len(x) > 0 and not '.mad/' in x)])
+            [demad.sub(demadder, x)
+             for x in sys.stdin.read().split("\n")
+             if (len(x) > 0 and not '.mad/' in x)])
 
     filenames = sorted(list(set(filenames)))
 
-    #remove directories as well
+    # remove directories as well
     filenames = [x for x in filenames if not '.mad' in x]
 
     return filenames
+
 
 def get_all_mad_files(app, args):
     """
@@ -68,13 +75,14 @@ def get_all_mad_files(app, args):
     for filename in get_filenames(args):
         try:
             maf = get_mad_file(app, filename)
-            #print(maf.madname)
+            # print(maf.madname)
             yield maf
         except MadNotAFile:
             pass
         except MadPermissionDenied:
             lg.warning("Permission denied: {}".format(
                 filename))
+
 
 def boolify(v):
     """
@@ -83,6 +91,7 @@ def boolify(v):
     otherwise -> False
     """
     return v.lower() in ['yes', 'y', 'true', 't', '1']
+
 
 def render(txt, data):
 
