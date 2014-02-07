@@ -148,13 +148,12 @@ class MadFile(object):
         iteration = 0
 
         while '{{' in rendered or '{%' in rendered:
-            #print('1', rendered, y['rabbit'])
             if iteration > 0 and rendered == last:
                 #no improvement
                 break
             last = rendered
             template = jenv.from_string(rendered)
-            rendered = template.render(self.all)
+            rendered = template.render(self)
             iteration += 1
 
         return rendered
