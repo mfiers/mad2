@@ -47,39 +47,42 @@ class SimpleExecutor(object):
         lg.info("finished executing")
 
 
-def execute(app, madfile, info, executor, dry=False):
+def execute(app, madfile, execinfo, executor, dry=False):
     """
     execute a command line in the context of this object
 
     :param dry: do a dry run
     :type dry: boolean
     """
-    command = info.command
+    command = execinfo.command
     cl = madfile.render(command, app.conf)
 
     lg.info("executing: {0}".format(cl))
     if dry:
         print(cl)
     else:
-        execinfo = executor.execute(cl)
+        runinfo = executor.execute(cl)
         t = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
         h = madfile.mad.execute.history[t]
-        h.update(execinfo)
+        h.update(runinfo)
+        process_type = execinfo.get('type', None)
+        if process_type == 'transform':
+            handle_process_transform(madfile, execinfo)
         madfile.save()
 
 
 def _get_command(app, madfile, command_name):
 
-        info = madfile.x[command_name]
+        execinfo = madfile.x[command_name]
 
-        if isinstance(info, str):
+        if isinstance(execinfo, str):
             # simple command
             rv = Yaco.Yaco()
-            rv.command = info
-            rv.description = info
+            rv.command = execinfo
+            rv.description = execinfo
             return rv
         else:
-            return info
+            return execinfo
 
 
 @leip.arg('file', nargs='*')
@@ -94,10 +97,10 @@ def commands(app, args):
             print(" -- no commands available")
         else:
             for command_name in madfile.x:
-                info = _get_command(app, madfile, command_name)
+                execinfo = _get_command(app, madfile, command_name)
                 print(" {}: {}".format(
                     command_name,
-                    info.description))
+                    execinfo.description))
 
 
 @leip.arg('file', nargs='*')
