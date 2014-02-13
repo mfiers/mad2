@@ -4,14 +4,38 @@ import sys
 import glob
 
 
-# Put site-packages in front of sys.path so we don't end up importing the global
-# readline.so
+def message(txt):
+    """
+    Message to the user (always on stderr)
+    """
+    if not sys.stdout.isatty():
+        sys.stderr.write(txt.rstrip() + "\n")
+        return
+    sys.stderr.write('\033[1;97;48;5;70mMad:\033[0m')
+    sys.stderr.write(txt.strip() + "\n")
+
+def error(txt):
+    """
+    Message to the user (always on stderr)
+    """
+    if not sys.stdout.isatty():
+        sys.stderr.write("Error: " + txt.strip() + "\n")
+        return
+    sys.stderr.write('\033[1;97;48;5;124mError:\033[0m')
+    sys.stderr.write(txt.strip() + "\n")
+
+def errorexit(txt, exit_code=1):
+    error(txt)
+    exit(exit_code)
+
+
+# Put site-packages in front of sys.path so we don't end up importing the global readline.so - osx hack
 sys.path = (
     [p for p in sys.path if 'site-packages' in p] + \
     [p for p in sys.path if 'site-packages' not in p])
 
-#hack - otherwise readline outputs anunwanted control
-#character
+# hack - otherwise readline outputs unwanted control
+# character
 if os.environ['TERM'] == 'xterm':
     os.environ['TERM'] = 'vt100'
 
@@ -19,7 +43,9 @@ import readline
 
 lg =logging.getLogger(__name__)
 
-################################################################################
+
+
+###############################################################################
 ##
 ## readline enabled user prompt
 ##

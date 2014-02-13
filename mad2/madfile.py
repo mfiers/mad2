@@ -141,19 +141,38 @@ class MadFile(object):
         jenv.filters['re_sub'] = regex_sub
         return jenv
 
-    def render(self, text, base):
+    def render(self, text, *data):
 
         jenv = self.get_jinja_env()
         rendered = text
         iteration = 0
+
+        #stack all data - to prevent potential problems
+        #TODO: needs more investigation
+        data_stacked = {}
+        for d in data[::-1]:
+            data_stacked.update(d)
+
+        data_stacked.update(self.collapse())
 
         while '{{' in rendered or '{%' in rendered:
             if iteration > 0 and rendered == last:
                 #no improvement
                 break
             last = rendered
+            lll = rendered
             template = jenv.from_string(rendered)
-            rendered = template.render(self)
+            #print(d.simple())
+            try:
+                rendered = template.render(data_stacked)
+            except jinja2.exceptions.UndefinedError:
+                pass
+            except:
+                print("cannot render")
+                print(rendered)
+                raise
+
+
             iteration += 1
 
         return rendered
