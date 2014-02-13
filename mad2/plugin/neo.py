@@ -26,14 +26,15 @@ class GDB:
         self.app = app #leip application - access to conf
         if 'uri' in self.app.conf.plugin.neo4j:
             uri = self.app.conf.plugin.neo4j.uri
+            lg.debug("opening neo4j db: {}".format(uri))
             self.db = neo4j.GraphDatabaseService(uri)
         else:
             self.db = neo4j.GraphDatabaseService()
 
-        self.file_index = self.db.get_or_create_index(
-                neo4j.Node, "File")
         self.sha1_index = self.db.get_or_create_index(
                 neo4j.Node, "Sha1")
+        self.file_index = self.db.get_or_create_index(
+                neo4j.Node, "File")
         self.host_index = self.db.get_or_create_index(
                 neo4j.Node, "Host")
         self.user_index = self.db.get_or_create_index(
