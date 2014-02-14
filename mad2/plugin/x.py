@@ -13,15 +13,19 @@ from mad2.util import get_all_mad_files
 lg = logging.getLogger(__name__)
 
 
-class SimpleExecutor(object):
+class Executor(object):
 
-    def __init__(self, app, args, executor_type='simple'):
+    def __init__(self, app, args):
         self.app = app
         self.args = args
+
+        executor_type=args.executor
+
         self.executor_type = executor_type
         confName = executor_type.capitalize() + "Executor"
         self.conf = app.conf.plugin.x[confName]
         self.defaults = app.conf.plugin.x[confName].defaults
+        self.xdefaults = app.conf.plugin.x.defaults
 
         lg.debug("opening thread pool with %d threads",
                 args.threads)
@@ -36,7 +40,11 @@ class SimpleExecutor(object):
 
         conf_objects = [self.app.conf,
                         command_info.defaults,
-                        self.defaults]
+                        self.defaults,
+                        self.xdefaults,
+                        self.conf  ]
+
+        xtype = command_info.get('type', 'map')
 
         command = command_info.command
         cl = madfile.render(command, *conf_objects)
@@ -52,7 +60,7 @@ class SimpleExecutor(object):
 
         conf_objects =  [xtra_info] + conf_objects
 
-        script = madfile.render(self.conf.execscript,
+        script = madfile.render(self.conf[xtype],
                                 *conf_objects)
 
         if '{{' in cl or '{%' in cl:
@@ -75,11 +83,11 @@ class SimpleExecutor(object):
         """
         Execute a single command line
         """
-        def _applicator(cl, bg):
-            if bg:
-                sp.Popen(cl, shell=True)
-            else:
-                sp.call(cl, shell=True)
+        def _applicator(script, bg):
+
+            cmd = self.conf.invocator.execute_command
+            P = sp.Popen(cmd, shell=True, stdin=sp.PIPE)
+            P.communicate(script)
 
         cl, script = self.prepare_script(madfile, command)
 
@@ -137,9 +145,11 @@ def commands(app, args):
 
 @leip.arg('file', nargs='*')
 @leip.arg('comm', metavar='command', help='predefined command to execute')
-@leip.arg('-d', '--dry', help='dry run', action='store_true')
 @leip.arg('-j', '--threads', help='no of threads', type=int, default=1)
-@leip.arg('--bg', help='run in the background', action='store_true')
+@leip.arg('-x', '--executor', help="executor to use", default='simple',
+          choices=['simple', 'pbs'])
+@leip.flag('-d', '--dry', help='dry run')
+@leip.flag('-b', '--bg', help='run in the background')
 @leip.command
 def x(app, args):
     """
@@ -147,7 +157,7 @@ def x(app, args):
     """
     command_name = args.comm
 
-    executor = SimpleExecutor(app, args)
+    executor = Executor(app, args)
 
     for madfile in get_all_mad_files(app, args):
         command_info = _get_command(app, madfile, command_name)

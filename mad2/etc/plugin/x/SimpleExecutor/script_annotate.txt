@@ -1,0 +1,17 @@
+#Annotate output file
+{% if annotate %}echo "${txtcyn}Annotate:${bldblk}"{%endif%}
+{%- for fld in annotate -%}
+  {%- if annotate[fld] %}
+    echo "- ${txtgrn}{{fld}}${txtrst}: {{ annotate[fld] }}"
+  {%- endif -%}
+{%- endfor %}
+
+{% if annotate -%}
+mad mset
+{%- for fld in annotate -%}
+  {%- if annotate[fld] -%}
+    {{ ' ' }} -k "{{fld}}" "{{ annotate[fld] }}"
+  {%- endif -%}
+{%- endfor -%}
+{{ ' ' }} {{output}}
+{% endif %}

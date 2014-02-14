@@ -1,4 +1,3 @@
-#!/usr/bin/env bash
 
 set -e
 
@@ -38,36 +37,10 @@ txtrst=$'\e[0m'    # Text Reset
 
 {% if comm.run_when %}
   if [[ ! {{ comm.run_when }} ]]; then
-      echo "${bldpur}Skipping${bldblk} '{{ filename }}'${txtrst}: output is newer than input"
+      echo "${bldpur}Skipping${bldblk} '{{ filename }}'${txtrst}"
       exit 0
   fi
 {% endif %}
 
 echo "${txtgrn}Running${bldblk} '{{ filename }}'${txtrst}"
 echo "${txtblu}Description${txtrst}: {{ comm.description }}"
-
-#here comes the real script
-{{cl}}
-
-# generate a sha1 for the target file
-echo "${txtgrn}Generate sha1${bldblk} '{{ filename }}'${txtrst}"
-mad sha1 {{ output }}
-
-#Annotate output file
-{% if annotate %}echo "${txtcyn}Annotate:${bldblk}"{%endif%}
-{%- for fld in annotate -%}
-  {%- if annotate[fld] %}
-    echo "- ${txtgrn}{{fld}}${txtrst}: {{ annotate[fld] }}"
-  {%- endif -%}
-{%- endfor %}
-
-{% if annotate -%}
-mad mset
-{%- for fld in annotate -%}
-  {%- if annotate[fld] -%}
-    {{ ' ' }} -k "{{fld}}" "{{ annotate[fld] }}"
-  {%- endif -%}
-{%- endfor -%}
-{{ ' ' }} {{output}}
-{% endif %}
-echo "...done..."
