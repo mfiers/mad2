@@ -121,7 +121,7 @@ class MadFile(object):
     def data(self, on_top_of={}):
         """Render data into a dict like format
         """
-        lg.critical("really - using this??")
+        lg.debug("really - using this??")
         if isinstance(on_top_of, Yaco.Yaco) or \
             isinstance(on_top_of, Yaco.PolyYaco):
             data = on_top_of.simple()

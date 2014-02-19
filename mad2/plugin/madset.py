@@ -1,12 +1,16 @@
 
 import logging
+import os
 import sys
+import tempfile
+import subprocess
 
 from dateutil.parser import parse as dateparse
 import leip
 
 from mad2.util import  get_mad_file, get_all_mad_files
 from mad2.ui import message, error, errorexit
+import mad2.ui
 
 lg = logging.getLogger(__name__)
 
@@ -151,6 +155,7 @@ def set(app, args):
     key = args.key
     val = args.value
 
+
     if args.prompt or args.editor:
         if not args.value is None:
             # when asking for a prompt - the next item on sys.argv
@@ -161,7 +166,8 @@ def set(app, args):
     madfiles = []
 
     #gather all madfiles for later parsing
-    for m in get_all_mad_files(app, args):
+    use_stdin = not (args.prompt or args.editor)
+    for m in get_all_mad_files(app, args, use_stdin):
         madfiles.append(m)
 
     #check if mad needs to show a prompt or editor

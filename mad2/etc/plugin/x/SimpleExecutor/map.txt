@@ -7,7 +7,6 @@
 
 # generate a sha1 for the target file
 echo "${txtgrn}Generate sha1${bldblk} '{{ filename }}'${txtrst}"
-mad sha1 {{ output }}
 
 {{ script_annotate }}
 

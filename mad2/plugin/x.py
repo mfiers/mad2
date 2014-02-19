@@ -5,6 +5,7 @@ import logging
 from multiprocessing.dummy import Pool as ThreadPool
 import os
 import subprocess as sp
+import uuid
 
 import leip
 import Yaco
@@ -47,21 +48,28 @@ class Executor(object):
         xtype = command_info.get('type', 'map')
 
         command = command_info.command
+
         cl = madfile.render(command, *conf_objects)
 
         xtra_info = {}
         xtra_info['cl'] = cl
+        xtra_info['pwd'] = os.getcwd()
         xtra_info['comm'] = command_info
-
+        xtra_info['uuid'] = str(uuid.uuid1())
         to_annotate = self.app.conf.plugin.x.annotate
         to_annotate.update(self.defaults.annotate)
         to_annotate.update(command_info.annotate)
+
         xtra_info['annotate'] = to_annotate
 
         conf_objects =  [xtra_info] + conf_objects
 
         script = madfile.render(self.conf[xtype],
                                 *conf_objects)
+
+        invoke_cmd = self.conf.invocator.execute_command
+        invoke_cmd = madfile.render(invoke_cmd,
+                                    *conf_objects)
 
         if '{{' in cl or '{%' in cl:
             lg.error("cannot render command line")
@@ -73,33 +81,37 @@ class Executor(object):
             lg.error(" cl: %s", script)
             exit(-1)
 
-        #print(self.defaults)
-        lg.info("executing: {0}".format(cl))
-        lg.debug("executing: {0}".format(script))
+        if '{{' in invoke_cmd or '{%' in invoke_cmd:
+            lg.error("cannot render invocation script")
+            lg.error(" cl: %s", invoke_cmd)
+            exit(-1)
 
-        return cl, script
+        lg.debug("cl: {0}".format(cl))
+        lg.debug("script: {0}".format(script))
+        lg.debug("invocate: {0}".format(invoke_cmd))
+
+        return cl, script, invoke_cmd
 
     def execute(self, madfile, command):
         """
         Execute a single command line
         """
-        def _applicator(script, bg):
-
-            cmd = self.conf.invocator.execute_command
-            P = sp.Popen(cmd, shell=True, stdin=sp.PIPE)
+        def _applicator(invoke, script, bg):
+            P = sp.Popen(invoke, shell=True, stdin=sp.PIPE)
             P.communicate(script)
 
-        cl, script = self.prepare_script(madfile, command)
+        cl, script, invoke = self.prepare_script(madfile, command)
 
         if self.args.dry:
-            print(cl)
+            print(invoke)
+            print(script)
         else:
             rv = Yaco.Yaco()
             rv.cl = cl
             self.pool.apply_async(_applicator,
-                                  (script, self.args.bg))
+                                  (invoke, script, self.args.bg))
 
-        return rv
+            return rv
 
     def finish(self):
         """

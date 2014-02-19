@@ -35,7 +35,7 @@ def to_mad(fn):
         return '.{}.mad'.format(fn)
 
 
-def get_filenames(args):
+def get_filenames(args, use_stdin=True):
     """
     Get all incoming filenames
     """
@@ -53,7 +53,7 @@ def get_filenames(args):
         filenames.extend([demad.sub(demadder, x)
                          for x in args.file
                          if (len(x) > 0 and not '.mad/' in x)])
-    else:
+    elif use_stdin:
         # nothing in args - see if there is something on stdin
         filenames.extend(
             [demad.sub(demadder, x)
@@ -68,11 +68,11 @@ def get_filenames(args):
     return filenames
 
 
-def get_all_mad_files(app, args):
+def get_all_mad_files(app, args, use_stdin=True):
     """
     get input files from sys.stdin and args.file
     """
-    for filename in get_filenames(args):
+    for filename in get_filenames(args, use_stdin):
         try:
             maf = get_mad_file(app, filename)
             # print(maf.madname)

@@ -84,7 +84,30 @@ def recursive_dir_data(app, madfile):
         last = here
         here = parent
 
+    #now again for the current directory
+    here = os.getcwd().rstrip('/')
+    last = here
+    cwdconf = []
+    while True:
+        try:
+            assert(os.path.isdir(here))
+        except:
+            print(last, here)
+            print(madfile.all.pretty())
+            raise
+        here_c = os.path.join(here, '.mad', 'config')
+        if os.path.exists(here_c):
+            if here_c in conf:
+                break # overlap with tree from the madfile's location
+            else:
+                cwdconf.append(here_c)
+        parent = os.path.dirname(here)
+        if parent == '/': #no config in the root - that would be evil!
+            break
+        last = here
+        here = parent
 
+    conf = cwdconf + conf
     #load (or get from cache)
     for c in conf[::-1]:
         fullname = os.path.expanduser(os.path.abspath(c))
