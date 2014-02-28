@@ -122,6 +122,7 @@ class MadFile(object):
         """Render data into a dict like format
         """
         lg.debug("really - using this??")
+
         if isinstance(on_top_of, Yaco.Yaco) or \
             isinstance(on_top_of, Yaco.PolyYaco):
             data = on_top_of.simple()
@@ -154,7 +155,6 @@ class MadFile(object):
             data_stacked.update(d)
 
         data_stacked.update(self.collapse())
-
         while '{{' in rendered or '{%' in rendered:
             if iteration > 0 and rendered == last:
                 #no improvement
@@ -162,10 +162,9 @@ class MadFile(object):
             last = rendered
             lll = rendered
             template = jenv.from_string(rendered)
-            #print(d.simple())
             try:
                 rendered = template.render(data_stacked)
-            except jinja2.exceptions.UndefinedError:
+            except jinja2.exceptions.UndefinedError, e:
                 pass
             except:
                 print("cannot render")

@@ -1,28 +1,17 @@
-
-set -e
-
-
-# Black- Red- Green- Yellow- Blue- Purple- Cyan- White
-# Regular
-
-txtblk=$'\e[0;30m'; txtred=$'\e[0;31m'; txtgrn=$'\e[0;32m';
-txtylw=$'\e[0;33m'; txtblu=$'\e[0;34m'; txtpur=$'\e[0;35m';
-txtcyn=$'\e[0;36m'; txtwht=$'\e[0;37m';
-bldblk=$'\e[1;30m'; bldred=$'\e[1;31m'; bldgrn=$'\e[1;32m';
-bldylw=$'\e[1;33m'; bldblu=$'\e[1;34m'; bldpur=$'\e[1;35m';
-bldcyn=$'\e[1;36m'; bldwht=$'\e[1;37m'
-# Background
-bakblk=$'\e[40m'; bakred=$'\e[41m'; bakgrn=$'\e[42m';
-bakylw=$'\e[43m'; bakblu=$'\e[44m'; bakpur=$'\e[45m';
-bakcyn=$'\e[46m'; bakwht=$'\e[47m';
-txtrst=$'\e[0m'    # Text Reset
-
-{% if comm.run_when %}
-  if [[ ! {{ comm.run_when }} ]]; then
-      echo "${bldpur}Skipping${bldblk} '{{ filename }}'${txtrst}"
-      exit 0
-  fi
-{% endif %}
-
 echo "${txtgrn}Running${bldblk} '{{ filename }}'${txtrst}"
 echo "${txtblu}Description${txtrst}: {{ comm.description }}"
+
+{% if comm.virtualenv %}
+echo "${txtred}Loading python virtualenv ${txtrst}: {{ comm.virtualenv }}"
+. {{ comm.virtualenv }}/bin/activate
+{% endif %}
+
+{%- for p in comm.path %}
+echo "${txtpur}In path:${txtrst} {{ p }}"
+PATH="{{ p }}:$PATH"
+{% endfor %}
+
+{%- for p in comm.module %}
+module load {{ m }}
+{% endfor %}
+

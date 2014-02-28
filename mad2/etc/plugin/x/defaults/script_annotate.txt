@@ -8,9 +8,11 @@
 
 {%- if annotate %}
 # generate a sha1 for the target file
-{%- for toannot in comm.output_files %}
-echo "${txtgrn}Generate sha1${bldblk} '{{ toannot }}'${txtrst}"
-mad sha1 {{ toannot }}
+{%-  for toannot in comm.output_files %}
+if [[ -e "{{ toannot }}" ]]; then
+    echo "${txtgrn}Generate sha1${bldblk} '{{ toannot }}'${txtrst}"
+    mad sha1 {{ toannot }}
+fi
 {%- endfor %}
 {%- endif %}
 

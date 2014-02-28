@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import collections
 import datetime
 import logging
 from multiprocessing.dummy import Pool as ThreadPool
@@ -20,7 +21,7 @@ class Executor(object):
         self.app = app
         self.args = args
 
-        executor_type=args.executor
+        executor_type = args.executor
 
         self.executor_type = executor_type
         confName = executor_type.capitalize() + "Executor"
@@ -29,46 +30,50 @@ class Executor(object):
         self.xdefaults = app.conf.plugin.x.defaults
 
         lg.debug("opening thread pool with %d threads",
-                args.threads)
+                 args.threads)
         self.pool = ThreadPool(args.threads)
 
-
-    def prepare_script(self, madfile, command_info):
+    def prepare_script(self, madfileset, command_info):
         """
         prepare command line & full execution prepare_script
 
         """
-
-        conf_objects = [self.app.conf,
-                        command_info.defaults,
-                        self.defaults,
-                        self.xdefaults,
-                        self.conf  ]
+        xtra_info = {}
+        xtra_info['input_file'] = madfileset[0]
+        xtra_info['input_files'] = madfileset
 
         xtype = command_info.get('type', 'map')
 
+        conf_objects = [xtra_info,
+                        self.app.conf,
+                        command_info.defaults,
+                        self.defaults,
+                        self.xdefaults,
+                        self.conf]
+
         command = command_info.command
 
-        cl = madfile.render(command, *conf_objects)
+        cl = madfileset[0].render(command, *conf_objects)
 
-        xtra_info = {}
         xtra_info['cl'] = cl
+        xtra_info['input_files'] = madfileset
         xtra_info['pwd'] = os.getcwd()
         xtra_info['comm'] = command_info
         xtra_info['uuid'] = str(uuid.uuid1())
+
         to_annotate = self.app.conf.plugin.x.annotate
         to_annotate.update(self.defaults.annotate)
         to_annotate.update(command_info.annotate)
 
         xtra_info['annotate'] = to_annotate
 
-        conf_objects =  [xtra_info] + conf_objects
+        conf_objects = [xtra_info] + conf_objects
 
-        script = madfile.render(self.conf[xtype],
+        script = madfileset[0].render(self.conf[xtype],
                                 *conf_objects)
 
         invoke_cmd = self.conf.invocator.execute_command
-        invoke_cmd = madfile.render(invoke_cmd,
+        invoke_cmd = madfileset[0].render(invoke_cmd,
                                     *conf_objects)
 
         if '{{' in cl or '{%' in cl:
@@ -92,15 +97,16 @@ class Executor(object):
 
         return cl, script, invoke_cmd
 
-    def execute(self, madfile, command):
+    def execute(self, madfileset, command):
         """
-        Execute a single command line
+        Execute a single command line on a (set of) file(s)
         """
+
         def _applicator(invoke, script, bg):
             P = sp.Popen(invoke, shell=True, stdin=sp.PIPE)
             P.communicate(script)
 
-        cl, script, invoke = self.prepare_script(madfile, command)
+        cl, script, invoke = self.prepare_script(madfileset, command)
 
         if self.args.dry:
             print(invoke)
@@ -120,7 +126,6 @@ class Executor(object):
         self.pool.close()
         self.pool.join()
         lg.debug("finished executing")
-
 
 
 def _get_command(app, madfile, command_name):
@@ -160,6 +165,8 @@ def commands(app, args):
 @leip.arg('-j', '--threads', help='no of threads', type=int, default=1)
 @leip.arg('-x', '--executor', help="executor to use", default='simple',
           choices=['simple', 'pbs'])
+@leip.arg('-g', '--groupby',
+          help='group on this field for combined execution')
 @leip.flag('-d', '--dry', help='dry run')
 @leip.flag('-b', '--bg', help='run in the background')
 @leip.command
@@ -171,21 +178,30 @@ def x(app, args):
 
     executor = Executor(app, args)
 
-    for madfile in get_all_mad_files(app, args):
-        command_info = _get_command(app, madfile, command_name)
-        if not command_info:
-            print("Command {} does not exists for {}".format(
-                command_name, madfile.basename))
-            continue
-        runinfo = executor.execute(madfile, command_info)
+    if args.groupby:
+        group_on = args.groupby
+        lg.info("Grouping on %s", group_on)
+        groups = collections.defaultdict(list)
+        for f in get_all_mad_files(app, args):
+            groups[f[group_on]].append(f)
+        files = groups.values()
+    else:
+        files = [[x] for x in get_all_mad_files(app, args)]
 
-        t = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-        h = madfile.mad.execute.history[t]
-        h.update(runinfo)
-        # process_type = execinfo.get('type', None)
-        # if process_type == 'transform':
-        #     handle_process_transform(madfile, execinfo)
-        madfile.save()
+    for madfileset in files:
 
+        for madfile in madfileset:
+            command_info = _get_command(app, madfile, command_name)
+            if not command_info:
+                lg.error("Command {} does not exists for {}".format(
+                         command_name, madfile.basename))
+                exit(-1)
+
+        runinfo = executor.execute(madfileset, command_info)
+
+        #t = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        #h = madfile.mad.execute.history[t]
+        #h.update(runinfo)
+        #madfile.save()
 
     executor.finish()
