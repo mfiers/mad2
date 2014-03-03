@@ -25,9 +25,8 @@ lg = logging.getLogger(__name__)
 def unset(app, args):
     lg.debug("unsetting: %s".format(args.key))
     key = args.key
-    keywords = app.conf.keywords
-    keyinfo = keywords[key]
-    if keyinfo.cardinality =='+':
+    keyinfo = app.conf.get_branch('keywords.{}'.format(key))
+    if keyinfo.get('cardinality', '1') == '+':
         errorexit("Not implemented - unsetting keys with cardinality > 1")
 
     for madfile in get_all_mad_files(app, args):
@@ -47,18 +46,16 @@ def _getkeyval(app, key, val, force):
         list_mode = True
         key = key[1:]
 
-    keywords = app.conf.keywords
-    keyinfo = keywords[key]
+    keyinfo = app.conf.get_branch('keywords.{}'.format(key))
     keytype = keyinfo.get('type', 'str')
 
-    if (not force) and (not keywords[key].description):
+    if (not force) and (not keyinfo.get('description')):
         errorexit('invalid key: "{0}" (use -f?)'.format(key))
 
-    if list_mode and keyinfo.cardinality == '1':
+    if list_mode and str(keyinfo.get('cardinality', '1')) == '1':
         errorexit("Cardinality == 1 - no lists!")
-    elif keyinfo.cardinality == '+':
+    elif keyinfo.get('cardinality', '1') == '+':
         list_mode = True
-
 
     if keytype == 'int':
         try:
@@ -88,9 +85,10 @@ def _getkeyval(app, key, val, force):
             sys.exit(-1)
         lg.debug("date interpreted as: %s" % val)
 
-    if keytype == 'restricted' and \
-            not val in keyinfo.allowed:
-        errorexit("Value '{0}' not allowed".format(val))
+    if keytype == 'restricted':
+        allowed = keyinfo.get_branch('allowed')
+        if not val in allowed.keys():
+            errorexit("Value '{0}' not allowed for key '{1}'".format(val, key))
 
     return key, val, list_mode
 
@@ -111,10 +109,10 @@ def mset(app, args):
     for madfile in get_all_mad_files(app, args):
         for key, val, list_mode in all_kvs:
             if list_mode:
-                if not key in madfile.mad:
+                if not key in madfile:
                     oldval = []
                 else:
-                    oldval = madfile.mad[key]
+                    oldval = madfile[key]
                     if not isinstance(oldval, list):
                         oldval = [oldval]
                 madfile.mad[key] = oldval + [val]
@@ -224,20 +222,17 @@ def set(app, args):
 
     for madfile in madfiles:
         if list_mode:
-            if not key in madfile.mad:
+            if not key in madfile:
                 oldval = []
             else:
-                oldval = madfile.mad[key]
+                oldval = madfile.get(key)
                 if not isinstance(oldval, list):
                     oldval = [oldval]
-            madfile.mad[key] = oldval + [val]
-            madfile.all[key] = oldval + [val]
-
+            madfile.stack[1][key] = oldval + [val]
         else:
             #not listmode
-            madfile.mad[key] = val
-            madfile.all[key] = val
+            madfile.stack[1][key] = val
 
         if args.echo:
-            print(madfile.filename)
+            print(madfile['filename'])
         madfile.save()

@@ -40,7 +40,6 @@ def dispatch():
 ##
 ## define show
 ##
-@leip.arg('-y', '--yaml', action='store_true')
 @leip.arg('file', nargs='*')
 @leip.command
 def show(app, args):
@@ -50,17 +49,16 @@ def show(app, args):
         if i > 0:
             print('---')
 
-        d = madfile.collapse()
+        keys = set()
+        for i in range(len(madfile.stack)-1):
+            keys.update(set(madfile.stack[i].keys()))
 
-        if args.yaml:
-            print(d.pretty())
-        else:
-            for k in sorted(d.keys()):
-                v = d[k]
+        for k in sorted(list(keys)):
+            v = madfile[k]
 
-                if isinstance(v, dict):
-                    continue
-                print("{}\t{}".format(k,v))
+            if isinstance(v, dict):
+                continue
+            print("{}\t{}".format(k,v))
 
         i += 1
 
@@ -110,14 +108,14 @@ def has_command(app, args):
 
 #trail of config files???
 config_files = [
-    'pkg://mad2/etc/*.config',
+    'pkg://mad2/etc/',
     '/etc/mad2/',
     '~/.config/mad2/']
 
 for c in config_files:
     lg.debug("using config file: {}".format(c))
 
-app = leip.app(name='mad2', set_name="config",
+app = leip.app(name='mad2', set_name="conf",
                config_files = config_files)
 
 #discover hooks in this module!

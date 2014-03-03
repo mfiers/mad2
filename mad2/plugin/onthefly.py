@@ -5,7 +5,7 @@ import os
 import logging
 import socket
 
-import Yaco
+import Yaco2
 import leip
 from pwd import getpwuid
 
@@ -20,8 +20,8 @@ def get_fiex(app):
         return EXTENSION_DATA
 
     EXTENSION_DATA = {}
-    for ft in app.conf.filetype:
-        for ext in app.conf.filetype.get(ft).extensions:
+    for ft in app.conf.find_branch('filetype'):
+        for ext in ft.get('extensions', []):
             EXTENSION_DATA[ext] = ft
 
     return EXTENSION_DATA
@@ -32,7 +32,7 @@ def apply_file_format(app, madfile, filename=None):
     extension_data = get_fiex(app)
 
     if filename is None:
-        filename = madfile.all.basename
+        filename = madfile['basename']
 
     splitter = filename.rsplit('.', 1)
     if len(splitter) != 2:
@@ -41,18 +41,18 @@ def apply_file_format(app, madfile, filename=None):
     base, ext = splitter
 
     #this ensures that the innermost extension seen is stored
-    madfile.all.extension = ext
+    madfile['extension'] = ext
 
     if not ext in extension_data:
         return
 
     ft = extension_data[ext]
-    ftinfo = app.conf.filetype.get(ft)
+    ftinfo = app.conf['filetype'].get(ft)
 
     lg.debug("identified filetype %s" % ft)
     if ftinfo.template:
         template = app.conf.template.get(ftinfo.template)
-        madfile.all.update(template)
+        madfile.update(template)
 
     if ftinfo.get('continue', False):
         lg.debug("contiue filetype disocvery on: %s" % base)
@@ -61,18 +61,22 @@ def apply_file_format(app, madfile, filename=None):
 
 @leip.hook("madfile_pre_load")
 def recursive_dir_data(app, madfile):
-    lg.debug("start pre load for {}".format(madfile.all.filename))
-    here = madfile.all.dirname.rstrip('/')
+
+    global RECURSE_CACHE
+
+    lg.debug("start pre load for {}".format(madfile['filename']))
+    here = madfile['dirname'].rstrip('/')
     conf = []
 
-    #find existsing configurations
+    #find existing directory configuration from the perspective
+    #of the madfile
     last = here
     while True:
         try:
             assert(os.path.isdir(here))
         except AssertionError:
             print(last, here)
-            print(madfile.all.pretty())
+            print(madfile.pretty())
             raise
         here_c = os.path.join(here, '.mad', 'config')
         if os.path.exists(here_c):
@@ -84,7 +88,7 @@ def recursive_dir_data(app, madfile):
         last = here
         here = parent
 
-    #now again for the current directory
+    #now again from the current directory
     here = os.getcwd().rstrip('/')
     last = here
     cwdconf = []
@@ -93,7 +97,7 @@ def recursive_dir_data(app, madfile):
             assert(os.path.isdir(here))
         except:
             print(last, here)
-            print(madfile.all.pretty())
+            print(madfile.pretty())
             raise
         here_c = os.path.join(here, '.mad', 'config')
         if os.path.exists(here_c):
@@ -114,57 +118,61 @@ def recursive_dir_data(app, madfile):
         if fullname in RECURSE_CACHE:
             y = RECURSE_CACHE[fullname]
         else:
-            y = Yaco.YacoDir(fullname)
-        madfile.all.update(y)
+            y = Yaco2.Yaco()
+            Yaco2.dir_loader(y, fullname)
+            RECURSE_CACHE[fullname] = y
+
+        #insert in the stack just after the mad file
+        madfile.stack.insert(2, y)
 
 @leip.hook("madfile_post_load")
 def onthefly(app, madfile):
 
-    if sorted(list(madfile.mad.keys())) == ['hash']:
-        madfile.all.annotated = False
+    if sorted(list(madfile.keys())) == ['hash']:
+        madfile['annotated'] = False
     else:
-        madfile.all.annotated = True
+        madfile['annotated'] = True
 
     lg.debug("running onthelfy")
-    madfile.all.fullpath = os.path.abspath(madfile.filename)
-    madfile.all.fullmadpath = os.path.abspath(madfile.madname)
+    madfile['fullpath'] = os.path.abspath(madfile['filename'])
+    madfile['fullmadpath'] = os.path.abspath(madfile['madname'])
 
     lg.debug("get fqdn")
-    madfile.all.host = socket.gethostname()
+    madfile['host'] = socket.gethostname()
 
-    madfile.all.uri = "file://{}{}".format(
-        madfile.all.host, madfile.all.fullpath)
-    if madfile.orphan:
+    madfile['uri'] = "file://{}{}".format(
+        madfile['host'], madfile['fullpath'])
+    if madfile.get('orphan', False):
         #orphaned is file - little we can do
         return
 
-#    if not os.path.exists(madfile.all.fullpath)
-    filestat = os.stat(madfile.all.fullpath)
+#    if not os.path.exists(madfile['fullpath'])
+    filestat = os.stat(madfile['fullpath'])
     #print(filestat)
 
-    madfile.all.filesize = filestat.st_size
-    madfile.all.nlink = filestat.st_nlink
+    madfile['filesize'] = filestat.st_size
+    madfile['nlink'] = filestat.st_nlink
 
     try:
         userinfo = getpwuid(filestat.st_uid)
     except KeyError:
         #cannot find username based on uid
-        madfile.all.userid = str(filestat.st_uid)
-        madfile.all.username = str(filestat.st_uid)
+        madfile['userid'] = str(filestat.st_uid)
+        madfile['username'] = str(filestat.st_uid)
     else:
-        madfile.all.userid = userinfo.pw_name
-        madfile.all.username = userinfo.pw_gecos
+        madfile['userid'] = userinfo.pw_name
+        madfile['username'] = userinfo.pw_gecos
 
     mtime = datetime.utcfromtimestamp(
         filestat.st_mtime)
     atime = datetime.utcfromtimestamp(
         filestat.st_atime)
 
-    madfile.all.atime = atime.isoformat()
-    madfile.all.atime_simple = atime.strftime("%Y/%m/1")
+    madfile['atime'] = atime.isoformat()
+    madfile['atime_simple'] = atime.strftime("%Y/%m/1")
 
-    madfile.all.mtime = mtime.isoformat()
-    madfile.all.mtime_simple = mtime.strftime("%Y/%m/1")
+    madfile['mtime'] = mtime.isoformat()
+    madfile['mtime_simple'] = mtime.strftime("%Y/%m/1")
 
     apply_file_format(app, madfile)
 

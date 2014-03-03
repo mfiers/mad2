@@ -9,16 +9,16 @@ import leip
 from mad2.util import  get_filenames, get_all_mad_files
 
 lg = logging.getLogger(__name__)
-    
+
 
 @leip.arg('file', nargs='*')
 @leip.arg('samplesheet', help='sheet with information')
 @leip.arg('--id', help='header of identifying column')
-@leip.arg('--format', help='format string to identify file', 
+@leip.arg('--format', help='format string to identify file',
           default='{0}')
-@leip.arg('--sanitize', help='sanitize by removing special characters', 
+@leip.arg('--sanitize', help='sanitize by removing special characters',
           action='store_true')
-@leip.arg('--multiple', help='multiple files per id allowed', 
+@leip.arg('--multiple', help='multiple files per id allowed',
           action='store_true')
 @leip.arg('--apply', action='store_true', help='actually apply')
 @leip.command
@@ -37,7 +37,7 @@ def samplesheet(app, args):
         print("Select from:")
         for col in header:
             print('- {0}'.format(col))
-    
+
     if not args.id:
         print("Need a column with identifying information (--id)")
         show_columns()
@@ -66,7 +66,7 @@ def samplesheet(app, args):
     id2file = {}
     for fid in id_values:
         for filename in filenames:
-                
+
             if args.sanitize:
                 san_filename = resanitize.sub('', filename)
             else:
@@ -97,18 +97,18 @@ def samplesheet(app, args):
             print("none applied - first few id values are:")
             print(", ".join(id_values[:5]))
         sys.exit()
-    
+
     for madfile in get_all_mad_files(app, args):
-        fid = file2id.get(madfile.filename)
+        fid = file2id.get(madfile['filename'])
         if fid in id_values:
             rowid = id_values.index(fid) + 1
             data = dict(zip(header, sheet.row_values(rowid)))
             madfile.mad.update(data)
             madfile.save()
 
-                
-    
-    
 
 
-            
+
+
+
+

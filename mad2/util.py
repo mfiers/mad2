@@ -23,7 +23,7 @@ def get_mad_file(app, filename):
     global CACHE
 
     lg.debug("instantiating madfile for {0}".format(filename))
-    return MadFile(filename, base=app.conf.madfile,
+    return MadFile(filename, base=app.conf.get_branch('madfile'),
                    hook_method=app.run_hook)
 
 
@@ -75,7 +75,6 @@ def get_all_mad_files(app, args, use_stdin=True):
     for filename in get_filenames(args, use_stdin):
         try:
             maf = get_mad_file(app, filename)
-            # print(maf.madname)
             yield maf
         except MadNotAFile:
             pass

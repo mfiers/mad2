@@ -44,15 +44,19 @@ function start_test {
 if [ -z "$1" ]
 then
     pattern='????.*.sh'
+    verbose='+v'
 else
     pattern="*${1}*"
+    verbose='-v'
 fi
 for test_script in $(find scripts/ -name "${pattern}" | grep "\.sh$")
 do
     rm -rf test
     mkdir test
     cd test
+    set $verbose
     . ../$test_script
+    set +v
     cd ..
     rm -rf test
 done
