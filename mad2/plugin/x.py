@@ -6,6 +6,7 @@ import logging
 from multiprocessing.dummy import Pool as ThreadPool
 import os
 import subprocess as sp
+import sys
 import uuid
 
 import leip
@@ -24,13 +25,14 @@ class Executor(object):
         executor_type = args.executor
 
         self.executor_type = executor_type
-        confName = executor_type.capitalize() + "Executor"
-        self.conf = app.conf.plugin.x[confName]
-        self.defaults = app.conf.plugin.x[confName].defaults
-        self.xdefaults = app.conf.plugin.x.defaults
+        confName = executor_type.lower()
+
+        self.conf = app.conf.get_branch('x.executor.{}'.format(confName))
+        self.defaults = app.conf.get_branch('x.executor.default')
 
         lg.debug("opening thread pool with %d threads",
                  args.threads)
+
         self.pool = ThreadPool(args.threads)
 
     def prepare_script(self, madfileset, command_info):
@@ -38,22 +40,24 @@ class Executor(object):
         prepare command line & full execution prepare_script
 
         """
-        xtra_info = {}
+        xtra_info = Yaco2.Yaco()
         xtra_info['input_file'] = madfileset[0]
         xtra_info['input_files'] = madfileset
 
         xtype = command_info.get('type', 'map')
+        lg.debug("exec type %s", xtype)
 
-        conf_objects = [xtra_info,
-                        self.app.conf,
-                        command_info.defaults,
-                        self.defaults,
-                        self.xdefaults,
-                        self.conf]
+        #first step - render the actual command
+        x_conf = Yaco2.YacoStack(
+            [xtra_info,
+             command_info.get_branch('defaults'),
+             self.conf,
+             self.defaults,
+             self.app.conf])
 
-        command = command_info.command
+        command = command_info['command']
 
-        cl = madfileset[0].render(command, *conf_objects)
+        cl = madfileset[0].render(command, x_conf)
 
         xtra_info['cl'] = cl
         xtra_info['input_files'] = madfileset
@@ -61,20 +65,18 @@ class Executor(object):
         xtra_info['comm'] = command_info
         xtra_info['uuid'] = str(uuid.uuid1())
 
-        to_annotate = self.app.conf.plugin.x.annotate
-        to_annotate.update(self.defaults.annotate)
-        to_annotate.update(command_info.annotate)
+        # # to_annotate = self.app.conf.plugin.x.annotate
+        # # to_annotate.update(self.defaults.annotate)
+        # # to_annotate.update(command_info.annotate)
 
-        xtra_info['annotate'] = to_annotate
-
-        conf_objects = [xtra_info] + conf_objects
+        # xtra_info['annotate'] = to_annotate
 
         script = madfileset[0].render(self.conf[xtype],
-                                *conf_objects)
+                                      x_conf)
 
-        invoke_cmd = self.conf.invocator.execute_command
+        invoke_cmd = self.conf['invocator.execute_command']
         invoke_cmd = madfileset[0].render(invoke_cmd,
-                                    *conf_objects)
+                                          x_conf)
 
         if '{{' in cl or '{%' in cl:
             lg.error("cannot render command line")
@@ -112,8 +114,8 @@ class Executor(object):
             print(invoke)
             print(script)
         else:
-            rv = Yaco.Yaco()
-            rv.cl = cl
+            rv = Yaco2.Yaco()
+            rv['cl'] = cl
             self.pool.apply_async(_applicator,
                                   (invoke, script, self.args.bg))
 
@@ -130,17 +132,17 @@ class Executor(object):
 
 def _get_command(app, madfile, command_name):
 
-        execinfo = madfile.x[command_name]
+    filetype = madfile.get('filetype', "")
+    if filetype:
+        templates = Yaco2.YacoStack([
+            app.conf.get_branch('x.filetype.{}'.format(filetype)),
+            app.conf.get_branch('x.filetype.default')])
+    else:
+        templates = app.conf.get_branch('x.filetype.default')
 
-        if isinstance(execinfo, str):
-            # simple command
-            rv = Yaco.Yaco()
-            rv.command = execinfo
-            rv.description = execinfo
-            return rv
-        else:
-            return execinfo
 
+    execinfo = templates.get_branch(command_name)
+    return execinfo
 
 @leip.arg('file', nargs='*')
 @leip.command
@@ -159,17 +161,14 @@ def commands(app, args):
             print('{} (unknown filetype)'.format(madfile['filename']))
             templates = app.conf.get_branch('x.filetype.default')
 
+        no_commands = 0
         for k in templates.keys(1):
-            print(k)
+            no_commands += 1
+            command_info = templates.get_branch(k)
 
-        #if not madfile.x:
-        #     print(" -- no commands available")
-        # else:
-        #     for command_name in madfile.x:
-        #         execinfo = _get_command(app, madfile, command_name)
-        #         print(" {}: {}".format(
-        #             command_name,
-        #             execinfo.description))
+            print("- '{}': {}".format(k, command_info.get('description')))
+        if no_commands == 0:
+            print(" -- no commands available")
 
 
 @leip.arg('file', nargs='*')
@@ -213,7 +212,7 @@ def x(app, args):
 
         #t = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
         #h = madfile.mad.execute.history[t]
-        #h.update(runinfo)
-        #madfile.save()
+        # h.update(runinfo)
+        # madfile.save()
 
     executor.finish()
