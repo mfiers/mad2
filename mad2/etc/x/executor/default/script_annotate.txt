@@ -1,29 +1,36 @@
 
-#Annotate output file
-echo "${txtcyn}Annotate:${bldblk}"
-{%- for fld in annotate.keys(1) -%}
-echo "- ${txtgrn}{{fld}}${txtrst}: {{ annotate[fld] }}"
-{%- endfor -%}
+#Annotate output file(s)
 
-{%- if annotate %}
+{% set anno = c.get_branch('annotate') %}
+
+echo "${txtcyn}Annotate:${bldblk}"
+{% for fld in anno.keys1() -%}
+echo "- ${txtgrn}{{ fld }}${bldblk} '{{ anno.get(fld) }}'${txtrst}"
+{% endfor %}
+{%- for i in input_files -%}
+echo "- ${txtgrn}derivedFrom${bldblk} '{{ i['fullpath'] }}'${txtrst}"
+{%- if i.has_key('hash.sha1') %}
+echo "- ${txtgrn}derivedFromSha1${bldblk} '{{ i['hash.sha1'] }}'${txtrst}"
+{% endif %}
+
+{% endfor %}
+
 # generate a sha1 for the target file
-{%-  for toannot in comm.output_files %}
+{%-  for toannot in comm['output_files'] %}
 if [[ -e "{{ toannot }}" ]]; then
     echo "${txtgrn}Generate sha1${bldblk} '{{ toannot }}'${txtrst}"
     mad sha1 {{ toannot }}
 fi
 {%- endfor %}
-{%- endif %}
 
-{% if annotate -%}
 mad mset
-{%- for fld in annotate -%}
-  {%- if annotate[fld] -%}
-    {{ ' ' }} -k "{{fld}}" "{{ annotate[fld] }}"
-  {%- endif -%}
-{%- endfor -%}
-{{ ' ' }}
+{%- for fld in anno.keys1() -%}
+  {{ ' ' }} -k "{{fld}}" "{{ anno.get(fld) }}"
+{%- endfor -%}{{ ' ' }}{%- for i in input_files -%}
+  {{ ' ' }} -k "derivedFrom" "{{ i['fullpath'] }}"
+{%- if i.has_key('hash.sha1') -%}
+  {{ ' ' }} -k "derivedFromSha1" "{{ i['hash.sha1'] }}"
+{%- endif -%}{%- endfor -%}{{ ' ' }}
 {%- for toannot in comm.output_files -%}
     {{ toannot  }} {{ ' ' }}
-{%- endfor -%}
-{%- endif %}
+{%- endfor %}

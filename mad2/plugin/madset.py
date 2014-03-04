@@ -106,6 +106,7 @@ def mset(app, args):
     all_kvs = []
     for k, v in args.kv:
         all_kvs.append(_getkeyval(app, k, v, args.force))
+
     for madfile in get_all_mad_files(app, args):
         for key, val, list_mode in all_kvs:
             if list_mode:
@@ -116,12 +117,10 @@ def mset(app, args):
                     if not isinstance(oldval, list):
                         oldval = [oldval]
                 madfile.mad[key] = oldval + [val]
-                madfile.all[key] = oldval + [val]
 
             else:
                 #not listmode
                 madfile.mad[key] = val
-                madfile.all[key] = val
 
         if args.echo:
             print(madfile.filename)

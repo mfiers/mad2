@@ -104,7 +104,7 @@ class MadFile(Yaco2.YacoStack):
         return self.stack[1]
 
     def __str__(self):
-        return '<mad2.madfile.MadFile {}>'.format(self.all.madname)
+        return '<mad2.madfile.MadFile {}>'.format(self['filename'])
 
     # def simple(self):
     #     data = self.collapse()

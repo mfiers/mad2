@@ -48,8 +48,6 @@ class Executor(object):
         lg.debug("exec type %s", xtype)
 
         #first step - render the actual command
-        print(self.app.conf.get_branch('plugin.x.defaults'))
-
         x_conf = Yaco2.YacoStack(
             [xtra_info,
              command_info.get_branch('defaults'),
@@ -57,6 +55,9 @@ class Executor(object):
              self.defaults,
              self.app.conf.get_branch('plugin.x.defaults'),
              self.app.conf])
+
+        #hack - should be possible from within jinja
+        x_conf['c'] = x_conf
 
         command = command_info['command']
 
