@@ -22,7 +22,7 @@ def get_fiex(app):
     EXTENSION_DATA = {}
     for ft in app.conf.find_branch('filetype'):
         for ext in ft.get('extensions', []):
-            EXTENSION_DATA[ext] = ft
+            EXTENSION_DATA[ext] = ft.leaf(), ft
 
     return EXTENSION_DATA
 
@@ -46,14 +46,12 @@ def apply_file_format(app, madfile, filename=None):
     if not ext in extension_data:
         return
 
-    ft = extension_data[ext]
-    ftinfo = app.conf['filetype'].get(ft)
+    filetype, ftinfo = extension_data[ext]
+    lg.debug("identified filetype {0}".format(filetype))
+    template_name = ftinfo.get('template')
 
-    lg.debug("identified filetype %s" % ft)
-    if ftinfo.template:
-        template = app.conf.template.get(ftinfo.template)
-        madfile.update(template)
-
+    template = app.conf.get_branch('template.{0}'.format(template_name))
+    madfile.update(template)
     if ftinfo.get('continue', False):
         lg.debug("contiue filetype disocvery on: %s" % base)
         apply_file_format(app, madfile, base)

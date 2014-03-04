@@ -9,7 +9,7 @@ import subprocess as sp
 import uuid
 
 import leip
-import Yaco
+import Yaco2
 from mad2.util import get_all_mad_files
 
 lg = logging.getLogger(__name__)
@@ -149,15 +149,27 @@ def commands(app, args):
     Commands available:
     """
     for madfile in get_all_mad_files(app, args):
-        print(madfile.filename)
-        if not madfile.x:
-            print(" -- no commands available")
+        filetype = madfile.get('filetype', "")
+        if filetype:
+            print('{} ({})'.format(madfile['filename'], filetype))
+            templates = Yaco2.YacoStack([
+                app.conf.get_branch('x.filetype.{}'.format(filetype)),
+                app.conf.get_branch('x.filetype.default')])
         else:
-            for command_name in madfile.x:
-                execinfo = _get_command(app, madfile, command_name)
-                print(" {}: {}".format(
-                    command_name,
-                    execinfo.description))
+            print('{} (unknown filetype)'.format(madfile['filename']))
+            templates = app.conf.get_branch('x.filetype.default')
+
+        for k in templates.keys(1):
+            print(k)
+
+        #if not madfile.x:
+        #     print(" -- no commands available")
+        # else:
+        #     for command_name in madfile.x:
+        #         execinfo = _get_command(app, madfile, command_name)
+        #         print(" {}: {}".format(
+        #             command_name,
+        #             execinfo.description))
 
 
 @leip.arg('file', nargs='*')
