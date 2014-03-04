@@ -14,7 +14,7 @@ import Yaco2
 from mad2.util import get_all_mad_files
 
 lg = logging.getLogger(__name__)
-
+lg.setLevel(logging.DEBUG)
 
 class Executor(object):
 
@@ -48,11 +48,14 @@ class Executor(object):
         lg.debug("exec type %s", xtype)
 
         #first step - render the actual command
+        print(self.app.conf.get_branch('plugin.x.defaults'))
+
         x_conf = Yaco2.YacoStack(
             [xtra_info,
              command_info.get_branch('defaults'),
              self.conf,
              self.defaults,
+             self.app.conf.get_branch('plugin.x.defaults'),
              self.app.conf])
 
         command = command_info['command']

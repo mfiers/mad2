@@ -13,9 +13,6 @@
 #here comes the real script
 {{cl}}
 
-# generate a sha1 for the target file
-echo "${txtgrn}Generate sha1${bldblk} '{{ filename }}'${txtrst}"
-
 {{ script_annotate }}
 
 {{ script_footer }}

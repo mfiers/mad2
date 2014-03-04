@@ -20,7 +20,8 @@ def get_fiex(app):
         return EXTENSION_DATA
 
     EXTENSION_DATA = {}
-    for ft in app.conf.find_branch('filetype'):
+
+    for ft in app.conf.find('filetype'):
         for ext in ft.get('extensions', []):
             EXTENSION_DATA[ext] = ft.leaf(), ft
 
