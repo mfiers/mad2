@@ -177,11 +177,8 @@ def set(app, args):
 
         default = ''
         #Show a prompt asking for a value
-        if len(madfiles) == 1:
-            data = madfiles[0].data(app.conf)
-            default = madfiles[0].mad.get(key, "")
-        else:
-            data = app.conf.simple()
+        data = madfiles[0]
+        default = madfiles[0].get(key, "")
 
         if args.prompt:
             sys.stdin = open('/dev/tty')

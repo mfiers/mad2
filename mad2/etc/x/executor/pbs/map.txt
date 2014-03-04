@@ -1,14 +1,16 @@
 #!/bin/bash
 #PBS -S /bin/bash
 #PBS -d {{ pwd }}
-#PBS -o ./pbs/{{ basename }}.out
-#PBS -e ./pbs/{{ basename }}.err
+#PBS -o ./pbs/{{ input_file["basename"] }}.out
+#PBS -e ./pbs/{{ input_file["basename"] }}.err
+
 {% if pbs_jobname %}#PBS -N '{{ jobname }}' {{ "\n" }}{% endif %}
 {%- if pbs_group %}#PBS -A {{ pbs_group }}{{ "\n" }}{% endif %}
 {%- if pbs_mem %}#PBS -l mem={{ pbs_mem }}{{ "\n" }}{% endif %}
 {%- if pbs_queue %}#PBS -q {{ pbs_queue }}{{ "\n" }}{% endif %}
 {%- if pbs_walltime %}#PBS -l walltime={{ pbs_walltime }}{{ "\n" }}{% endif %}
 {%- if pbs_cpu %}#PBS -l {{ pbs_cpu }}{{ "\n" }}{% endif %}
+
 cd $PBS_O_WORKDIR
 
 {{ script_header }}

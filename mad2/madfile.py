@@ -159,7 +159,12 @@ class MadFile(Yaco2.YacoStack):
                 break
             last = rendered
             lll = rendered
-            template = jenv.from_string(rendered)
+            try:
+                template = jenv.from_string(rendered)
+            except:
+                print("problem creating template with:")
+                print(rendered)
+                raise
             try:
                 rendered = template.render(data_stacked)
             except jinja2.exceptions.UndefinedError, e:
