@@ -1,7 +1,6 @@
 from __future__ import print_function
 
 import collections
-import datetime
 import logging
 from multiprocessing.dummy import Pool as ThreadPool
 import os
@@ -35,6 +34,11 @@ class Executor(object):
 
         self.pool = ThreadPool(args.threads)
 
+
+    def prepare_commandline(self, madfile, command_info):
+        pass
+
+
     def prepare_script(self, madfileset, command_info):
         """
         prepare command line & full execution prepare_script
@@ -43,6 +47,8 @@ class Executor(object):
         xtra_info = Yaco2.Yaco()
         xtra_info['input_file'] = madfileset[0]
         xtra_info['input_files'] = madfileset
+        xtra_info['basename'] = madfileset[0]["basename"]
+        lg.info("basename: " + xtra_info['basename'])
 
         xtype = command_info.get('type', 'map')
         lg.debug("exec type %s", xtype)

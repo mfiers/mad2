@@ -1,6 +1,3 @@
-
-echo "PBS EXEC"
-
 {{ script_header }}
 
 echo "${txtgrn}Running${bldblk} '{{ filename }}'${txtrst}"
