@@ -49,16 +49,16 @@ class Executor(object):
 
         #first step - render the actual command
         x_conf = Yaco2.YacoStack(
-            [xtra_info,
-             command_info.get_branch('defaults'),
-             self.conf,
-             self.defaults,
-             self.app.conf.get_branch('plugin.x.defaults'),
-             self.app.conf])
+            [ xtra_info,
+              command_info.get_branch('defaults'),
+              self.conf,
+              self.defaults,
+              self.app.conf.get_branch('plugin.x.defaults'),
+              self.app.conf ])
 
         #hack - should be possible from within jinja
         x_conf['c'] = x_conf
-
+        x_conf['comm'] = command_info
         command = command_info['command']
 
         cl = madfileset[0].render(command, x_conf)

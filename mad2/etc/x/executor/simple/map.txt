@@ -3,11 +3,11 @@
 {{ script_color }}
 {{ script_header }}
 
-{% if comm.run_when %}
-  if [[ ! {{ comm.run_when }} ]]; then
-      echo "${bldpur}Skipping${bldblk} '{{ filename }}'${txtrst}"
-      exit 0
-  fi
+{%- if comm['run_when'] %}
+if [[ ! {{ comm['run_when'] }} ]]; then
+  echo "${bldpur}Skipping${bldblk} '{{ filename }}'${txtrst}"
+  exit 0
+fi
 {% endif %}
 
 #here comes the real script

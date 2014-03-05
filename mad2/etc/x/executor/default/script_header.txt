@@ -14,4 +14,3 @@ PATH="{{ p }}:$PATH"
 {%- for p in comm.module %}
 module load {{ m }}
 {% endfor %}
-
