@@ -21,7 +21,6 @@ lg = logging.getLogger(__name__)
 
 PROFILE = True
 
-
 def dispatch():
     """
     Run the app - this is the actual application entry point
