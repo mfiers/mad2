@@ -15,6 +15,7 @@ from mad2.util import get_all_mad_files
 lg = logging.getLogger(__name__)
 lg.setLevel(logging.DEBUG)
 
+
 class Executor(object):
 
     def __init__(self, app, args):
@@ -34,10 +35,8 @@ class Executor(object):
 
         self.pool = ThreadPool(args.threads)
 
-
     def prepare_commandline(self, madfile, command_info):
         pass
-
 
     def prepare_script(self, madfileset, command_info):
         """
@@ -53,16 +52,16 @@ class Executor(object):
         xtype = command_info.get('type', 'map')
         lg.debug("exec type %s", xtype)
 
-        #first step - render the actual command
+        # first step - render the actual command
         x_conf = Yaco2.YacoStack(
-            [ xtra_info,
-              command_info.get_branch('defaults'),
-              self.conf,
-              self.defaults,
-              self.app.conf.get_branch('plugin.x.defaults'),
-              self.app.conf ])
+            [xtra_info,
+             command_info.get_branch('defaults'),
+             self.conf,
+             self.defaults,
+             self.app.conf.get_branch('plugin.x.defaults'),
+             self.app.conf])
 
-        #hack - should be possible from within jinja
+        # hack - should be possible from within jinja
         x_conf['c'] = x_conf
         x_conf['comm'] = command_info
         command = command_info['command']
@@ -75,9 +74,9 @@ class Executor(object):
         xtra_info['comm'] = command_info
         xtra_info['uuid'] = str(uuid.uuid1())
 
-        # # to_annotate = self.app.conf.plugin.x.annotate
-        # # to_annotate.update(self.defaults.annotate)
-        # # to_annotate.update(command_info.annotate)
+        # to_annotate = self.app.conf.plugin.x.annotate
+        # to_annotate.update(self.defaults.annotate)
+        # to_annotate.update(command_info.annotate)
 
         # xtra_info['annotate'] = to_annotate
 
@@ -150,9 +149,9 @@ def _get_command(app, madfile, command_name):
     else:
         templates = app.conf.get_branch('x.filetype.default')
 
-
     execinfo = templates.get_branch(command_name)
     return execinfo
+
 
 @leip.arg('file', nargs='*')
 @leip.command
