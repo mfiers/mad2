@@ -36,8 +36,9 @@ sys.path = (
 
 # hack - otherwise readline outputs unwanted control
 # character
-if os.environ['TERM'] == 'xterm':
-    os.environ['TERM'] = 'vt100'
+if os.environ.has_key('TERM'):
+    if os.environ['TERM'] == 'xterm':
+        os.environ['TERM'] = 'vt100'
 
 import readline
 

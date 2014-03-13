@@ -1,0 +1,16 @@
+echo "${txtgrn}Running${bldblk} '{{ filename }}'${txtrst}"
+echo "${txtblu}Description${txtrst}: {{ comm.description }}"
+
+{% if comm.virtualenv %}
+echo "${txtred}Loading python virtualenv ${txtrst}: {{ comm.virtualenv }}"
+. {{ comm.virtualenv }}/bin/activate
+{% endif %}
+
+{%- for p in comm.path %}
+echo "${txtpur}In path:${txtrst} {{ p }}"
+PATH="{{ p }}:$PATH"
+{% endfor %}
+
+{%- for p in comm.module %}
+module load {{ m }}
+{% endfor %}

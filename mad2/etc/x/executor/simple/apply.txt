@@ -1,0 +1,10 @@
+
+{{ script_header }}
+
+echo "${txtgrn}Running${bldblk} '{{ filename }}'${txtrst}"
+echo "${txtblu}Description${txtrst}: {{ comm.description }}"
+
+#here comes the real script
+{{cl}}
+
+{{ script_footer }}

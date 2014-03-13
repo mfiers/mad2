@@ -1,0 +1,6 @@
+{{ script_header }}
+
+#here comes the real script
+{{cl}}
+
+{{ script_footer }}

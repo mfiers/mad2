@@ -11,10 +11,11 @@ from mad2.util import get_all_mad_files
 
 lg = logging.getLogger(__name__)
 
+
 def get_qdhash(filename):
     """
-    Provde a quick & dirty hash - a good indication that a file MIGHT have
-    changed - but by no means secure.
+    Provde a quick & dirty hash - a good indication that a file
+    MIGHT have changed - but by no means secure.
 
     It is quick, though.
     """
@@ -26,7 +27,7 @@ def get_qdhash(filename):
     else:
         with open(filename, 'rb') as F:
             for x in range(9):
-                F.seek(int(filesize * (x/10.0)))
+                F.seek(int(filesize * (x / 10.0)))
                 sha1sum.update(F.read(2000))
 
             F.seek(-2000, 2)
@@ -39,19 +40,21 @@ def get_mtime(fn):
     return datetime.datetime.utcfromtimestamp(
         os.stat(fn).st_mtime).isoformat()
 
+
 def may_have_changed(madfile):
     may_have_changed = False
-    if madfile.mad.hash.qdhash:
-        qmt = madfile.mad.hash.mtime
-        mtime =get_mtime(madfile.fullpath)
+    if madfile.get('hash.qdhash', False):
+        qmt = madfile['hash.mtime']
+        mtime = get_mtime(madfile['fullpath'])
         if qmt != mtime:
             may_have_changed = True
-    elif madfile.mad.hash.mtime:
-        qdh = madfile.mad.hash.qdhash
-        cs = get_qdhash(madfile.fullpath)
+    elif madfile.get('hash.mtime', False):
+        qdh = madfile['hash.qdhash']
+        cs = get_qdhash(madfile['fullpath'])
         if qdh != cs:
             may_have_changed = True
     return may_have_changed
+
 
 @leip.hook("madfile_post_load", 250)
 def hashhelper(app, madfile):
@@ -59,15 +62,16 @@ def hashhelper(app, madfile):
     Calculate a quick&dirty checksum
 
     """
-    if madfile.orphan:
-        #cannot deal with orphaned files
+    if madfile.get('orphan', False):
+        # cannot deal with orphaned files
         return
 
     changed = may_have_changed(madfile)
 
     if changed and not 'sha1' in sys.argv:
-        print("{} may have changed! (rerun mad sha1)".format(madfile.fullpath),
-              file=sys.stderr)
+        print("{} may have changed! (rerun mad sha1)".format(
+            madfile['fullpath']), file=sys.stderr)
+
 
 def hashit(hasher, filename):
     """
@@ -78,7 +82,7 @@ def hashit(hasher, filename):
     slim that a duplicate will arise
     """
     h = hasher()
-    blocksize = 2**20
+    blocksize = 2 ** 20
     with open(filename, 'rb') as F:
         for chunk in iter(lambda: F.read(blocksize), b''):
             h.update(chunk)
@@ -88,7 +92,6 @@ def hashit(hasher, filename):
 @leip.arg('-e', '--echo', action='store_true', help='echo name')
 @leip.arg('-f', '--force', action='store_true', help='apply force')
 @leip.arg('-w', '--warn', action='store_true', help='warn when skipping')
-
 @leip.arg('file', nargs='*')
 @leip.command
 def sha1(app, args):
@@ -98,31 +101,29 @@ def sha1(app, args):
 
     for madfile in get_all_mad_files(app, args):
 
-        if madfile.all.orphan:
+        if madfile.get('orphan', False):
             return
 
         changed = may_have_changed(madfile)
 
         if not args.force and 'sha1':
-            if madfile.hash.sha1:
+            if madfile.get('hash.sha1'):
                 if not changed:
                     if args.warn:
-                        #exists - and not forcing
-                        lg.warning("Skipping sha1 checksum - exists & likely unchanged")
+                        # exists - and not forcing
+                        lg.warning(
+                            "Skipping sha1 checksum - exists & likely unchanged")
                     continue
 
-        qd = get_qdhash(madfile.filename)
-        mtime =get_mtime(madfile.filename)
+        qd = get_qdhash(madfile['filename'])
+        mtime = get_mtime(madfile['filename'])
 
-        madfile.mad.hash.qdhash = qd
-        madfile.mad.hash.mtime = mtime
+        madfile.stack[1]['hash.qdhash'] = qd
+        madfile.stack[1]['hash.mtime'] = mtime
 
-        cs = hashit(hashlib.sha1, madfile.filename)
-        madfile.mad.hash.sha1 = cs
-
+        cs = hashit(hashlib.sha1, madfile['filename'])
+        madfile.stack[1]['hash.sha1'] = cs
         madfile.save()
 
         if args.echo:
-            print(madfile.filename)
-
-
+            print(madfile['filename'])

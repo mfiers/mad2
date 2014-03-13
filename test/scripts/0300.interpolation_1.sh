@@ -2,7 +2,7 @@ start_test Render variables
 
 test_data 1
 
-mad set testkey testval .
+mad set -f testkey testval .
 mad set -f interdummy blabloe a001.test
 mad set -f dummy 'interpolate {{testkey}} {{ interdummy }}' a001.test
 grep -q interpolate .a001.test.mad
@@ -17,6 +17,6 @@ mad print vc a001.test | grep -q '^eine kleine nachtmusik$'
 
 ### use directory configuration
 
-mad set va 'keine' .
+mad set -f va 'keine' .
 mad unset va a001.test
 mad print vc a001.test | grep -q '^keine kleine nachtmusik$'

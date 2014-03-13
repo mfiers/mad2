@@ -1,0 +1,22 @@
+{{ script_header }}
+
+echo "${txtgrn}Running${bldblk} '{{ filename }}'${txtrst}"
+echo "${txtblu}Description${txtrst}: {{ comm.description }}"
+
+#here comes the real script
+{{cl}}
+if [[ "$?" != "0" ]]; then
+    echo "Failed execution"
+    mkdir -p failed
+    {% for output in comm.output_files -%}
+    echo "{{ output }}" >> failed.list
+    if [[ -e output ]]; then
+        mv "{{ output }}" failed
+    fi
+    {%- endfor %}
+fi
+
+
+
+
+{{ script_footer }}
