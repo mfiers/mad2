@@ -20,3 +20,4 @@ RETURN
     f2.host as host,
     f2.userid as user,
     f2.fullpath as fullpath
+

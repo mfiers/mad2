@@ -1,0 +1,7 @@
+MATCH (f:file)<-[:HAS_FILE]-(h:host)
+RETURN
+    f.userid as userid,
+    h.host as host,
+    sum(f.filesize / (1024^2)) as total_size_mb
+ORDER BY total_size_mb DESC
+LIMIT 20

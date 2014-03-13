@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 
 import jinja2
 
@@ -72,9 +73,11 @@ class MadFile(object):
         self.all.basename = basename
         self.all.madname = madname
 
-        if os.path.exists(madname) and not os.path.exists(filename):
-            lg.warning("Orphaned mad file: {}".format(madname))
+        if not os.path.exists(filename):
             self.all.orphan = True
+        if self.orphan and os.path.exists(madname):
+            lg.warning("Orphaned mad file: {}".format(madname))
+            lg.warning("  | can't find: {}".format(filename))
 
         self.hook_method = hook_method
 
@@ -127,22 +130,49 @@ class MadFile(object):
         data.update(self.mad.simple())
         return data
 
-    def render(self, text, base):
+    def get_jinja_env(self):
+
+        def regex_sub(s, find, replace):
+            """A non-optimal implementation of a regex filter"""
+            return re.sub(find, replace, s)
 
         jenv = jinja2.Environment(
             undefined=jinja2.DebugUndefined )
+        jenv.filters['re_sub'] = regex_sub
+        return jenv
 
+    def render(self, text, *data):
+
+        jenv = self.get_jinja_env()
         rendered = text
         iteration = 0
 
+        #stack all data - to prevent potential problems
+        #TODO: needs more investigation
+        data_stacked = {}
+        for d in data[::-1]:
+            data_stacked.update(d)
+
+        data_stacked.update(self.collapse())
+
         while '{{' in rendered or '{%' in rendered:
-            #print('1', rendered, y['rabbit'])
             if iteration > 0 and rendered == last:
                 #no improvement
                 break
             last = rendered
+            lll = rendered
             template = jenv.from_string(rendered)
-            rendered = template.render(self.all)
+            #print(d.simple())
+            try:
+                rendered = template.render(data_stacked)
+            except jinja2.exceptions.UndefinedError:
+                pass
+            except:
+                print("cannot render")
+                print(rendered)
+                raise
+
+
             iteration += 1
 
         return rendered
@@ -170,7 +200,6 @@ class MadFile(object):
                         .format(self.fullpath))
             else:
                 raise
-
         self.hook_method('madfile_post_save', self)
 
     def pretty(self):
