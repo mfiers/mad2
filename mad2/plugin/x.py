@@ -13,7 +13,7 @@ import Yaco2
 from mad2.util import get_all_mad_files
 
 lg = logging.getLogger(__name__)
-lg.setLevel(logging.DEBUG)
+#lg.setLevel(logging.DEBUG)
 
 
 class Executor(object):

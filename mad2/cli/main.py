@@ -19,7 +19,7 @@ signal(SIGPIPE, SIG_DFL)
 
 lg = logging.getLogger(__name__)
 
-PROFILE = True
+PROFILE = False
 
 def dispatch():
     """

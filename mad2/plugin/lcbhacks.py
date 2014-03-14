@@ -19,4 +19,4 @@ def lbconthefly(app, madfile):
 
     server = mtch.groups()[0]
 
-    madfil['host'] = server.upper()
+    madfile['host'] = server.upper()
