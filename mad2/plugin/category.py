@@ -16,12 +16,12 @@ def apply_category(app, args):
     """
     apply a predefined category to a (set of) file(s)
     """
-    catinfo = app.conf.get_branch('template.{}'.format(args.category))
+    catinfo = app.conf['template.{}'.format(args.category)]
     if not catinfo:
         print("Invalid category: {0}".format(args.category))
         print("Choose from:")
-        tempinfo = app.conf.get_branch('template')
-        for cat in app.conf.find_branch('template'):
+        tempinfo = app.conf['template']
+        for cat in app.conf['template']:
             print(" - {0}".format(cat))
         sys.exit()
 

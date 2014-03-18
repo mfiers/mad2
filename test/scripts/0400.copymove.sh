@@ -1,4 +1,4 @@
-start_test Render variables
+start_test Copy Move
 
 #copy a number of files
 test_data 5
