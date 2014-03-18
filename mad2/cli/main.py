@@ -61,17 +61,12 @@ def show(app, args):
         if i > 0:
             print('---')
 
-        keys = set()
-        for i in range(len(madfile.stack) - 1):
-            keys.update(set(madfile.stack[i].keys()))
-
-        for k in sorted(list(keys)):
+        for k in sorted(madfile.keys()):
             v = madfile[k]
 
             if isinstance(v, dict):
                 continue
             print("{}\t{}".format(k, v))
-
         i += 1
 
 

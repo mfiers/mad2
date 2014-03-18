@@ -5,8 +5,8 @@ import os
 import logging
 import socket
 
-import Yaco2
 import leip
+import fantail
 from pwd import getpwuid
 
 lg = logging.getLogger(__name__)
@@ -21,9 +21,10 @@ def get_fiex(app):
 
     EXTENSION_DATA = {}
 
-    for ft in app.conf.find('filetype'):
+    for ft_name in app.conf['filetype']:
+        ft = app.conf['filetype'][ft_name]
         for ext in ft.get('extensions', []):
-            EXTENSION_DATA[ext] = ft.leaf(), ft
+            EXTENSION_DATA[ext] = ft_name, ft
 
     return EXTENSION_DATA
 
@@ -33,7 +34,7 @@ def apply_file_format(app, madfile, filename=None):
     extension_data = get_fiex(app)
 
     if filename is None:
-        filename = madfile['basename']
+        filename = madfile['filename']
 
     splitter = filename.rsplit('.', 1)
     if len(splitter) != 2:
@@ -42,7 +43,7 @@ def apply_file_format(app, madfile, filename=None):
     base, ext = splitter
 
     #this ensures that the innermost extension seen is stored
-    madfile['extension'] = ext
+    madfile.all['extension'] = ext
 
     if not ext in extension_data:
         return
@@ -51,8 +52,8 @@ def apply_file_format(app, madfile, filename=None):
     lg.debug("identified filetype {0}".format(filetype))
     template_name = ftinfo.get('template')
 
-    template = app.conf.get_branch('template.{0}'.format(template_name))
-    madfile.update(template)
+    template = app.conf['template.{0}'.format(template_name)]
+    madfile.all.update(template)
     if ftinfo.get('continue', False):
         lg.debug("contiue filetype disocvery on: %s" % base)
         apply_file_format(app, madfile, base)
@@ -117,30 +118,29 @@ def recursive_dir_data(app, madfile):
         if fullname in RECURSE_CACHE:
             y = RECURSE_CACHE[fullname]
         else:
-            y = Yaco2.Yaco()
-            Yaco2.dir_loader(y, fullname)
+            y = fantail.dir_loader(fullname)
             RECURSE_CACHE[fullname] = y
 
         #insert in the stack just after the mad file
-        madfile.stack.insert(2, y)
+        madfile.all.update(y)
 
 @leip.hook("madfile_post_load")
 def onthefly(app, madfile):
 
-    if sorted(list(madfile.keys())) == ['hash']:
-        madfile['annotated'] = False
-    else:
-        madfile['annotated'] = True
+    # if sorted(list(madfile.keys())) == ['hash']:
+    #     madfile.all['annotated'] = False
+    # else:
+    #     madfile.all['annotated'] = True
 
     lg.debug("running onthelfy")
-    madfile['fullpath'] = os.path.abspath(madfile['filename'])
-    madfile['fullmadpath'] = os.path.abspath(madfile['madname'])
+    madfile.all['fullpath'] = os.path.abspath(madfile['filename'])
+    madfile.all['fullmadpath'] = os.path.abspath(madfile['madname'])
 
     lg.debug("get fqdn")
-    madfile['host'] = socket.gethostname()
+    madfile.all['host'] = socket.gethostname()
 
-    madfile['uri'] = "file://{}{}".format(
-        madfile['host'], madfile['fullpath'])
+    madfile.all['uri'] = "file://{}{}".format(
+        madfile.all['host'], madfile['fullpath'])
     if madfile.get('orphan', False):
         #orphaned is file - little we can do
         return
@@ -149,29 +149,29 @@ def onthefly(app, madfile):
     filestat = os.stat(madfile['fullpath'])
     #print(filestat)
 
-    madfile['filesize'] = filestat.st_size
-    madfile['nlink'] = filestat.st_nlink
+    madfile.all['filesize'] = filestat.st_size
+    madfile.all['nlink'] = filestat.st_nlink
 
     try:
         userinfo = getpwuid(filestat.st_uid)
     except KeyError:
         #cannot find username based on uid
-        madfile['userid'] = str(filestat.st_uid)
-        madfile['username'] = str(filestat.st_uid)
+        madfile.all['userid'] = str(filestat.st_uid)
+        madfile.all['username'] = str(filestat.st_uid)
     else:
-        madfile['userid'] = userinfo.pw_name
-        madfile['username'] = userinfo.pw_gecos
+        madfile.all['userid'] = userinfo.pw_name
+        madfile.all['username'] = userinfo.pw_gecos
 
     mtime = datetime.utcfromtimestamp(
         filestat.st_mtime)
     atime = datetime.utcfromtimestamp(
         filestat.st_atime)
 
-    madfile['atime'] = atime.isoformat()
-    madfile['atime_simple'] = atime.strftime("%Y/%m/1")
+    madfile.all['atime'] = atime.isoformat()
+    madfile.all['atime_simple'] = atime.strftime("%Y/%m/1")
 
-    madfile['mtime'] = mtime.isoformat()
-    madfile['mtime_simple'] = mtime.strftime("%Y/%m/1")
+    madfile.all['mtime'] = mtime.isoformat()
+    madfile.all['mtime_simple'] = mtime.strftime("%Y/%m/1")
 
     apply_file_format(app, madfile)
 

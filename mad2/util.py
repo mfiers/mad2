@@ -23,7 +23,8 @@ def get_mad_file(app, filename):
     global CACHE
 
     lg.debug("instantiating madfile for {0}".format(filename))
-    return MadFile(filename, base=app.conf.get_branch('madfile'),
+    return MadFile(filename,
+                   base=app.conf['madfile'],
                    hook_method=app.run_hook)
 
 

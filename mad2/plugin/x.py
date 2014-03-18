@@ -9,7 +9,7 @@ import sys
 import uuid
 
 import leip
-import Yaco2
+import fantail
 from mad2.util import get_all_mad_files
 
 lg = logging.getLogger(__name__)
@@ -43,7 +43,7 @@ class Executor(object):
         prepare command line & full execution prepare_script
 
         """
-        xtra_info = Yaco2.Yaco()
+        xtra_info = fantail.Fantail()
         xtra_info['input_file'] = madfileset[0]
         xtra_info['input_files'] = madfileset
         xtra_info['basename'] = madfileset[0]["basename"]

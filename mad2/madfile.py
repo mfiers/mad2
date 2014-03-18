@@ -4,7 +4,7 @@ import re
 
 import jinja2
 
-import Yaco2
+import fantail
 
 from mad2.exception import MadPermissionDenied
 
@@ -16,118 +16,113 @@ def dummy_hook_method(*args, **kw):
     return None
 
 
-class MadFile(Yaco2.YacoStack):
+class MadFile(object):
     """
 
     """
 
     def __init__(self,
-                 filename,
-                 base=Yaco2.Yaco(),
+                 inputfile,
+                 base=fantail.Fantail(),
                  hook_method=dummy_hook_method):
 
         super(MadFile, self).__init__()
 
         self.dirmode = False
 
-        dirname = os.path.dirname(filename)
-        basename = os.path.basename(filename)
+        dirname = os.path.dirname(inputfile)
+        filename = os.path.basename(inputfile)
+
+        self.mad = fantail.Fantail()
+        self.all = base
 
         lg.debug(
             "Instantiating a madfile for '{}' / '{}'".format(
-                dirname, basename))
+                dirname, filename))
 
-        if os.path.isdir(filename):
+        if os.path.isdir(inputfile):
             self.dirmode = True
-            maddir = os.path.join(os.path.abspath(filename),
+            maddir = os.path.join(os.path.abspath(inputfile),
                                   '.mad', 'config')
             if not os.path.exists(maddir):
                 os.makedirs(maddir)
-            lg.debug("'{}' is a dir".format(filename))
+            lg.debug("'{}' is a dir".format(inputfile))
             madname = os.path.join(maddir, '_root.config')
-            filename = filename
 
         else:
-            # looking at a filename
-            if basename[-4:] == '.mad':
+            # looking at a inputfile
+            if filename[-4:] == '.mad':
 
-                if basename[0] == '.':
-                    basename = basename[1:-4]
+                if filename[0] == '.':
+                    filename = filename[1:-4]
                 else:
                     # old style - prob needs to go
-                    basename = basename[:-4]
+                    filename = filename[:-4]
 
-                madname = filename
-                filename = os.path.join(dirname, basename)
+                madname = inputfile
+                inputfile = os.path.join(dirname, filename)
             else:
-                filename = filename
-                madname = os.path.join(dirname, '.' + basename + '.mad')
+                inputfile = inputfile
+                madname = os.path.join(dirname, '.' + filename + '.mad')
 
         lg.debug("madname: {}".format(madname))
-        lg.debug("filename: {}".format(filename))
+        lg.debug("inputfile: {}".format(inputfile))
 
         if os.path.exists(madname) and not os.access(madname, os.R_OK):
             raise MadPermissionDenied()
 
 
-        # madfile data
-        self.stack.insert(0, Yaco2.Yaco())
+        self.all['inputfile'] = inputfile
+        self.all['dirname'] = os.path.abspath(dirname)
+        self.all['filename'] = filename
+        self.all['madname'] = madname
 
-        # transient data - calculated on the fly
-        # note that the madfile data is now on position 2 (index 1)
-        self.stack.insert(0, Yaco2.Yaco())
-
-        # configuration
-        self.stack.append(base)
-
-        self['filename'] = filename
-        self['dirname'] = os.path.abspath(dirname)
-        self['basename'] = basename
-        self['madname'] = madname
-
-        if not os.path.exists(filename):
-            self['orphan'] = True
+        if not os.path.exists(inputfile):
+            self.all['orphan'] = True
 
         if self.get('orphan', False) and os.path.exists(madname):
             lg.warning("Orphaned mad file: {}".format(madname))
-            lg.warning("  | can't find: {}".format(filename))
+            lg.warning("  | can't find: {}".format(inputfile))
 
         self.hook_method = hook_method
         self.load()
 
-    @property
-    def mad(self):
-        """
-        Return the yaco object from the stack representing
-        the data in the madfile
-        """
-        return self.stack[1]
+    # Pretend to be dict
+    def __getitem__(self, key):
+        if key in self.mad:
+            return self.mad[key]
+        return self.all[key]
+
+    def __setitem__(self, key, value):
+        self.mad.__setitem__(key, value)
+
+    def get(self, key, default=None):
+        if key in self.mad:
+            return self.mad[key]
+        else:
+            return self.all.get(key, default)
+
+    def keys(self):
+        k = set()
+        k.update(set(self.mad.keys()))
+        k.update(set(self.all.keys()))
+        return iter(list(k))
+
+    def __contains__(self, key):
+        if key in self.mad:
+            return True
+        return key in self.all
+
+    # @property
+    # def mad(self):
+    #     """
+    #     Return the yaco object from the stack representing
+    #     the data in the madfile
+    #     """
+    #     return self.stack[1]
 
     def __str__(self):
-        return '<mad2.madfile.MadFile {}>'.format(self['filename'])
-
-    # def simple(self):
-    #     data = self.collapse()
-    #     rv = {}
-    #     kys = data.keys()
-    #     for k in kys:
-    #         if data[k] and not \
-    #                 isinstance(data[k], dict):
-    #             rv[k] = data[k]
-    #     return rv
-
-    # def data(self, on_top_of={}):
-    #     """Render data into a dict like format
-    #     """
-    #     lg.debug("really - using this??")
-
-    #     if isinstance(on_top_of, Yaco.Yaco) or \
-    #             isinstance(on_top_of, Yaco.PolyYaco):
-    #         data = on_top_of.simple()
-
-    #     data.update(self.all.simple())
-    #     data.update(self.mad.simple())
-    #     return data
+        return '<mad2.madfile.MadFile {}>'.format(self['inputfile'])
 
     def get_jinja_env(self):
 
@@ -185,7 +180,7 @@ class MadFile(Yaco2.YacoStack):
             lg.debug("loading madfile {0}".format(self['madname']))
 
             #note the mad file data is in stack[1] - 0 is transient
-            Yaco2.yaml_file_loader(self.stack[1], self['madname']    )
+            self.mad.update(fantail.yaml_file_loader(self['madname']))
 
         self.hook_method('madfile_load', self)
         self.hook_method('madfile_post_load', self)
@@ -196,10 +191,11 @@ class MadFile(Yaco2.YacoStack):
         try:
             lg.debug("saving to %s" % self['madname'])
             #note the mad file data is in stack[1] - 0 is transient
-            Yaco2.yaml_file_save(self.stack[1], self['madname'])
+            #print(self.mad)
+            fantail.yaml_file_save(self.mad, self['madname'])
         except IOError, e:
             if e.errno == 63:
-                lg.warning("Can't save - filename too long: {}"
+                lg.warning("Can't save - inputfile too long: {}"
                            .format(self.fullpath))
             else:
                 raise
