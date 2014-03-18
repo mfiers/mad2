@@ -43,6 +43,7 @@ def apply_file_format(app, madfile, filename=None):
 
     base, ext = splitter
 
+    madfile.all['basename'] = base
     # this ensures that the innermost extension seen is stored
     madfile.all['extension'] = ext
 
@@ -65,7 +66,7 @@ def recursive_dir_data(app, madfile):
 
     global RECURSE_CACHE
 
-    lg.debug("start pre load for {}".format(madfile['filename']))
+    lg.debug("start pre load for {}".format(madfile['inputfile']))
     here = madfile['dirname'].rstrip('/')
     conf = []
 
@@ -119,6 +120,7 @@ def recursive_dir_data(app, madfile):
         if fullname in RECURSE_CACHE:
             y = RECURSE_CACHE[fullname]
         else:
+            #print('start load dir', fullname)
             y = fantail.dir_loader(fullname)
             RECURSE_CACHE[fullname] = y
 
@@ -135,7 +137,7 @@ def onthefly(app, madfile):
     #     madfile.all['annotated'] = True
 
     lg.debug("running onthelfy")
-    madfile.all['fullpath'] = os.path.abspath(madfile['filename'])
+    madfile.all['fullpath'] = os.path.abspath(madfile['inputfile'])
     madfile.all['fullmadpath'] = os.path.abspath(madfile['madname'])
 
     lg.debug("get fqdn")
@@ -175,6 +177,7 @@ def onthefly(app, madfile):
 
     madfile.all['mtime'] = mtime.isoformat()
     madfile.all['mtime_simple'] = mtime.strftime("%Y/%m/1")
+    madfile.all['basename'] = madfile.all['filename']
 
     apply_file_format(app, madfile)
 

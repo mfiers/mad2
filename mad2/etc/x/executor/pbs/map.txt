@@ -1,14 +1,15 @@
 #!/bin/bash
 #PBS -S /bin/bash
-#PBS -d {{ pwd }}
-#PBS -o {{ pwd }}/pbs/{{ input_file["basename"] }}.out
-#PBS -e {{ pwd }}/pbs/{{ input_file["basename"] }}.err
-{% if pbs_jobname %}#PBS -N '{{ jobname }}' {{ "\n" }}{% endif %}
-{%- if pbs_group %}#PBS -A {{ pbs_group }}{{ "\n" }}{% endif %}
-{%- if pbs_mem %}#PBS -l mem={{ pbs_mem }}{{ "\n" }}{% endif %}
-{%- if pbs_queue %}#PBS -q {{ pbs_queue }}{{ "\n" }}{% endif %}
-{%- if pbs_walltime %}#PBS -l walltime={{ pbs_walltime }}{{ "\n" }}{% endif %}
-{%- if pbs_cpu %}#PBS -l {{ pbs_cpu }}{{ "\n" }}{% endif %}
+{%- if pbs_jobname  %}{{ "\n" }}#PBS -N '{{ jobname }}' {% endif %}
+{%- if pbs_group    %}{{ "\n" }}#PBS -A {{ pbs_group }} {% endif %}
+{%- if pbs_mem      %}{{ "\n" }}#PBS -l mem={{ pbs_mem }} {% endif %}
+{%- if pbs_queue    %}{{ "\n" }}#PBS -q {{ pbs_queue }} {% endif %}
+{%- if pbs_walltime %}{{ "\n" }}#PBS -l walltime={{ pbs_walltime }}{% endif %}
+{%- if pbs_cpu      %}{{ "\n" }}#PBS -l {{ pbs_cpu }}{% endif %}
+
+## does not work: PBS -d {{ pwd }}
+## does not work: PBS -o {{ pwd }}/pbs/{{ input_file["basename"] }}.out
+## does not work: PBS -e {{ pwd }}/pbs/{{ input_file["basename"] }}.err
 
 cd $PBS_O_WORKDIR
 

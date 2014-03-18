@@ -34,7 +34,7 @@ class MadFile(object):
         filename = os.path.basename(inputfile)
 
         self.mad = fantail.Fantail()
-        self.all = base
+        self.all = base.copy()
 
         lg.debug(
             "Instantiating a madfile for '{}' / '{}'".format(
@@ -102,6 +102,11 @@ class MadFile(object):
         else:
             return self.all.get(key, default)
 
+    def has_key(self, key):
+        if key in self.mad:
+            return True
+        return key in self.all
+
     def keys(self):
         k = set()
         k.update(set(self.mad.keys()))
@@ -135,33 +140,40 @@ class MadFile(object):
         jenv.filters['re_sub'] = regex_sub
         return jenv
 
-    def render(self, text, *data):
+    def render(self, text, data):
 
         jenv = self.get_jinja_env()
         rendered = text
         iteration = 0
 
+        if not isinstance(data, list):
+            data = [data]
         # stack all data - to prevent potential problems
         # TODO: needs more investigation
+
         data_stacked = {}
         for d in data[::-1]:
             data_stacked.update(d)
 
-        data_stacked.update(self)
+        # data_staqcked.update(self)
         while '{{' in rendered or '{%' in rendered:
+
             if iteration > 0 and rendered == last:
                 # no improvement
+
                 break
             last = rendered
             lll = rendered
+
             try:
                 template = jenv.from_string(rendered)
             except:
                 print("problem creating template with:")
                 print(rendered)
                 raise
+
             try:
-                rendered = template.render(data_stacked)
+                rendered = template.render(c=data_stacked, **data_stacked)
             except jinja2.exceptions.UndefinedError, e:
                 pass
             except:
@@ -202,4 +214,7 @@ class MadFile(object):
         self.hook_method('madfile_post_save', self)
 
     def pretty(self):
-        return self.mad.pretty()
+        import pprint
+        return pprint.pformat(dict(self.all).update(self.mad))
+
+

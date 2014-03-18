@@ -1,7 +1,10 @@
 echo "${txtgrn}Running${bldblk} '{{ filename }}'${txtrst}"
 echo "${txtblu}Description${txtrst}: {{ comm.description }}"
 
-{% if comm.virtualenv %}
+{% if virtualenv %}
+echo "${txtred}Loading python virtualenv ${txtrst}: {{ virtualenv }}"
+. {{ virtualenv }}/bin/activate
+{% elif comm.virtualenv %}
 echo "${txtred}Loading python virtualenv ${txtrst}: {{ comm.virtualenv }}"
 . {{ comm.virtualenv }}/bin/activate
 {% endif %}
