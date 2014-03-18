@@ -141,6 +141,7 @@ def onthefly(app, madfile):
 
     madfile['uri'] = "file://{}{}".format(
         madfile['host'], madfile['fullpath'])
+
     if madfile.get('orphan', False):
         #orphaned is file - little we can do
         return

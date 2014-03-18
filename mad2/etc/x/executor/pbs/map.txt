@@ -1,9 +1,8 @@
 #!/bin/bash
 #PBS -S /bin/bash
 #PBS -d {{ pwd }}
-#PBS -o ./pbs/{{ input_file["basename"] }}.out
-#PBS -e ./pbs/{{ input_file["basename"] }}.err
-
+#PBS -o {{ pwd }}/pbs/{{ input_file["basename"] }}.out
+#PBS -e {{ pwd }}/pbs/{{ input_file["basename"] }}.err
 {% if pbs_jobname %}#PBS -N '{{ jobname }}' {{ "\n" }}{% endif %}
 {%- if pbs_group %}#PBS -A {{ pbs_group }}{{ "\n" }}{% endif %}
 {%- if pbs_mem %}#PBS -l mem={{ pbs_mem }}{{ "\n" }}{% endif %}

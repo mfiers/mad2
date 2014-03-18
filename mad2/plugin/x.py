@@ -214,7 +214,7 @@ def x(app, args):
             command_info = _get_command(app, madfile, command_name)
             if not command_info:
                 lg.error("Command {} does not exists for {}".format(
-                         command_name, madfile.basename))
+                         command_name, madfile['basename']))
                 exit(-1)
 
         runinfo = executor.execute(madfileset, command_info)
