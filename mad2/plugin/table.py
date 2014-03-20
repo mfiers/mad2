@@ -4,7 +4,7 @@ import collections
 import logging
 import sys
 
-from Yaco import Yaco
+import fantail
 import leip
 
 from mad2.util import get_all_mad_files
@@ -12,7 +12,7 @@ from mad2.util import get_all_mad_files
 lg = logging.getLogger(__name__)
 
 def _getter(o, k):
-    assert(isinstance(o, Yaco))
+    assert(isinstance(o, fantail.Fantail))
     if '.' in k:
         k1, k2 = k.split('.', 1)
         return _getter(o[k1], k2)
