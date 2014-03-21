@@ -78,8 +78,11 @@ def recursive_dir_data(app, madfile):
             assert(os.path.isdir(here))
         except AssertionError:
             print(last, here)
-            print(madfile.pretty())
             raise
+        except:
+            print(last, here)
+            raise
+
         here_c = os.path.join(here, '.mad', 'config')
         if os.path.exists(here_c):
             conf.append(here_c)

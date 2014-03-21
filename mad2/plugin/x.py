@@ -5,7 +5,6 @@ import logging
 from multiprocessing.dummy import Pool as ThreadPool
 import os
 import subprocess as sp
-import sys
 import uuid
 
 import leip
@@ -41,7 +40,6 @@ class Executor(object):
 
         return self.defaults[xtype]
 
-
     def prepare_commandline(self, madfile, command_info):
         pass
 
@@ -68,7 +66,6 @@ class Executor(object):
                   self.defaults,
                   self.app.conf['plugin.x.defaults'],
                   self.app.conf]
-
 
         # hack - should be possible from within jinja
         command = command_info['command']
@@ -123,8 +120,11 @@ class Executor(object):
             self.prepare_script(madfileset, command)
 
         if self.args.dry:
+            print('-' * 80, 'invoke')
             print(invoke)
+            print('-' * 80, 'execute')
             print(script)
+            print('-' * 80)
         else:
             rv = fantail.Fantail()
             rv['cl'] = cl
