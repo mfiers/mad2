@@ -117,17 +117,7 @@ def has_command(app, args):
 # Instantiate the app and discover hooks & commands
 #
 
-# trail of config files???
-config_files = [
-    'pkg://mad2/etc/',
-    '/etc/mad2/',
-    '~/.config/mad2/']
-
-for c in config_files:
-    lg.debug("using config file: {}".format(c))
-
-app = leip.app(name='mad2', set_name="conf",
-               config_files=config_files)
+app = leip.app('mad2')
 
 # discover hooks in this module!
 app.discover(globals())
