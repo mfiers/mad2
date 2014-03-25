@@ -89,7 +89,7 @@ class MadFile(object):
 
         if not 'uuid' in self.mad:
             _uuid = str(uuid.uuid4()).replace('-', '')[:24]
-            print("assigning uuid: {}".format(_uuid))
+            lg.debug("initial uuid assignment: {}".format(_uuid))
             self.mad['uuid'] = _uuid
             self.save()
 
