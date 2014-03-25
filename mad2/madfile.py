@@ -10,14 +10,15 @@ import fantail
 from mad2.exception import MadPermissionDenied
 
 lg = logging.getLogger(__name__)
-#lg.setLevel(logging.DEBUG)
+# lg.setLevel(logging.DEBUG)
 
 
 def dummy_hook_method(*args, **kw):
     return None
 
 
-class MadFile(object):
+class MadFile(fantail.Fanstack):
+
     """
     Represents a single file
     """
@@ -27,15 +28,14 @@ class MadFile(object):
                  base=fantail.Fantail(),
                  hook_method=dummy_hook_method):
 
-        super(MadFile, self).__init__()
+        super(MadFile, self).__init__(
+            stack=[fantail.Fantail(),
+                   base.copy()])
 
         self.dirmode = False
 
         dirname = os.path.dirname(inputfile)
         filename = os.path.basename(inputfile)
-
-        self.mad = fantail.Fantail()
-        self.all = base.copy()
 
         lg.debug(
             "Instantiating a madfile for '{}' / '{}'".format(
@@ -93,44 +93,13 @@ class MadFile(object):
             self.mad['uuid'] = _uuid
             self.save()
 
-    # Pretend to be dict
-    def __getitem__(self, key):
-        if key in self.mad:
-            return self.mad[key]
-        return self.all[key]
+    @property
+    def mad(self):
+        return self.stack[0]
 
-    def __setitem__(self, key, value):
-        self.mad.__setitem__(key, value)
-
-    def get(self, key, default=None):
-        if key in self.mad:
-            return self.mad[key]
-        else:
-            return self.all.get(key, default)
-
-    def has_key(self, key):
-        if key in self.mad:
-            return True
-        return key in self.all
-
-    def keys(self):
-        k = set()
-        k.update(set(self.mad.keys()))
-        k.update(set(self.all.keys()))
-        return iter(list(k))
-
-    def __contains__(self, key):
-        if key in self.mad:
-            return True
-        return key in self.all
-
-    # @property
-    # def mad(self):
-    #     """
-    #     Return the yaco object from the stack representing
-    #     the data in the madfile
-    #     """
-    #     return self.stack[1]
+    @property
+    def all(self):
+        return self.stack[1]
 
     def __str__(self):
         return '<mad2.madfile.MadFile {}>'.format(self['inputfile'])
@@ -154,6 +123,7 @@ class MadFile(object):
 
         if not isinstance(data, list):
             data = [data]
+
         # stack all data - to prevent potential problems
         # TODO: needs more investigation
 
@@ -161,7 +131,6 @@ class MadFile(object):
         for d in data[::-1]:
             data_stacked.update(d)
 
-        # data_staqcked.update(self)
         last = None
         while '{{' in rendered or '{%' in rendered:
 
@@ -197,7 +166,7 @@ class MadFile(object):
         if os.path.exists(self['madname']):
             lg.debug("loading madfile {0}".format(self['madname']))
 
-            #note the mad file data is in stack[1] - 0 is transient
+            # note the mad file data is in stack[1] - 0 is transient
             self.mad.update(fantail.yaml_file_loader(self['madname']))
 
         self.hook_method('madfile_load', self)
@@ -207,8 +176,8 @@ class MadFile(object):
         self.hook_method('madfile_save', self)
         try:
             lg.debug("saving to %s" % self['madname'])
-            #note the mad file data is in stack[1] - 0 is transient
-            #print(self.mad)
+            # note the mad file data is in stack[1] - 0 is transient
+            # print(self.mad)
             fantail.yaml_file_save(self.mad, self['madname'])
         except IOError, e:
             if e.errno == 63:
@@ -221,5 +190,3 @@ class MadFile(object):
     def pretty(self):
         import pprint
         return pprint.pformat(dict(self.all).update(self.mad))
-
-
