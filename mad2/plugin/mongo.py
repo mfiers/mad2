@@ -95,7 +95,7 @@ def mongo(app, args):
     pass  # this function is never called - it's just a placeholder
 
 
-@leip.arg('file', nargs="+")
+@leip.arg('file', nargs="*")
 @leip.subcommand(mongo, "show")
 def mongo_show(app, args):
     """
@@ -113,7 +113,7 @@ def mongo_show(app, args):
                 continue
             for key in rec:
                 if key == '_id':
-                    print('mongo_id\t{1}'.format(key, rec[key]))
+                    print('uuid\t{1}'.format(key, rec[key]))
                     continue
                 print('{0}\t{1}'.format(key, rec[key]))
 
