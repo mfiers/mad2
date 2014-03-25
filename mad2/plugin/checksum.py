@@ -115,15 +115,15 @@ def sha1(app, args):
                             "Skipping sha1 checksum - exists & likely unchanged")
                     continue
 
-        qd = get_qdhash(madfile['filename'])
-        mtime = get_mtime(madfile['filename'])
+        qd = get_qdhash(madfile['inputfile'])
+        mtime = get_mtime(madfile['inputfile'])
 
         madfile.mad['hash.qdhash'] = qd
         madfile.mad['hash.mtime'] = mtime
 
-        cs = hashit(hashlib.sha1, madfile['filename'])
+        cs = hashit(hashlib.sha1, madfile['inputfile'])
         madfile.mad['hash.sha1'] = cs
         madfile.save()
 
         if args.echo:
-            print(madfile['filename'])
+            print(madfile['inputfile'])
