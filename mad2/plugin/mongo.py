@@ -8,7 +8,7 @@ from bson.objectid import ObjectId
 
 import leip
 
-from mad2.util import get_all_mad_files
+from mad2.util import get_all_mad_files, humansize
 
 
 lg = logging.getLogger(__name__)
@@ -118,15 +118,76 @@ def mongo_show(app, args):
                 print('{0}\t{1}'.format(key, rec[key]))
 
 
+@leip.subcommand(mongo, "count")
+def mongo_count(app, args):
+    """
+    Show the associated mongodb record
+    """
+    mng_mad = get_mng(app)
+    print(mng_mad.count())
+
+@leip.flag('-H', '--human', help='human readable')
+@leip.arg('group_by', nargs='?', default='host')
+@leip.subcommand(mongo, "sum")
+def mongo_sum(app, args):
+    """
+    Show the associated mongodb record
+    """
+    groupby_field = "${}".format(args.group_by)
+    mng_mad = get_mng(app)
+    res = mng_mad.aggregate([
+            {'$group': {
+                "_id": groupby_field,
+                "total": {"$sum": "$filesize"},
+                "count": {"$sum": 1}}}
+              ])
+    total_size = 0
+    total_count = 0
+
+    mgn = len("Total")
+    for reshost in res['result']:
+        gid = reshost['_id']
+        if gid is None:
+            mgn = max(4, mgn)
+        else:
+            mgn = max(len(reshost['_id']), mgn)
+
+    fms = "{:" + str(mgn) + "}\t{:>10}\t{:>9}"
+    for reshost in res['result']:
+        total = reshost['total']
+        count = reshost['count']
+        total_size += total
+        total_count += count
+        if args.human:
+            total = humansize(total)
+            print(fms.format(
+                reshost['_id'], total, count))
+        else:
+            print("{}\t{}\t{}".format(
+                reshost['_id'], total, count))
+
+    if args.human:
+        total_size = humansize(total_size)
+        print(fms.format(
+            "Total", total, count))
+    else:
+        print("Total\t{}\t{}".format(total_size, total_count))
+
+@leip.flag('-f', '--force')
 @leip.subcommand(mongo, "drop")
 def mongo_drop(app, args):
     """
     Show the associated mongodb record
     """
+    if not args.force:
+        print("use --force to really drop the database")
+        exit()
+
     mng_mad = get_mng(app)
     mng_mad.drop()
 
 
+@leip.flag('-e', '--echo')
 @leip.arg('file', nargs="*")
 @leip.subcommand(mongo, "save")
 def mongo_save(app, args):
@@ -136,6 +197,8 @@ def mongo_save(app, args):
     mng = get_mng(app)
     for madfile in get_all_mad_files(app, args):
         save_to_mongo(mng, madfile)
+        if args.echo:
+            print(madfile['inputfile'])
 
 
 @leip.subcommand(mongo, "prepare")
