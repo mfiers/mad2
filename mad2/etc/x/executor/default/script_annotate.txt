@@ -1,10 +1,10 @@
 
 #Annotate output file(s)
 
-{% set anno = c.get_branch('annotate') %}
+{% set anno = c.annotate %}
 
 echo "${txtcyn}Annotate:${bldblk}"
-{% for fld in anno.keys1() -%}
+{% for fld in anno -%}
 echo "- ${txtgrn}{{ fld }}${bldblk} '{{ anno.get(fld) }}'${txtrst}"
 {% endfor %}
 {%- for i in input_files -%}
@@ -24,7 +24,7 @@ fi
 {%- endfor %}
 
 mad mset
-{%- for fld in anno.keys1() -%}
+{%- for fld in anno -%}
   {{ ' ' }} -k "{{fld}}" "{{ anno.get(fld) }}"
 {%- endfor -%}{{ ' ' }}{%- for i in input_files -%}
   {{ ' ' }} -k "derivedFrom" "{{ i['fullpath'] }}"

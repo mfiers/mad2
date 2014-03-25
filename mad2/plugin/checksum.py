@@ -106,8 +106,8 @@ def sha1(app, args):
 
         changed = may_have_changed(madfile)
 
-        if not args.force and 'sha1':
-            if madfile.get('hash.sha1'):
+        if not args.force:
+            if madfile.mad.get('hash.sha1'):
                 if not changed:
                     if args.warn:
                         # exists - and not forcing
@@ -118,11 +118,11 @@ def sha1(app, args):
         qd = get_qdhash(madfile['filename'])
         mtime = get_mtime(madfile['filename'])
 
-        madfile.stack[1]['hash.qdhash'] = qd
-        madfile.stack[1]['hash.mtime'] = mtime
+        madfile.mad['hash.qdhash'] = qd
+        madfile.mad['hash.mtime'] = mtime
 
         cs = hashit(hashlib.sha1, madfile['filename'])
-        madfile.stack[1]['hash.sha1'] = cs
+        madfile.mad['hash.sha1'] = cs
         madfile.save()
 
         if args.echo:

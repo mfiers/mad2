@@ -1,7 +1,19 @@
-echo "${txtgrn}Running${bldblk} '{{ filename }}'${txtrst}"
+{%- if not job_name is defined -%}
+    {% set job_name=basename %}
+{%- endif -%}
+
+echo "${txtgrn}Running${bldblk}: '{{ job_name }}'${txtrst}"
+echo "${txtgrn}Input${bldblk}: '{{ filename }}'${txtrst}"
+{%- for outputfile in comm.output_files %}
+echo "${txtgrn}Output${bldblk}: '{{ outputfile }}'${txtrst}"
+{%- endfor %}
+
 echo "${txtblu}Description${txtrst}: {{ comm.description }}"
 
-{% if comm.virtualenv %}
+{% if virtualenv %}
+echo "${txtred}Loading python virtualenv ${txtrst}: {{ virtualenv }}"
+. {{ virtualenv }}/bin/activate
+{% elif comm.virtualenv %}
 echo "${txtred}Loading python virtualenv ${txtrst}: {{ comm.virtualenv }}"
 . {{ comm.virtualenv }}/bin/activate
 {% endif %}

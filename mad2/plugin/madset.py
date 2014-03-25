@@ -25,7 +25,7 @@ lg = logging.getLogger(__name__)
 def unset(app, args):
     lg.debug("unsetting: %s".format(args.key))
     key = args.key
-    keyinfo = app.conf.get_branch('keywords.{}'.format(key))
+    keyinfo = app.conf['keywords.{}'.format(key)]
     if keyinfo.get('cardinality', '1') == '+':
         errorexit("Not implemented - unsetting keys with cardinality > 1")
 
@@ -46,7 +46,7 @@ def _getkeyval(app, key, val, force):
         list_mode = True
         key = key[1:]
 
-    keyinfo = app.conf.get_branch('keywords.{}'.format(key))
+    keyinfo = app.conf['keywords.{}'.format(key)]
     keytype = keyinfo.get('type', 'str')
 
     if (not force) and (not keyinfo.get('description')):
@@ -86,7 +86,7 @@ def _getkeyval(app, key, val, force):
         lg.debug("date interpreted as: %s" % val)
 
     if keytype == 'restricted':
-        allowed = keyinfo.get_branch('allowed')
+        allowed = keyinfo['allowed']
         if not val in allowed.keys():
             errorexit("Value '{0}' not allowed for key '{1}'".format(val, key))
 
@@ -224,10 +224,10 @@ def set(app, args):
                 oldval = madfile.get(key)
                 if not isinstance(oldval, list):
                     oldval = [oldval]
-            madfile.stack[1][key] = oldval + [val]
+            madfile.mad[key] = oldval + [val]
         else:
             #not listmode
-            madfile.stack[1][key] = val
+            madfile.mad[key] = val
 
         if args.echo:
             print(madfile['filename'])
