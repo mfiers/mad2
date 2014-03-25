@@ -49,9 +49,9 @@ def save_to_mongo(mng, madfile):
     global MONGO_SAVE_CACHE
 
     MONGO_SAVE_COUNT += 1
-    #MONGO_SAVE_CACHE.append(madfile)
+    # MONGO_SAVE_CACHE.append(madfile)
 
-    #if len(MONGO_SAVE_CACHE < 4):
+    # if len(MONGO_SAVE_CACHE < 4):
     #    return
 
     #bulk = mng.initialize_ordered_bulk_op()
@@ -106,7 +106,7 @@ def mongo_show(app, args):
         mongo_id = madfile['uuid']
         if mongo_id:
             print('#', mongo_id, madfile['filename'])
-#            print('#', mongo_id, madfile['uuid'], madfile['filename'])
+# print('#', mongo_id, madfile['uuid'], madfile['filename'])
             rec = mng.find_one({'_id': mongo_id})
             # print(madfile.filename)
             if not rec:
@@ -126,6 +126,7 @@ def mongo_count(app, args):
     mng_mad = get_mng(app)
     print(mng_mad.count())
 
+
 @leip.flag('-H', '--human', help='human readable')
 @leip.arg('group_by', nargs='?', default='host')
 @leip.subcommand(mongo, "sum")
@@ -136,11 +137,11 @@ def mongo_sum(app, args):
     groupby_field = "${}".format(args.group_by)
     mng_mad = get_mng(app)
     res = mng_mad.aggregate([
-            {'$group': {
-                "_id": groupby_field,
-                "total": {"$sum": "$filesize"},
-                "count": {"$sum": 1}}}
-              ])
+        {'$group': {
+            "_id": groupby_field,
+            "total": {"$sum": "$filesize"},
+            "count": {"$sum": 1}}}
+    ])
     total_size = 0
     total_count = 0
 
@@ -172,6 +173,63 @@ def mongo_sum(app, args):
             "Total", total, count))
     else:
         print("Total\t{}\t{}".format(total_size, total_count))
+
+
+@leip.flag('-H', '--human', help='human readable')
+@leip.arg('group_by_2')
+@leip.arg('group_by_1')
+@leip.subcommand(mongo, "sum2")
+def mongo_sum2(app, args):
+    """
+    Show the associated mongodb record
+    """
+    gb1_field = "${}".format(args.group_by_1)
+    gb2_field = "${}".format(args.group_by_2)
+
+    gb_pair_field = "${}_${}".format(gb1_field, gb2_field)
+
+    mng_mad = get_mng(app)
+    res = mng_mad.aggregate([
+            {'$group': {
+                "_id": {
+                    "group1": gb1_field,
+                    "group2": gb2_field },
+                "total": {"$sum": "$filesize"},
+                "count": {"$sum": 1}}},
+             {"$sort" : { "total": -1
+                          }}
+        ])
+    total_size = 0
+    total_count = 0
+
+    gl1 = gl2 = len("Total")
+
+    for r in res['result']:
+        g1 = str(r['_id'].get('group1'))
+        g2 = str(r['_id'].get('group2'))
+        gl1 = max(gl1, len(g1))
+        gl2 = max(gl2, len(g2))
+
+    fms = "{:" + str(gl1) + "}  {:" + str(gl2) + "}  {:>10}  {:>9}"
+    for r in res['result']:
+        g1 = str(r['_id'].get('group1', '-'))
+        g2 = str(r['_id'].get('group2', '-'))
+        total = r['total']
+        count = r['count']
+        total_size += total
+        total_count += count
+        if args.human:
+            total = humansize(total)
+            print(fms.format(g1,g2, total, count))
+        else:
+            print("{}\t{}\t{}\t{}".format(g1, g2, total, count))
+
+    if args.human:
+        total_size = humansize(total_size)
+        print(fms.format(
+            "Total", "", total, count))
+    else:
+        print("Total\t\t{}\t{}".format(total_size, total_count))
 
 @leip.flag('-f', '--force')
 @leip.subcommand(mongo, "drop")
