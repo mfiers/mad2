@@ -1,6 +1,7 @@
 import logging
 import os
 import re
+import uuid
 
 import jinja2
 
@@ -18,7 +19,7 @@ def dummy_hook_method(*args, **kw):
 
 class MadFile(object):
     """
-
+    Represents a single file
     """
 
     def __init__(self,
@@ -71,7 +72,6 @@ class MadFile(object):
         if os.path.exists(madname) and not os.access(madname, os.R_OK):
             raise MadPermissionDenied()
 
-
         self.all['inputfile'] = inputfile
         self.all['dirname'] = os.path.abspath(dirname)
         self.all['filename'] = filename
@@ -86,6 +86,12 @@ class MadFile(object):
 
         self.hook_method = hook_method
         self.load()
+
+        if not 'uuid' in self.mad:
+            _uuid = str(uuid.uuid4()).replace('-', '')[:24]
+            print("assigning uuid: {}".format(_uuid))
+            self.mad['uuid'] = _uuid
+            self.save()
 
     # Pretend to be dict
     def __getitem__(self, key):
@@ -156,6 +162,7 @@ class MadFile(object):
             data_stacked.update(d)
 
         # data_staqcked.update(self)
+        last = None
         while '{{' in rendered or '{%' in rendered:
 
             if iteration > 0 and rendered == last:
@@ -163,7 +170,6 @@ class MadFile(object):
 
                 break
             last = rendered
-            lll = rendered
 
             try:
                 template = jenv.from_string(rendered)
@@ -174,7 +180,7 @@ class MadFile(object):
 
             try:
                 rendered = template.render(c=data_stacked, **data_stacked)
-            except jinja2.exceptions.UndefinedError, e:
+            except jinja2.exceptions.UndefinedError:
                 pass
             except:
                 print("cannot render")
@@ -196,7 +202,6 @@ class MadFile(object):
 
         self.hook_method('madfile_load', self)
         self.hook_method('madfile_post_load', self)
-
 
     def save(self):
         self.hook_method('madfile_save', self)
