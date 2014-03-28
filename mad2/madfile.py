@@ -1,13 +1,12 @@
 import logging
 import os
-import re
 import uuid
 
-import jinja2
 
 import fantail
 
 from mad2.exception import MadPermissionDenied
+from mad2.recrender import recrender
 
 lg = logging.getLogger(__name__)
 # lg.setLevel(logging.DEBUG)
@@ -93,6 +92,14 @@ class MadFile(fantail.Fanstack):
             self.mad['uuid'] = _uuid
             self.save()
 
+    def render(self, template, data):
+        """
+        Render a template from, adding self to the context
+        """
+        if not isinstance(data, list):
+            data = [data]
+        return recrender(template, [self] + data)
+
     @property
     def mad(self):
         return self.stack[0]
@@ -104,61 +111,6 @@ class MadFile(fantail.Fanstack):
     def __str__(self):
         return '<mad2.madfile.MadFile {}>'.format(self['inputfile'])
 
-    def get_jinja_env(self):
-
-        def regex_sub(s, find, replace):
-            """A non-optimal implementation of a regex filter"""
-            return re.sub(find, replace, s)
-
-        jenv = jinja2.Environment(
-            undefined=jinja2.DebugUndefined)
-        jenv.filters['re_sub'] = regex_sub
-        return jenv
-
-    def render(self, text, data):
-
-        jenv = self.get_jinja_env()
-        rendered = text
-        iteration = 0
-
-        if not isinstance(data, list):
-            data = [data]
-
-        # stack all data - to prevent potential problems
-        # TODO: needs more investigation
-
-        data_stacked = {}
-        for d in data[::-1]:
-            data_stacked.update(d)
-
-        last = None
-        while '{{' in rendered or '{%' in rendered:
-
-            if iteration > 0 and rendered == last:
-                # no improvement
-
-                break
-            last = rendered
-
-            try:
-                template = jenv.from_string(rendered)
-            except:
-                print("problem creating template with:")
-                print(rendered)
-                raise
-
-            try:
-                rendered = template.render(c=data_stacked, **data_stacked)
-            except jinja2.exceptions.UndefinedError:
-                pass
-            except:
-                print("cannot render")
-                print(rendered)
-                raise
-
-            iteration += 1
-
-        return rendered
 
     def load(self):
 

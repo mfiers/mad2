@@ -207,11 +207,10 @@ def x(app, args):
     else:
         files = [[x] for x in get_all_mad_files(app, args)]
 
-    print(list(f[0]['filename'] for f in files))
+    #print(list(f[0]['filename'] for f in files))
 
     for madfileset in files:
 
-        #print('xxxxxxx', madfileset[0]['filename'])
         for madfile in madfileset:
             command_info = _get_command(app, madfile, command_name)
             if not command_info:
@@ -227,6 +226,17 @@ def x(app, args):
         # madfile.save()
 
     executor.finish()
+
+
+from mad2.plugin.render import render_numeric
+
+@leip.arg('-g', '--group', help='group on', default=1)
+@leip.arg('file', nargs='*')
+@leip.arg('comm', metavar='command', help='predefined command to execute')
+@leip.command
+def x2(app, args):
+
+
 # h()
 # madfile.save()
 
