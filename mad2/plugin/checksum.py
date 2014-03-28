@@ -98,6 +98,22 @@ def sha1(app, args):
     """
     Calculate a sha1 checksum
     """
+    apply_checksum(app, args, 'sha1')
+
+
+@leip.arg('-e', '--echo', action='store_true', help='echo name')
+@leip.arg('-f', '--force', action='store_true', help='apply force')
+@leip.arg('-w', '--warn', action='store_true', help='warn when skipping')
+@leip.arg('file', nargs='*')
+@leip.command
+def md5(app, args):
+    """
+    Calculate a md5 checksum
+    """
+    apply_checksum(app, args, 'md5')
+
+
+def apply_checksum(app, args, ctype='sha1'):
 
     for madfile in get_all_mad_files(app, args):
 
@@ -107,12 +123,13 @@ def sha1(app, args):
         changed = may_have_changed(madfile)
 
         if not args.force:
-            if madfile.mad.get('hash.sha1'):
+            if madfile.mad.get('hash.{}'.format(ctype)):
                 if not changed:
                     if args.warn:
                         # exists - and not forcing
                         lg.warning(
-                            "Skipping sha1 checksum - exists & likely unchanged")
+                            "Skipping %s checksum - exists & likely unchanged",
+                            ctype)
                     continue
 
         qd = get_qdhash(madfile['inputfile'])
@@ -121,8 +138,9 @@ def sha1(app, args):
         madfile.mad['hash.qdhash'] = qd
         madfile.mad['hash.mtime'] = mtime
 
-        cs = hashit(hashlib.sha1, madfile['inputfile'])
-        madfile.mad['hash.sha1'] = cs
+        cs = hashit(hashlib.__dict__[ctype], madfile['filename'])
+        madfile.mad['hash.{}'.format(ctype)] = cs
+
         madfile.save()
 
         if args.echo:
