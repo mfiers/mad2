@@ -7,7 +7,7 @@ then
 fi;
 
 samtools view -h "{{ readsortout }}.bam" \
-  | htseq-count \
+  | /vsc-mounts/leuven-user/306/vsc30690/local/vem/bin/htseq-count \
     --format=sam \
     --order=name \
     --idattr={{ htseq_idattr }} \

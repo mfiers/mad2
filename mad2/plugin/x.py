@@ -120,11 +120,11 @@ class Executor(object):
             self.prepare_script(madfileset, command)
 
         if self.args.dry:
-            print('-' * 80, 'invoke')
+            print('#' * 80, 'invoke')
             print(invoke)
-            print('-' * 80, 'execute')
+            print('#' * 80, 'execute')
             print(script)
-            print('-' * 80)
+            print('#' * 80)
         else:
             rv = fantail.Fantail()
             rv['cl'] = cl
