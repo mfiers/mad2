@@ -52,10 +52,10 @@ def apply_file_format(app, madfile, filename=None):
 
     filetype, ftinfo = extension_data[ext]
     lg.debug("identified filetype {0}".format(filetype))
-    template_name = ftinfo.get('template')
+    overlay_name = ftinfo.get('overlay')
 
-    template = app.conf['template.{0}'.format(template_name)]
-    madfile.all.update(template)
+    overlay = app.conf['overlay.{0}'.format(overlay_name)]
+    madfile.all.update(overlay)
     if ftinfo.get('continue', False):
         lg.debug("contiue filetype disocvery on: %s" % base)
         apply_file_format(app, madfile, base)
@@ -175,10 +175,10 @@ def onthefly(app, madfile):
     atime = datetime.utcfromtimestamp(
         filestat.st_atime)
 
-    madfile.all['atime'] = atime.isoformat()
+    madfile.all['atime'] = atime
     madfile.all['atime_simple'] = atime.strftime("%Y/%m/1")
 
-    madfile.all['mtime'] = mtime.isoformat()
+    madfile.all['mtime'] = mtime
     madfile.all['mtime_simple'] = mtime.strftime("%Y/%m/1")
     madfile.all['basename'] = madfile.all['filename']
 

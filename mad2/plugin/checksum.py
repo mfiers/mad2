@@ -132,8 +132,8 @@ def apply_checksum(app, args, ctype='sha1'):
                             ctype)
                     continue
 
-        qd = get_qdhash(madfile['filename'])
-        mtime = get_mtime(madfile['filename'])
+        qd = get_qdhash(madfile['inputfile'])
+        mtime = get_mtime(madfile['inputfile'])
 
         madfile.mad['hash.qdhash'] = qd
         madfile.mad['hash.mtime'] = mtime
@@ -144,4 +144,4 @@ def apply_checksum(app, args, ctype='sha1'):
         madfile.save()
 
         if args.echo:
-            print(madfile['filename'])
+            print(madfile['inputfile'])

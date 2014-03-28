@@ -16,12 +16,12 @@ def apply_category(app, args):
     """
     apply a predefined category to a (set of) file(s)
     """
-    catinfo = app.conf['template.{}'.format(args.category)]
+    catinfo = app.conf['overlay.{}'.format(args.category)]
     if not catinfo:
         print("Invalid category: {0}".format(args.category))
         print("Choose from:")
-        tempinfo = app.conf['template']
-        for cat in app.conf['template']:
+        tempinfo = app.conf['overlay']
+        for cat in app.conf['overlay']:
             print(" - {0}".format(cat))
         sys.exit()
 

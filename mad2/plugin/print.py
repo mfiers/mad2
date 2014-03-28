@@ -16,6 +16,5 @@ def mad_print(app, args):
     print a single value from a single file
     """
     for madfile in get_all_mad_files(app, args):
-#    	print(args.key, madfile[args.key], madfile.mad)
-        print(madfile.render(madfile[args.key], app.conf))
+        print(madfile.render(madfile[args.key], [madfile, app.conf]))
 

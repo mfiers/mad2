@@ -83,6 +83,17 @@ def get_all_mad_files(app, args, use_stdin=True):
             lg.warning("Permission denied: {}".format(
                 filename))
 
+#Thanks: http://tinyurl.com/kq5hxtr
+def humansize(nbytes):
+    suffixes = [' b', 'kb', 'Mb', 'Gb', 'Tt', 'Pb']
+    if nbytes == 0: return '0  b'
+    i = 0
+    while nbytes >= 1024 and i < len(suffixes)-1:
+        nbytes /= 1024.
+        i += 1
+    f = ('%.2f' % nbytes).rstrip('0').rstrip('.')
+    return '%s %s' % (f, suffixes[i])
+
 
 def boolify(v):
     """

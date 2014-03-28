@@ -36,10 +36,10 @@ class GDB:
             lg.debug("Neo4j db: default")
             self.db = neo4j.GraphDatabaseService()
 
-        self.file_index = self.db.get_or_create_index(
-                neo4j.Node, "File")
         self.sha1_index = self.db.get_or_create_index(
                 neo4j.Node, "Sha1")
+        self.file_index = self.db.get_or_create_index(
+                neo4j.Node, "File")
         self.host_index = self.db.get_or_create_index(
                 neo4j.Node, "Host")
         self.user_index = self.db.get_or_create_index(
