@@ -81,7 +81,7 @@ class MadFile(fantail.Fanstack):
 
         if self.get('orphan', False) and os.path.exists(madname):
             lg.warning("Orphaned mad file: {}".format(madname))
-            lg.warning("  | can't find: {}".format(inputfile))
+            lg.debug("  | can't find: {}".format(inputfile))
 
         self.hook_method = hook_method
         self.load()

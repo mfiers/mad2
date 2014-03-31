@@ -89,6 +89,7 @@ def hashit(hasher, filename):
     return h.hexdigest()
 
 
+@leip.arg('-E', '--echo_all', action='store_true', help='echo all name')
 @leip.arg('-e', '--echo', action='store_true', help='echo name')
 @leip.arg('-f', '--force', action='store_true', help='apply force')
 @leip.arg('-w', '--warn', action='store_true', help='warn when skipping')
@@ -101,6 +102,7 @@ def sha1(app, args):
     apply_checksum(app, args, 'sha1')
 
 
+@leip.arg('-E', '--echo_all', action='store_true', help='echo all name')
 @leip.arg('-e', '--echo', action='store_true', help='echo name')
 @leip.arg('-f', '--force', action='store_true', help='apply force')
 @leip.arg('-w', '--warn', action='store_true', help='warn when skipping')
@@ -120,7 +122,11 @@ def apply_checksum(app, args, ctype='sha1'):
         if madfile.get('orphan', False):
             return
 
+        if args.echo_all:
+            print(madfile['inputfile'])
+
         changed = may_have_changed(madfile)
+
 
         if not args.force:
             if madfile.mad.get('hash.{}'.format(ctype)):
