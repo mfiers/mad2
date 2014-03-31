@@ -51,22 +51,22 @@ def get_filenames(args, use_stdin=True):
             return m.group('fn')
 
     if 'file'in args and len(args.file) > 0:
-        filenames.extend([demad.sub(demadder, x)
-                         for x in args.file
-                         if (len(x) > 0 and not '.mad/' in x)])
+        for f in args.file:
+            if len(f) == 0: continue
+            if '.mad/' in f: continue
+            rv = demad.sub(demadder, f)
+            if os.path.isdir(rv): continue
+            yield rv
+
     elif use_stdin:
         # nothing in args - see if there is something on stdin
-        filenames.extend(
-            [demad.sub(demadder, x)
-             for x in sys.stdin.read().split("\n")
-             if (len(x) > 0 and not '.mad/' in x)])
-
-    filenames = sorted(list(set(filenames)))
-
-    # remove directories as well
-    filenames = [x for x in filenames if not '.mad' in x]
-
-    return filenames
+        for line in sys.stdin:
+            line = line.strip()
+            if '.mad/' in line:
+                continue
+            rv = demad.sub(demadder, line)
+            if os.path.isdir(rv): continue
+            yield rv
 
 
 def get_all_mad_files(app, args, use_stdin=True):
