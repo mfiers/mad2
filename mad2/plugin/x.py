@@ -9,7 +9,9 @@ import uuid
 
 import leip
 import fantail
+
 from mad2.util import get_all_mad_files
+from mad2.plugin.template import render_numeric
 
 lg = logging.getLogger(__name__)
 # lg.setLevel(logging.DEBUG)
@@ -176,7 +178,9 @@ def commands(app, args):
 
         for command_name in app.conf['x.filetype'][filetype]:
             cinf = app.conf['x.filetype'][filetype][command_name]
-            print(' s {0}: {1}'.format(command_name, cinf['description']))
+            print('xxxxx', cinf)
+            print(' s {0}: {1}'.format(command_name,
+                                       cinf.get('description', 'no description')))
 
 
 @leip.arg('file', nargs='*')
@@ -228,14 +232,25 @@ def x(app, args):
     executor.finish()
 
 
-from mad2.plugin.render import render_numeric
 
 @leip.arg('-g', '--group', help='group on', default=1)
 @leip.arg('file', nargs='*')
 @leip.arg('comm', metavar='command', help='predefined command to execute')
 @leip.command
 def x2(app, args):
+    lg.warning("x")
 
+    groupby = args.group
+    try:
+        groupby = int(groupby)
+        numeric_groups = True
+    except:
+        raise NotImplemented("Non numeric groups")
+
+    mf_generator = get_all_mad_files(app, args)
+
+    for res in render_numeric(app, mf_generator, args.comm, args.group):
+        print(res)
 
 # h()
 # madfile.save()

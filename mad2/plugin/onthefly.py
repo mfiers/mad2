@@ -33,7 +33,6 @@ def get_fiex(app):
 def apply_file_format(app, madfile, filename=None):
 
     extension_data = get_fiex(app)
-
     if filename is None:
         filename = madfile['filename']
 

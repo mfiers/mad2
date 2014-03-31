@@ -86,7 +86,7 @@ def render_numeric(app,
 
     elements = []
 
-    group_template = None
+    group_template = app.conf['plugin.template.group_template']
     group_count = 0
     group_defaults = {}
     for madfile in mf_generator:
