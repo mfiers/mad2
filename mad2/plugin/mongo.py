@@ -140,7 +140,9 @@ def mongo_sum(app, args):
         {'$group': {
             "_id": groupby_field,
             "total": {"$sum": "$filesize"},
-            "count": {"$sum": 1}}}
+            "count": {"$sum": 1}}},
+        {"$sort" : { "total": -1
+                  }}
     ])
     total_size = 0
     total_count = 0
