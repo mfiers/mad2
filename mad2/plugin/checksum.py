@@ -138,7 +138,7 @@ def apply_checksum(app, args, ctype='sha1'):
         madfile.mad['hash.qdhash'] = qd
         madfile.mad['hash.mtime'] = mtime
 
-        cs = hashit(hashlib.__dict__[ctype], madfile['filename'])
+        cs = hashit(hashlib.__dict__[ctype], madfile['inputfile'])
         madfile.mad['hash.{}'.format(ctype)] = cs
 
         madfile.save()
