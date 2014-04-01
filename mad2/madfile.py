@@ -27,6 +27,7 @@ class MadFile(fantail.Fanstack):
                  base=fantail.Fantail(),
                  hook_method=dummy_hook_method):
 
+        lg.debug('madfile start %s', inputfile)
         super(MadFile, self).__init__(
             stack=[fantail.Fantail(),
                    base.copy()])
@@ -132,8 +133,8 @@ class MadFile(fantail.Fanstack):
             # print(self.mad)
             fantail.yaml_file_save(self.mad, self['madname'])
         except IOError, e:
-            if e.errno == 63:
-                lg.warning("Can't save - inputfile too long: {}"
+            if e.errno == 36:
+                lg.error("Can't save - filename too long: {}"
                            .format(self.fullpath))
             else:
                 raise
