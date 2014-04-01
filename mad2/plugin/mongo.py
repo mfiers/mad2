@@ -1,5 +1,4 @@
 from __future__ import print_function
-
 import logging
 
 from pymongo import MongoClient
@@ -31,6 +30,11 @@ def mongo_prep_mad(mf):
 
     return mongo_id, d
 
+# @leip.hook("madfile_orphan")
+# def store_orphan(app, madfile):
+#     mng = get_mng(app)
+#     mng['orphan'] = True
+#     save_to_mongo(mng, madfile)
 
 @leip.hook("madfile_save")
 def store_in_mongodb(app, madfile):
@@ -53,8 +57,6 @@ def save_to_mongo(mng, madfile):
 
     # if len(MONGO_SAVE_CACHE < 4):
     #    return
-
-    #bulk = mng.initialize_ordered_bulk_op()
 
     lg.debug("collection object {}".format(mng))
     mongo_id, newrec = mongo_prep_mad(madfile)
@@ -256,6 +258,7 @@ def mongo_save(app, args):
     """
     mng = get_mng(app)
     for madfile in get_all_mad_files(app, args):
+        lg.info("save to mongodb: %s", madfile['inputfile'])
         save_to_mongo(mng, madfile)
         if args.echo:
             print(madfile['inputfile'])
