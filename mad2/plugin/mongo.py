@@ -261,7 +261,7 @@ def mongo_save(app, args):
     """
     mng = get_mng(app)
     for madfile in get_all_mad_files(app, args):
-        lg.info("save to mongodb: %s", madfile['inputfile'])
+        lg.debug("save to mongodb: %s", madfile['inputfile'])
         save_to_mongo(mng, madfile)
         if args.echo:
             print(madfile['inputfile'])
