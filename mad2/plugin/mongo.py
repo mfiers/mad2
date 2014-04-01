@@ -1,8 +1,10 @@
 from __future__ import print_function
+
+import datetime
 import logging
 
-from pymongo import MongoClient
 
+from pymongo import MongoClient
 from bson.objectid import ObjectId
 
 import leip
@@ -28,6 +30,7 @@ def mongo_prep_mad(mf):
     if sha1:
         d['sha1'] = sha1
 
+    d['save_time'] = datetime.datetime.utcnow()
     return mongo_id, d
 
 # @leip.hook("madfile_orphan")
