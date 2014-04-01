@@ -92,6 +92,7 @@ def hashit(hasher, filename):
 @leip.arg('-E', '--echo_scanned', action='store_true',
           help='echo only those checked')
 @leip.arg('-e', '--echo', action='store_true', help='echo name')
+@leip.arg('-c', '--changed', action='store_true', help='echo changed state')
 @leip.arg('-f', '--force', action='store_true', help='apply force')
 @leip.arg('-w', '--warn', action='store_true', help='warn when skipping')
 @leip.arg('file', nargs='*')
@@ -106,6 +107,7 @@ def sha1(app, args):
 @leip.arg('-E', '--echo_scanned', action='store_true',
           help='echo only those checked')
 @leip.arg('-e', '--echo', action='store_true', help='echo name')
+@leip.arg('-c', '--changed', action='store_true', help='echo changed state')
 @leip.arg('-f', '--force', action='store_true', help='apply force')
 @leip.arg('-w', '--warn', action='store_true', help='warn when skipping')
 @leip.arg('file', nargs='*')
@@ -121,14 +123,20 @@ def apply_checksum(app, args, ctype='sha1'):
 
     for madfile in get_all_mad_files(app, args):
 
+        #print(madfile['inputfile'], madfile.get('orphan', False))
         if madfile.get('orphan', False):
             continue
 
-        if args.echo:
-            print(madfile['inputfile'])
-
         changed = may_have_changed(madfile)
 
+        if args.echo:
+            if args.changed:
+                cp = 'u'
+                if changed:
+                    cp = 'c'
+                print('{}\t{}'.format(cp, madfile['inputfile']))
+            else:
+                print(madfile['inputfile'])
 
         if not args.force:
             if madfile.mad.get('hash.{}'.format(ctype)):
