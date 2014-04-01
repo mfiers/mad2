@@ -42,7 +42,7 @@ def get_filenames(args, use_stdin=True):
     """
     filenames = []
 
-    demad = re.compile(r'^(?P<path>.*?/)?\.(?P<fn>[^/].+)\.mad$')
+    demad = re.compile(r'^(?P<path>.*/)?\.(?P<fn>[^/].+)\.mad$')
 
     def demadder(m):
         if not m.group('path') is None:
