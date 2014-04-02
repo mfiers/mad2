@@ -178,7 +178,6 @@ def commands(app, args):
 
         for command_name in app.conf['x.filetype'][filetype]:
             cinf = app.conf['x.filetype'][filetype][command_name]
-            print('xxxxx', cinf)
             print(' s {0}: {1}'.format(command_name,
                                        cinf.get('description', 'no description')))
 
