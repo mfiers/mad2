@@ -17,7 +17,6 @@ def get_qdhash(filename):
 
         #qdid for directories is a uuid - stored in .mad/qid
         maddir = os.path.join(filename, '.mad')
-        print maddir
         if not os.path.exists(maddir):
             os.makedirs(maddir)
         qidfile = os.path.join(maddir, 'qid')
