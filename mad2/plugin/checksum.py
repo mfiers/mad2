@@ -25,12 +25,17 @@ def sha1hook_new(app, madfile):
     filename = madfile['filename']
 
     sha1file = os.path.join(dirname, 'SHA1SUMS')
+    qdhashfile = os.path.join(dirname, 'QDSUMS')
+
     sha1 = mad2.hash.check_hashfile(sha1file, filename)
 
     if sha1 is None:
         #if not in the hashfile - calculate & add to the hashfile
-        sha1 = mad2.hash.get_sha1sum(os.path.join(dirname, filename))
+        sha1 = mad2.hash.get_sha1sum(madfile['fullpath'])
         mad2.hash.append_hashfile(sha1file, filename, sha1)
+
+        qd = mad2.hash.get_qdhash(madfile['fullpath'])
+        mad2.hash.append_hashfile(qdhashfile, filename, qd)
 
     madfile.all['sha1sum'] = sha1
 
