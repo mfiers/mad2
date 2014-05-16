@@ -1,163 +1,93 @@
 from __future__ import print_function
 
-import datetime
 import logging
-import sys
 import os
 import leip
-import hashlib
+
 
 from mad2.util import get_all_mad_files
+import mad2.hash
 
 lg = logging.getLogger(__name__)
 
 
-def get_qdhash(filename):
-    """
-    Provde a quick & dirty hash - a good indication that a file
-    MIGHT have changed - but by no means secure.
-
-    It is quick, though.
-    """
-    sha1sum = hashlib.sha1()
-    filesize = os.stat(filename).st_size
-    if filesize < 20000:
-        with open(filename, 'rb') as F:
-            sha1sum.update(F.read())
-    else:
-        with open(filename, 'rb') as F:
-            for x in range(9):
-                F.seek(int(filesize * (x / 10.0)))
-                sha1sum.update(F.read(2000))
-
-            F.seek(-2000, 2)
-            sha1sum.update(F.read())
-
-    return sha1sum.hexdigest()
-
-
-def get_mtime(fn):
-    return datetime.datetime.utcfromtimestamp(
-        os.stat(fn).st_mtime).isoformat()
-
-
-def may_have_changed(madfile):
-    may_have_changed = False
-    if madfile.get('hash.qdhash', False):
-        qmt = madfile['hash.mtime']
-        mtime = get_mtime(madfile['fullpath'])
-        if qmt != mtime:
-            may_have_changed = True
-    elif madfile.get('hash.mtime', False):
-        qdh = madfile['hash.qdhash']
-        cs = get_qdhash(madfile['fullpath'])
-        if qdh != cs:
-            may_have_changed = True
-    return may_have_changed
-
-
 @leip.hook("madfile_post_load", 250)
-def hashhelper(app, madfile):
-    """
-    Calculate a quick&dirty checksum
+def sha1hook_new(app, madfile):
 
-    """
     if madfile.get('orphan', False):
-        # cannot deal with orphaned files
+        # won't deal with orphaned files
+        return
+    if madfile.get('isdir', False):
+        # won't deal with dirs
         return
 
-    changed = may_have_changed(madfile)
+    dirname = madfile['dirname']
+    filename = madfile['filename']
 
-    if changed and not 'sha1' in sys.argv:
-        print("{} may have changed! (rerun mad sha1)".format(
-            madfile['fullpath']), file=sys.stderr)
+    sha1file = os.path.join(dirname, 'SHA1SUMS')
+    sha1 = mad2.hash.check_hashfile(sha1file, filename)
 
+    if sha1 is None:
+        #if not in the hashfile - calculate & add to the hashfile
+        sha1 = mad2.hash.get_sha1sum(os.path.join(dirname, filename))
+        mad2.hash.append_hashfile(sha1file, filename, sha1)
 
-def hashit(hasher, filename):
-    """
-    Provde a quick & dirty hash
-
-    this is by no means secure, but quick for very large files, and as long
-    as one does not try to create duplicate hashes, the chance is still very
-    slim that a duplicate will arise
-    """
-    h = hasher()
-    blocksize = 2 ** 20
-    with open(filename, 'rb') as F:
-        for chunk in iter(lambda: F.read(blocksize), b''):
-            h.update(chunk)
-    return h.hexdigest()
+    madfile.all['sha1sum'] = sha1
 
 
-@leip.arg('-E', '--echo_scanned', action='store_true',
-          help='echo only those checked')
-@leip.arg('-e', '--echo', action='store_true', help='echo name')
-@leip.arg('-c', '--changed', action='store_true', help='echo changed state')
-@leip.arg('-f', '--force', action='store_true', help='apply force')
-@leip.arg('-w', '--warn', action='store_true', help='warn when skipping')
+@leip.flag('-f', '--force', help='force recalculation')
+@leip.flag('-E', '--echo_changed', help='echo names of recalculated files')
+@leip.flag('-e', '--echo', help='echo all filenames')
 @leip.arg('file', nargs='*')
 @leip.command
 def sha1(app, args):
     """
-    Calculate a sha1 checksum
+    Echo the filename
+
+    note - this ensures that the sha1sum is calculated
     """
-    apply_checksum(app, args, 'sha1')
-
-
-@leip.arg('-E', '--echo_scanned', action='store_true',
-          help='echo only those checked')
-@leip.arg('-e', '--echo', action='store_true', help='echo name')
-@leip.arg('-c', '--changed', action='store_true', help='echo changed state')
-@leip.arg('-f', '--force', action='store_true', help='apply force')
-@leip.arg('-w', '--warn', action='store_true', help='warn when skipping')
-@leip.arg('file', nargs='*')
-@leip.command
-def md5(app, args):
-    """
-    Calculate a md5 checksum
-    """
-    apply_checksum(app, args, 'md5')
-
-
-def apply_checksum(app, args, ctype='sha1'):
-
     for madfile in get_all_mad_files(app, args):
 
-        #print(madfile['inputfile'], madfile.get('orphan', False))
         if madfile.get('orphan', False):
+            # won't deal with orphaned files
             continue
 
-        changed = may_have_changed(madfile)
+        if madfile.get('isdir', False):
+            # won't deal with dirs
+            continue
 
-        if args.echo:
-            if args.changed:
-                cp = 'u'
-                if changed:
-                    cp = 'c'
-                print('{}\t{}'.format(cp, madfile['inputfile']))
-            else:
+
+        if not (madfile.get('qdhash_changed') or args.force):
+            #probably not changed - ignore
+            if args.echo:
+                print(madfile['inputfile'])
+        else:
+            dirname = madfile['dirname']
+            filename = madfile['filename']
+
+            sha1file = os.path.join(dirname, 'SHA1SUMS')
+            qdhashfile = os.path.join(dirname, 'QDSUMS')
+
+            sha1 = mad2.hash.get_sha1sum(os.path.join(dirname, filename))
+            mad2.hash.append_hashfile(sha1file, filename, sha1)
+
+            qd = mad2.hash.get_qdhash(madfile['fullpath'])
+            mad2.hash.append_hashfile(qdhashfile, filename, qd)
+
+            if args.echo or args.echo_changed:
                 print(madfile['inputfile'])
 
-        if not args.force:
-            if madfile.mad.get('hash.{}'.format(ctype)):
-                if not changed:
-                    if args.warn:
-                        # exists - and not forcing
-                        lg.warning(
-                            "Skipping %s checksum - exists & likely unchanged",
-                            ctype)
-                    continue
+        # print(madfile['inputfile'])
 
-        qd = get_qdhash(madfile['inputfile'])
-        mtime = get_mtime(madfile['inputfile'])
 
-        madfile.mad['hash.qdhash'] = qd
-        madfile.mad['hash.mtime'] = mtime
+@leip.arg('file', nargs='*')
+@leip.command
+def echo(app, args):
+    """
+    Echo the filename
 
-        cs = hashit(hashlib.__dict__[ctype], madfile['inputfile'])
-        madfile.mad['hash.{}'.format(ctype)] = cs
+    note - this ensures that the sha1sum is calculated
+    """
+    for madfile in get_all_mad_files(app, args):
+        print(madfile['inputfile'])
 
-        madfile.save()
-
-        if args.echo_scanned:
-            print(madfile['inputfile'])
