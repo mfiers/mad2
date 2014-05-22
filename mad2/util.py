@@ -7,6 +7,8 @@ import sys
 from mad2.exception import MadPermissionDenied, MadNotAFile
 from mad2.madfile import MadFile
 
+import fantail
+
 import mad2.store
 
 lg = logging.getLogger(__name__)
@@ -26,6 +28,8 @@ def initialize_stores(app):
     STORES = {}
     for store in app.conf['store']:
         store_conf = app.conf['store'][store]
+        if not isinstance(store_conf, dict):
+            continue
         if not store_conf.get('enabled', False):
             continue
         STORES[store] = mad2.store.all_stores[store](store_conf)
