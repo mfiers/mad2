@@ -139,8 +139,6 @@ def onthefly(app, madfile):
     #     madfile.all['annotated'] = True
 
     lg.debug("running onthelfy")
-    madfile.all['fullpath'] = os.path.abspath(madfile['inputfile'])
-    madfile.all['fullmadpath'] = os.path.abspath(madfile['madname'])
 
     lg.debug("get fqdn")
     madfile.all['host'] = socket.gethostname()

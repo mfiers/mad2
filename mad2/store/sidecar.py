@@ -45,11 +45,12 @@ class SidecarStore():
         lg.debug("madname: {}".format(madname))
         lg.debug("inputfile: {}".format(inputfile))
 
+        madfile.all['madname'] = madname
+        madfile.all['fullmadpath'] = os.path.abspath(madname)
+
         if os.path.exists(madname) and not os.access(madname, os.R_OK):
             raise MadPermissionDenied()
 
-        madfile.all['madname'] = madname
-        madfile.all['filename'] = filename
 
         if madfile.get('orphan', False) and os.path.exists(madname):
             lg.warning("Orphaned mad file: {}".format(madname))
