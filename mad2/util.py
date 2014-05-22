@@ -7,7 +7,11 @@ import sys
 from mad2.exception import MadPermissionDenied, MadNotAFile
 from mad2.madfile import MadFile
 
+import mad2.store
+
 lg = logging.getLogger(__name__)
+
+
 # lg.setLevel(logging.DEBUG)
 
 #
@@ -15,15 +19,28 @@ lg = logging.getLogger(__name__)
 # method to run hooks
 #
 
+STORES = None
+
+def initialize_stores(app):
+    global STORES
+    STORES = {}
+    for store in app.conf['store']:
+        store_conf = app.conf['store'][store]
+        if not store_conf.get('enabled', False):
+            continue
+        STORES[store] = mad2.store.all_stores[store](store_conf)
+
 
 def get_mad_file(app, filename):
     """
     Instantiate a mad file & add hooks
     """
-    global CACHE
+    if STORES == None:
+        initialize_stores(app)
 
     lg.debug("instantiating madfile for {0}".format(filename))
     return MadFile(filename,
+                   stores = STORES,
                    base=app.conf['madfile'],
                    hook_method=app.run_hook)
 
@@ -54,6 +71,9 @@ def get_filenames(args, use_stdin=True):
         for f in args.file:
             if len(f) == 0: continue
             if '.mad/' in f: continue
+            if 'SHA1SUMS' in f: continue
+            if 'QDSUMS' in f: continue
+
             rv = demad.sub(demadder, f)
             if os.path.isdir(rv): continue
             yield rv
@@ -74,6 +94,7 @@ def get_all_mad_files(app, args, use_stdin=True):
     get input files from sys.stdin and args.file
     """
     for filename in get_filenames(args, use_stdin):
+
         try:
             maf = get_mad_file(app, filename)
             yield maf

@@ -19,7 +19,6 @@ MONGO_SAVE_CACHE = []
 MONGO_SAVE_COUNT = 0
 MNG = None
 
-
 def mongo_prep_mad(mf):
 
     d = dict(mf)

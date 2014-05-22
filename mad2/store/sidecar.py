@@ -6,7 +6,7 @@ import fantail
 from mad2.exception import MadPermissionDenied
 
 lg = logging.getLogger(__name__)
-# lg.setLevel(logging.DEBUG)
+#lg.setLevel(logging.DEBUG)
 
 
 class SidecarStore():

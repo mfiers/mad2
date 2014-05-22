@@ -1,7 +1,5 @@
 import logging
 import os
-import uuid
-
 
 import fantail
 
@@ -16,6 +14,8 @@ def dummy_hook_method(*args, **kw):
     return None
 
 
+STORES = None
+
 class MadFile(fantail.Fanstack):
 
     """
@@ -24,13 +24,18 @@ class MadFile(fantail.Fanstack):
 
     def __init__(self,
                  inputfile,
+                 stores=None,
                  base=fantail.Fantail(),
                  hook_method=dummy_hook_method):
+
+
+        self.stores = stores
 
         lg.debug('madfile start %s', inputfile)
         super(MadFile, self).__init__(
             stack=[fantail.Fantail(),
                    base.copy()])
+
 
         self.dirmode = False
 
@@ -87,11 +92,11 @@ class MadFile(fantail.Fanstack):
         self.hook_method = hook_method
         self.load()
 
-        if not 'uuid' in self.mad:
-            _uuid = str(uuid.uuid4()).replace('-', '')[:24]
-            lg.debug("initial uuid assignment: {}".format(_uuid))
-            self.mad['uuid'] = _uuid
-            self.save()
+        # if not 'uuid' in self.mad:
+        #     _uuid = str(uuid.uuid4()).replace('-', '')[:24]
+        #     lg.debug("initial uuid assignment: {}".format(_uuid))
+        #     self.mad['uuid'] = _uuid
+        #     self.save()
 
     def render(self, template, data):
         """
