@@ -3,6 +3,7 @@ from __future__ import print_function
 import datetime
 import logging
 
+import hashlib
 
 from pymongo import MongoClient
 from bson.objectid import ObjectId
@@ -13,83 +14,68 @@ from mad2.util import get_all_mad_files, humansize
 
 
 lg = logging.getLogger(__name__)
-# lg.setLevel(logging.DEBUG)
+
 
 MONGO_SAVE_CACHE = []
 MONGO_SAVE_COUNT = 0
-MNG = None
+MONGO = None
 
 
-def mongo_prep_mad(mf):
-    d = dict(mf)
-    mongo_id = mf['uuid']
-    d['_id'] = mongo_id
-    del d['uuid']
-
-    sha1 = mf['hash']['sha1']
-    if sha1:
-        d['sha1'] = sha1
-
-    d['save_time'] = datetime.datetime.utcnow()
-    return mongo_id, d
-
-# @leip.hook("madfile_orphan")
-# def store_orphan(app, madfile):
-#     mng = get_mng(app)
-#     mng['orphan'] = True
-#     save_to_mongo(mng, madfile)
-
-@leip.hook("madfile_save")
-def store_in_mongodb(app, madfile):
-    lg.debug("running store_in_mongodb")
-    mng = get_mng(app)
-    save_to_mongo(mng, madfile)
-
-
-# @leip.hook("finish")
-# def finish_mongo_write(app, *args, **kwargs):
-#     print("finish")
-
-
-def save_to_mongo(mng, madfile):
-    global MONGO_SAVE_COUNT
-    global MONGO_SAVE_CACHE
-
-    MONGO_SAVE_COUNT += 1
-    # MONGO_SAVE_CACHE.append(madfile)
-
-    # if len(MONGO_SAVE_CACHE < 4):
-    #    return
-
-    lg.debug("collection object {}".format(mng))
-    mongo_id, newrec = mongo_prep_mad(madfile)
-    #print("save", mongo_id, madfile['filename'])
-    mng.update({'_id': mongo_id}, newrec, True)
-    # if mongo_id:
-    #     mng.save(newrec)
-    # else:
-    #     mongo_id = mng.insert(newrec)
-    #     lg.debug("Updating mongo record {0}".format(mongo_id))
-    #     madfile.mad['mongo_id'] = str(mongo_id)
-    #     madfile.save()
-
-
-def get_mng(app):
+def get_mongo_db(app):
     """
     Get the collection object
     """
-    global MNG
+    global MONGO
 
-    if not MNG is None:
-        return MNG
+    if not MONGO is None:
+        return MONGO
 
     mongo_info = app.conf['plugin.mongo']
     host = mongo_info.get('host', 'localhost')
     port = mongo_info.get('port', 27017)
+    dbname = mongo_info.get('db', 'mad2')
+    coll = mongo_info.get('collection', 'mad2')
     lg.debug("connect mongodb {}:{}".format(host, port))
     client = MongoClient(host, port)
-    MNG = client.mad2.mad2
-    return MNG
+    MONGO = client[dbname][coll]
+    return MONGO
+
+
+
+def mongo_prep_mad(mf):
+
+    d = dict(mf)
+
+    sha1sum = hashlib.sha1()
+    sha1sum.update(mf['sha1sum'])
+    sha1sum.update(mf['host'])
+    sha1sum.update(mf['fullpath'])
+
+    mongo_id = sha1sum.hexdigest()[:24]
+    d['_id'] = mongo_id
+    d['save_time'] = datetime.datetime.utcnow()
+
+    return mongo_id, d
+
+
+def save_to_mongo(MONGO, madfile):
+    global MONGO_SAVE_COUNT
+    global MONGO_SAVE_CACHE
+
+    MONGO_SAVE_COUNT += 1
+
+    lg.debug("collection object {}".format(MONGO))
+    mongo_id, newrec = mongo_prep_mad(madfile)
+
+    MONGO.update({'_id': mongo_id}, newrec, True)
+
+
+@leip.hook("madfile_save")
+def store_in_mongodb(app, madfile):
+    lg.debug("running store_in_mongodb")
+    MONGO = get_mongo_db(app)
+    save_to_mongo(MONGO, madfile)
+
 
 
 @leip.subparser
@@ -106,13 +92,13 @@ def mongo_show(app, args):
     """
     Show mongodb records
     """
-    mng = get_mng(app)
+    MONGO = get_mongo_db(app)
     for madfile in get_all_mad_files(app, args):
         mongo_id = madfile['uuid']
         if mongo_id:
             print('#', mongo_id, madfile['filename'])
 # print('#', mongo_id, madfile['uuid'], madfile['filename'])
-            rec = mng.find_one({'_id': mongo_id})
+            rec = MONGO.find_one({'_id': mongo_id})
             # print(madfile.filename)
             if not rec:
                 continue
@@ -128,8 +114,8 @@ def mongo_count(app, args):
     """
     Show the associated mongodb record
     """
-    mng_mad = get_mng(app)
-    print(mng_mad.count())
+    MONGO_mad = get_mongo_db(app)
+    print(MONGO_mad.count())
 
 
 @leip.flag('-H', '--human', help='human readable')
@@ -140,8 +126,8 @@ def mongo_sum(app, args):
     Show the associated mongodb record
     """
     groupby_field = "${}".format(args.group_by)
-    mng_mad = get_mng(app)
-    res = mng_mad.aggregate([
+    MONGO_mad = get_mongo_db(app)
+    res = MONGO_mad.aggregate([
         {'$group': {
             "_id": groupby_field,
             "total": {"$sum": "$filesize"},
@@ -195,8 +181,8 @@ def mongo_sum2(app, args):
 
     gb_pair_field = "${}_${}".format(gb1_field, gb2_field)
 
-    mng_mad = get_mng(app)
-    res = mng_mad.aggregate([
+    MONGO_mad = get_mongo_db(app)
+    res = MONGO_mad.aggregate([
             {'$group': {
                 "_id": {
                     "group1": gb1_field,
@@ -248,8 +234,8 @@ def mongo_drop(app, args):
         print("use --force to really drop the database")
         exit()
 
-    mng_mad = get_mng(app)
-    mng_mad.drop()
+    MONGO_mad = get_mongo_db(app)
+    MONGO_mad.drop()
 
 
 @leip.flag('-e', '--echo')
@@ -259,10 +245,10 @@ def mongo_save(app, args):
     """
     Save to mongodb
     """
-    mng = get_mng(app)
+    MONGO = get_mongo_db(app)
     for madfile in get_all_mad_files(app, args):
         lg.debug("save to mongodb: %s", madfile['inputfile'])
-        save_to_mongo(mng, madfile)
+        save_to_mongo(MONGO, madfile)
         if args.echo:
             print(madfile['inputfile'])
 
@@ -272,7 +258,7 @@ def mongo_index(app, args):
     """
     Ensure indexes on the relevant fields
     """
-    mng_mad = get_mng(app)
+    MONGO_mad = get_mongo_db(app)
     for f in app.conf['plugin.mongo.indici']:
         print("create index on: {}".format(f))
-        mng_mad.ensure_index(f)
+        MONGO_mad.ensure_index(f)

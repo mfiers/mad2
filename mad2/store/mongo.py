@@ -38,15 +38,14 @@ class MongoStore():
         self.host = self.conf.get('host', 'localhost')
         self.port = int(self.conf.get('port', 27017))
         self.client = MongoClient(self.host, self.port)
-
-        self.db_core = self.client.mad2.slim
-        self.db_full = self.client.mad2.all
+        self.db_name = self.conf.get('db', 'mad2')
+        self.collection_name = self.conf.get('collection', 'core')
+        self.db_core = self.client[self.db_name][self.collection_name]
 
     def prepare(self, madfile):
         if madfile.get('isdir', False):
             #no directories
             return
-
         #nothing to prepare -
         pass
 
@@ -61,7 +60,7 @@ class MongoStore():
         lg.debug("mongo id {}".format(mongo_id))
 
         self.db_core.update({'_id': mongo_id}, core, True)
-        self.db_full.update({'_id': mongo_id}, full, True)
+        #self.db_full.update({'_id': mongo_id}, full, True)
 
 
     def load(self, madfile):
