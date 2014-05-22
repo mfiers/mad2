@@ -53,6 +53,9 @@ def sha1(app, args):
     """
     for madfile in get_all_mad_files(app, args):
 
+        if madfile['filename'] in ['SHA1SUMS', 'QDSUMS']:
+            continue
+
         if madfile.get('orphan', False):
             # won't deal with orphaned files
             continue
@@ -83,6 +86,17 @@ def sha1(app, args):
                 print(madfile['inputfile'])
 
         # print(madfile['inputfile'])
+
+
+@leip.arg('file', nargs='*')
+@leip.command
+def qdhash(app, args):
+    """
+    print the qdhash to screen
+    """
+    for madfile in get_all_mad_files(app, args):
+        qd = mad2.hash.get_qdhash(madfile['fullpath'])
+        print('{} \t {}'.format(madfile['inputfile'], qd))
 
 
 @leip.arg('file', nargs='*')

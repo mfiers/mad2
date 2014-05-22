@@ -9,9 +9,8 @@ import hashlib
 
 from lockfile import FileLock
 
-from mad2 import qdid
 from mad2.util import get_all_mad_files
-from mad2.qdid import get_qdhash
+from mad2.hash import get_qdhash
 
 lg = logging.getLogger(__name__)
 
@@ -63,7 +62,7 @@ def qdhook(app, madfile):
 
     qdfile = os.path.join(dirname, 'QDSUMS')
     qd_file = check_qdsumfile(qdfile, filename)
-    qd = qdid.get_qdhash(madfile['fullpath'])
+    qd = get_qdhash(madfile['fullpath'])
 
     if qd_file is None:
         #qd does not exists yet - create & return
