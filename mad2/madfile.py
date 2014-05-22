@@ -54,9 +54,6 @@ class MadFile(fantail.Fanstack):
         if not os.path.exists(inputfile):
             self.all['orphan'] = True
 
-        print 'hi'
-
-
         for s in self.stores:
             store = self.stores[s]
             store.prepare(self)

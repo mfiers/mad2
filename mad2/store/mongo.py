@@ -19,9 +19,13 @@ MONGO_SAVE_CACHE = []
 MONGO_SAVE_COUNT = 0
 MNG = None
 
+
 def mongo_prep_mad(mf):
 
     d = dict(mf)
+
+    mongo_id = mf['sha1sum'][:24]
+    d['_id'] = mongo_id
 
     mongo_id = mf['sha1sum'][:24]
     d['_id'] = mongo_id
@@ -52,6 +56,9 @@ class MongoStore():
     def save(self, madfile):
         """Save data to the mongo database"""
 
+        if not 'sha1sum' in madfile:
+            return
+
         mongo_id = madfile['sha1sum'][:24]
         core = dict(madfile.mad)
         full = dict(madfile)
@@ -67,6 +74,10 @@ class MongoStore():
         """
         Load the
         """
+
+        if not 'sha1sum' in madfile:
+            return
+
         hashfile = os.path.join(madfile['dirname'], 'SHA1SUMS')
         sha1 = mad2.hash.check_hashfile(hashfile, madfile['filename'])
         mongo_id = sha1[:24]
