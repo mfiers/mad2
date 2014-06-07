@@ -3,7 +3,6 @@ import logging
 import os
 import leip
 
-
 from mad2.util import get_all_mad_files
 import mad2.hash
 
@@ -119,4 +118,19 @@ def echo(app, args):
     """
     for madfile in get_all_mad_files(app, args):
         print(madfile['inputfile'])
+
+
+@leip.flag('-e', '--echo')
+@leip.arg('file', nargs='*')
+@leip.command
+def save(app, args):
+    """
+    save the file to the mad datastore
+
+    note - this ensures that the sha1sum is calculated
+    """
+    for madfile in get_all_mad_files(app, args):
+        madfile.save()
+        if args.echo:
+            print madfile['inputfile']
 
