@@ -13,7 +13,7 @@ import leip
 import mad2.hash
 
 lg = logging.getLogger(__name__)
-lg.setLevel(logging.DEBUG)
+#lg.setLevel(logging.DEBUG)
 
 MONGO_SAVE_CACHE = []
 MONGO_SAVE_COUNT = 0
@@ -26,11 +26,9 @@ def mongo_prep_mad(mf):
 
     mongo_id = mf['sha1sum'][:24]
     d['_id'] = mongo_id
-
-    mongo_id = mf['sha1sum'][:24]
-    d['_id'] = mongo_id
-
+    d['sha1sum'] = mf['sha1sum']
     d['save_time'] = datetime.datetime.utcnow()
+    del d['hash']
     return mongo_id, d
 
 
@@ -61,7 +59,8 @@ class MongoStore():
 
         mongo_id = madfile['sha1sum'][:24]
         core = dict(madfile.mad)
-        full = dict(madfile)
+        core['sha1sum'] = madfile['sha1sum']
+        del core['hash']
 
         lg.debug("mongo save {}".format(madfile['inputfile']))
         lg.debug("mongo id {}".format(mongo_id))
