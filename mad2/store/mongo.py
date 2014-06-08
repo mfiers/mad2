@@ -50,11 +50,11 @@ class MongoStore():
         if madfile.get('isdir', False):
             #no directories
             return
-            
+
         #get the sha1sum from the SHA1SUMS file
-        mad2.hash.get_or_create_sha1sum(madfile['inputfile'])
-        exit()
-        pass
+        sha1 = mad2.hash.get_or_create_sha1sum(madfile['inputfile'])
+        madfile.all['sha1sum'] = sha1
+
 
     def save(self, madfile):
         """Save data to the mongo database"""
@@ -69,7 +69,7 @@ class MongoStore():
             del core['hash']
         if 'uuid' in core:
             del core['uuid']
-        
+
         lg.debug("mongo save {}".format(madfile['inputfile']))
         lg.debug("mongo id {}".format(mongo_id))
 
@@ -85,8 +85,7 @@ class MongoStore():
         if not 'sha1sum' in madfile:
             return
 
-        hashfile = os.path.join(madfile['dirname'], 'SHA1SUMS')
-        sha1 = mad2.hash.check_hashfile(hashfile, madfile['filename'])
+        sha1 = madfile['sha1sum']
         mongo_id = sha1[:24]
         lg.debug("getting mad data for {}".format(
                  madfile['inputfile']))

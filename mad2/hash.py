@@ -33,8 +33,13 @@ def get_or_create_sha1sum(filename):
     Get a sha1sum, if it does not exist
     """
     dirname, basename = os.path.split(filename)
-    hashfile = os.path.join(dirname, 'SHA1SUMS')
-    print hashfile
+    sha1file = os.path.join(dirname, 'SHA1SUMS')
+    sha1 = check_hashfile(sha1file, basename)
+    if sha1 is None:
+        sha1 = get_sha1sum(filename)
+        append_hashfile(sha1file, basename, sha1)
+    return sha1
+
 
 def check_hashfile(hashfile, filename):
     """

@@ -18,7 +18,6 @@ from mad2.util import get_all_mad_files, humansize
 
 lg = logging.getLogger(__name__)
 
-
 MONGO_SAVE_CACHE = []
 MONGO_SAVE_COUNT = 0
 MONGO = None
