@@ -2,11 +2,14 @@ from __future__ import print_function
 
 import datetime
 import logging
+import os
 
 import hashlib
 
 from pymongo import MongoClient
 from bson.objectid import ObjectId
+
+import arrow
 
 import leip
 
@@ -19,6 +22,7 @@ lg = logging.getLogger(__name__)
 MONGO_SAVE_CACHE = []
 MONGO_SAVE_COUNT = 0
 MONGO = None
+MONGOCORE = None
 
 
 def get_mongo_db(app):
@@ -37,9 +41,31 @@ def get_mongo_db(app):
     coll = mongo_info.get('collection', 'mad2')
     lg.debug("connect mongodb {}:{}".format(host, port))
     client = MongoClient(host, port)
+
     MONGO = client[dbname][coll]
+
     return MONGO
 
+def get_mongo_core_db(app):
+    """
+    Get the core collection object
+    """
+    global MONGOCORE
+
+    if not MONGOCORE is None:
+        return MONGOCORE
+
+    info = app.conf['store.mongo']
+    host = info.get('host', 'localhost')
+    port = info.get('port', 27017)
+    dbname = info.get('db', 'mad2')
+    coll = info.get('collection', 'core')
+    lg.warning("connect mongodb %s:%s/%s/%s", host, port, dbname, coll)
+    client = MongoClient(host, port)
+
+    MONGOCORE = client[dbname][coll]
+
+    return MONGOCORE
 
 
 def mongo_prep_mad(mf):
@@ -77,7 +103,6 @@ def store_in_mongodb(app, madfile):
     save_to_mongo(MONGO, madfile)
 
 
-
 @leip.subparser
 def mongo(app, args):
     """
@@ -97,7 +122,6 @@ def mongo_show(app, args):
         mongo_id = madfile['uuid']
         if mongo_id:
             print('#', mongo_id, madfile['filename'])
-# print('#', mongo_id, madfile['uuid'], madfile['filename'])
             rec = MONGO.find_one({'_id': mongo_id})
             # print(madfile.filename)
             if not rec:
@@ -108,6 +132,28 @@ def mongo_show(app, args):
                     continue
                 print('{0}\t{1}'.format(key, rec[key]))
 
+@leip.flag('-c', '--core')
+@leip.arg('mongo_id')
+@leip.subcommand(mongo, "get")
+def mongo_get(app, args):
+    """
+    get a mongodb record based on id
+    """
+    if args.core:
+        MONGO = get_mongo_core_db(app)
+    else:
+        MONGO = get_mongo_db(app)
+
+    mongo_id = args.mongo_id
+    rec = MONGO.find_one({'_id': mongo_id})
+    if not rec:
+        return
+    for key in rec:
+        if key == '_id':
+            print('uuid\t{1}'.format(key, rec[key]))
+            continue
+        print('{0}\t{1}'.format(key, rec[key]))
+
 
 @leip.subcommand(mongo, "count")
 def mongo_count(app, args):
@@ -116,6 +162,26 @@ def mongo_count(app, args):
     """
     MONGO_mad = get_mongo_db(app)
     print(MONGO_mad.count())
+
+
+@leip.arg('-n', '--no', type=int, default=10)
+@leip.subcommand(mongo, "last")
+def mongo_last(app, args):
+    now = arrow.now()
+    MONGO_mad = get_mongo_db(app)
+    res = MONGO_mad.aggregate([
+        {"$sort" : { "save_time": -1 }}
+    ])
+    for i, r in enumerate(res['result']):
+        if i > args.no:
+            break
+        print("\t".join(
+            [ arrow.get(r['save_time']).humanize(),
+              r['filename'], r.get('_id', ''),
+              r.get('sha1sum')[:24] ]))
+
+#        print(r)
+
 
 
 @leip.flag('-H', '--human', help='human readable')

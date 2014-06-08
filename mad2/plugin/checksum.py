@@ -1,7 +1,10 @@
 
 import logging
+from multiprocessing import Pool
+from multiprocessing.dummy import Pool as ThreadPool
 import os
 import leip
+
 
 from mad2.util import get_all_mad_files
 import mad2.hash
@@ -47,6 +50,21 @@ def sha1hook_new(app, madfile):
         mad2.hash.append_hashfile(qdhashfile, filename, qd)
 
     madfile.all['sha1sum'] = sha1
+
+
+
+# @leip.arg('file', nargs='*')
+# @leip.command
+# def sha1p(app, args):
+#     """
+#     Echo the filename
+
+#     note - this ensures that the sha1sum is calculated
+#     """
+#     def calcsum
+#     pool = ThreadPool(8)
+#     for madfile in get_all_mad_files(app, args):
+
 
 
 @leip.flag('-f', '--force', help='force recalculation')
