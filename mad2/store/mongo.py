@@ -29,6 +29,7 @@ def mongo_prep_mad(mf):
     d['sha1sum'] = mf['sha1sum']
     d['save_time'] = datetime.datetime.utcnow()
     del d['hash']
+    del d['uuid']
     return mongo_id, d
 
 
@@ -45,10 +46,14 @@ class MongoStore():
         self.db_core = self.client[self.db_name][self.collection_name]
 
     def prepare(self, madfile):
+
         if madfile.get('isdir', False):
             #no directories
             return
-        #nothing to prepare -
+            
+        #get the sha1sum from the SHA1SUMS file
+        mad2.hash.get_or_create_sha1sum(madfile['inputfile'])
+        exit()
         pass
 
     def save(self, madfile):
@@ -60,8 +65,11 @@ class MongoStore():
         mongo_id = madfile['sha1sum'][:24]
         core = dict(madfile.mad)
         core['sha1sum'] = madfile['sha1sum']
-        del core['hash']
-
+        if 'hash' in core:
+            del core['hash']
+        if 'uuid' in core:
+            del core['uuid']
+        
         lg.debug("mongo save {}".format(madfile['inputfile']))
         lg.debug("mongo id {}".format(mongo_id))
 

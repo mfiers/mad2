@@ -8,8 +8,9 @@ file metadata tagger
 
 entry_points = {
     'console_scripts': [
-        'mad = mad2.cli.main:dispatch'
-        ]}
+        'mad = mad2.cli.main:dispatch',
+        'sha1p = mad2.sha1p:dispatch'
+    ]}
 
 setup(name='mad2',
       version='0.1.1',

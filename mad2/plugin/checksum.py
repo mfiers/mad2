@@ -1,4 +1,3 @@
-
 import logging
 from multiprocessing import Pool
 from multiprocessing.dummy import Pool as ThreadPool
@@ -51,22 +50,44 @@ def sha1hook_new(app, madfile):
 
     madfile.all['sha1sum'] = sha1
 
+    
+def _calc_madfile_sum(madfile, force=False, echo=False, echo_changed=False):
 
+    if madfile['filename'] in ['SHA1SUMS', 'QDSUMS']:
+        return
 
-# @leip.arg('file', nargs='*')
-# @leip.command
-# def sha1p(app, args):
-#     """
-#     Echo the filename
+    if madfile.get('orphan', False):
+        # won't deal with orphaned files
+        return
 
-#     note - this ensures that the sha1sum is calculated
-#     """
-#     def calcsum
-#     pool = ThreadPool(8)
-#     for madfile in get_all_mad_files(app, args):
+    if madfile.get('isdir', False):
+        # won't deal with dirs
+        return
 
+    if not (madfile.get('qdhash_changed') or force):
+        #probably not changed - ignore
+        if echo:
+            print(madfile['inputfile'])
+            return
+            
+    dirname = madfile['dirname']
+    filename = madfile['filename']
 
+    lg.debug("creating sha1 for %s", filename)
+    
+    sha1file = os.path.join(dirname, 'SHA1SUMS')
+    qdhashfile = os.path.join(dirname, 'QDSUMS')
 
+    sha1 = mad2.hash.get_sha1sum(os.path.join(dirname, filename))
+    mad2.hash.append_hashfile(sha1file, filename, sha1)
+
+    qd = mad2.hash.get_qdhash(madfile['fullpath'])
+    mad2.hash.append_hashfile(qdhashfile, filename, qd)
+
+    if echo or echo_changed:
+        print madfile['inputfile']
+        
+    
 @leip.flag('-f', '--force', help='force recalculation')
 @leip.flag('-E', '--echo_changed', help='echo names of recalculated files')
 @leip.flag('-e', '--echo', help='echo all filenames')
@@ -80,40 +101,8 @@ def sha1(app, args):
     """
     for madfile in get_all_mad_files(app, args):
 
-        if madfile['filename'] in ['SHA1SUMS', 'QDSUMS']:
-            continue
-
-        if madfile.get('orphan', False):
-            # won't deal with orphaned files
-            continue
-
-        if madfile.get('isdir', False):
-            # won't deal with dirs
-            continue
-
-
-        if not (madfile.get('qdhash_changed') or args.force):
-            #probably not changed - ignore
-            if args.echo:
-                print(madfile['inputfile'])
-        else:
-            dirname = madfile['dirname']
-            filename = madfile['filename']
-
-            sha1file = os.path.join(dirname, 'SHA1SUMS')
-            qdhashfile = os.path.join(dirname, 'QDSUMS')
-
-            sha1 = mad2.hash.get_sha1sum(os.path.join(dirname, filename))
-            mad2.hash.append_hashfile(sha1file, filename, sha1)
-
-            qd = mad2.hash.get_qdhash(madfile['fullpath'])
-            mad2.hash.append_hashfile(qdhashfile, filename, qd)
-
-            if args.echo or args.echo_changed:
-                print(madfile['inputfile'])
-
-        # print(madfile['inputfile'])
-
+        _calc_madfile_sum(madfile, args.force, args.echo, args.echo_changed)
+        
 
 @leip.arg('file', nargs='*')
 @leip.command

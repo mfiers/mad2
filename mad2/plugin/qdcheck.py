@@ -20,7 +20,7 @@ def check_qdsumfile(qdfile, filename):
         return None
     with open(qdfile) as F:
         for line in F:
-            hsh, fn = line.strip().split()
+            hsh, fn = line.strip().split(None, 1)
             if fn == filename:
                 return hsh
     return None
@@ -41,9 +41,10 @@ def append_qdsumfile(qdfile, filename, qd):
         qds[filename] = qd
 
         #write new qdfile
-        qds.keys
         with open(qdfile, 'w') as F:
             for fn in sorted(qds.keys()):
+                if fn in ['SHA1SUMS', 'QDSUMS']:
+                    continue
                 F.write("{}  {}\n".format(qds[fn], fn))
 
 
@@ -60,8 +61,16 @@ def qdhook(app, madfile):
     dirname = madfile['dirname']
     filename = madfile['filename']
 
+    if filename in ['QDSUMS', 'SHA1SUMS']:
+        return
+        
     qdfile = os.path.join(dirname, 'QDSUMS')
-    qd_file = check_qdsumfile(qdfile, filename)
+
+    try:
+        qd_file = check_qdsumfile(qdfile, filename)
+    except:
+        lg.warning("Error checking qdsum of %s in %s", filename, qdfile)
+
     qd = get_qdhash(madfile['fullpath'])
 
     if qd_file is None:
@@ -76,3 +85,5 @@ def qdhook(app, madfile):
         return
 
     lg.warning("'%s' may have hanged (qd hash did)", madfile['inputfile'])
+    lg.warning("  - from file  : %s", qd_file)
+    lg.warning("  - calculated : %s", qd)

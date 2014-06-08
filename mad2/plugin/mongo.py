@@ -78,7 +78,10 @@ def mongo_prep_mad(mf):
 
     mongo_id = sha1sum.hexdigest()[:24]
     d['_id'] = mongo_id
-    del d['hash']
+    if 'uuid' in d:
+        del d['uuid']
+    if 'hash' in d:
+        del d['hash']
     d['save_time'] = datetime.datetime.utcnow()
 
     return mongo_id, d
@@ -149,9 +152,6 @@ def mongo_get(app, args):
     if not rec:
         return
     for key in rec:
-        if key == '_id':
-            print('uuid\t{1}'.format(key, rec[key]))
-            continue
         print('{0}\t{1}'.format(key, rec[key]))
 
 
@@ -170,7 +170,8 @@ def mongo_last(app, args):
     now = arrow.now()
     MONGO_mad = get_mongo_db(app)
     res = MONGO_mad.aggregate([
-        {"$sort" : { "save_time": -1 }}
+        {"$sort" : { "save_time": -1 }},
+        {"$limit" : args.no},
     ])
     for i, r in enumerate(res['result']):
         if i > args.no:

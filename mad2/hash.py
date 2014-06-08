@@ -22,11 +22,19 @@ def append_hashfile(hashfile, filename, hash):
         hashes[filename] = hash
 
         #write new sha1file
-        hashes.keys
         with open(hashfile, 'w') as F:
             for fn in sorted(hashes.keys()):
+                if fn in ['QDSUMS', 'SHA1SUMS']:
+                    continue
                 F.write("{}  {}\n".format(hashes[fn], fn))
 
+def get_or_create_sha1sum(filename):
+    """
+    Get a sha1sum, if it does not exist
+    """
+    dirname, basename = os.path.split(filename)
+    hashfile = os.path.join(dirname, 'SHA1SUMS')
+    print hashfile
 
 def check_hashfile(hashfile, filename):
     """
