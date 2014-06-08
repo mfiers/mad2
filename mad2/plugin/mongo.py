@@ -41,7 +41,6 @@ def get_mongo_db(app):
     return MONGO
 
 
-
 def mongo_prep_mad(mf):
 
     d = dict(mf)
@@ -53,6 +52,7 @@ def mongo_prep_mad(mf):
 
     mongo_id = sha1sum.hexdigest()[:24]
     d['_id'] = mongo_id
+    del d['hash']
     d['save_time'] = datetime.datetime.utcnow()
 
     return mongo_id, d
