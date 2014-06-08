@@ -15,7 +15,7 @@ def append_hashfile(hashfile, filename, hash):
         if os.path.exists(hashfile):
             with open(hashfile) as F:
                 for line in F:
-                    hsh, fn = line.strip().split()
+                    hsh, fn = line.strip().split(None, 1)
                     hashes[fn] = hsh
 
         #insert our sha1 - possibly overwriting other version
@@ -36,7 +36,7 @@ def check_hashfile(hashfile, filename):
         return None
     with open(hashfile) as F:
         for line in F:
-            hsh, fn = line.strip().split()
+            hsh, fn = line.strip().split(None, 1)
             if fn == filename:
                 return hsh
     return None
