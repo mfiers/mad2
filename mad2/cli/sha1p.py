@@ -8,8 +8,6 @@ import os
 import sys
 import time
 
-from lockfile import FileLock, LockTimeout
-
 from mad2 import hash
 from mad2 import util
 
@@ -38,7 +36,18 @@ lg.info('start sha1p')
 SHADATA = collections.defaultdict(list)
 LOCKED = ""
 
-def write_to_sha1sum(hashfile, files):
+
+def write_both_checksums(dirname, files):
+    write_to_checksum_file(
+        os.path.join(dirname, 'SHA1SUMS'),
+        [[x[0], x[1]] for x in files]
+        )
+    write_to_checksum_file(
+        os.path.join(dirname, 'QDSUMS'),
+        [[x[0], x[2]] for x in files]
+        )
+
+def write_to_checksum_file(hashfile, files):
 
     j = 0
     lg.debug("writing %d sha1sums to %s", len(files), hashfile)
@@ -125,15 +134,14 @@ def process_file_2(datalock, i, fn, force, echo):
     datalock.acquire() #processing the SHADATA global data structure - lock
     assert(LOCKED == "")
     LOCKED = "YES"
-    SHADATA[dirname].append((filename, sha1))
+    SHADATA[dirname].append((filename, sha1, qd))
 
     if i > 0 and i % 100 == 0:
         for dirname in SHADATA:
             if len(SHADATA[dirname]) == 0:
                 continue
             lg.debug('flushing to dir %s', dirname)
-            hashfile = os.path.join(dirname, 'SHA1SUMS')
-            write_to_sha1sum(hashfile, SHADATA[dirname])
+            write_both_checksums(hashfile, SHADATA[dirname])
             SHADATA[dirname] = []
         lg.info('processed & written %d files', i)
 
@@ -179,5 +187,4 @@ def dispatch():
         lg.debug("flushing to %s/SHA1SUMS", dirname)
         if len(SHADATA[dirname]) == 0:
                 continue
-        hashfile = os.path.join(dirname, 'SHA1SUMS')
-        write_to_sha1sum(hashfile, SHADATA[dirname])
+        write_both_checksums(dirname, SHADATA[dirname])
