@@ -21,6 +21,7 @@ def dispatch():
                     print "{}: OK".format(fn)
                 else:
                     print "{}: FAILED".format(fn)
+        exit(0)
 
     for fn in sys.argv[1:]:
         if os.path.isdir(fn):

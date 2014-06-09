@@ -2,7 +2,7 @@
 import argparse
 import collections
 import logging
-from multiprocessing import Pool, Lock
+from multiprocessing import Pool, Lock, Manager
 from multiprocessing.dummy import Pool as ThreadPool
 import os
 import sys
@@ -35,13 +35,15 @@ lg.info('start sha1p')
 
 SHADATA = collections.defaultdict(list)
 LOCKED = ""
-
+JOBS_DONE = 0
 
 def write_both_checksums(dirname, files):
+    lg.debug("writing sha1 checksum")
     write_to_checksum_file(
         os.path.join(dirname, 'SHA1SUMS'),
         [[x[0], x[1]] for x in files]
         )
+    lg.debug("writing qd checksum")
     write_to_checksum_file(
         os.path.join(dirname, 'QDSUMS'),
         [[x[0], x[2]] for x in files]
@@ -102,8 +104,10 @@ def write_to_checksum_file(hashfile, files):
 
 
 def process_file(*args, **kwargs):
+    global JOBS_DONE
     try:
         process_file_2(*args, **kwargs)
+        JOBS_DONE += 1
     except:
         import traceback
         traceback.print_exception()
@@ -111,7 +115,7 @@ def process_file(*args, **kwargs):
 
 def process_file_2(datalock, i, fn, force, echo):
 
-    global SHADATA, LOCKED
+    global SHADATA, LOCKED, JOBS_DONE
 
     filename = os.path.basename(fn)
     dirname = os.path.dirname(fn)
@@ -134,14 +138,17 @@ def process_file_2(datalock, i, fn, force, echo):
     datalock.acquire() #processing the SHADATA global data structure - lock
     assert(LOCKED == "")
     LOCKED = "YES"
+
+    lg.debug("updating SHADATA")
+
     SHADATA[dirname].append((filename, sha1, qd))
 
-    if i > 0 and i % 100 == 0:
+    if i > 0 and i % 10 == 0:
         for dirname in SHADATA:
             if len(SHADATA[dirname]) == 0:
                 continue
-            lg.debug('flushing to dir %s', dirname)
-            write_both_checksums(hashfile, SHADATA[dirname])
+            lg.debug('flushing to dir: "%s"', dirname)
+            write_both_checksums(dirname, SHADATA[dirname])
             SHADATA[dirname] = []
         lg.info('processed & written %d files', i)
 
@@ -167,7 +174,6 @@ def dispatch():
         lg.setLevel(logging.WARNING)
 
     pool = ThreadPool(args.threads)
-
     dlock = Lock()
 
     for i, fn in enumerate(util.get_filenames(args)):
@@ -179,7 +185,11 @@ def dispatch():
 
     lg.info(("processed all (%d) files - waiting for threads to " +
             "finish"),i)
+
+    lg.info("closing pool")
+
     pool.close()
+
     pool.join()
 
     lg.info("finished - flushing cache")
