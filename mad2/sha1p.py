@@ -42,7 +42,7 @@ def write_to_sha1sum(hashfile, files):
     lg.debug("writing %d sha1sums to %s", len(files), hashfile)
 
     hashes = {}
-        
+
     #read old sha1file
     if os.path.exists(hashfile):
         with open(hashfile) as F:
@@ -62,11 +62,27 @@ def write_to_sha1sum(hashfile, files):
                 continue
             F.write("{}  {}\n".format(hashes[fn], fn))
 
-    
+    #fix permissions  - but only when root
+    if os.geteuid() != 0:
+        return
+
+    #change SHA1SUM file
+    dirname = os.path.dirname(hashfile)
+    if not dirname.strip():
+        dirname = '.'
+    dstats = os.stat(dirname)
+
+    if os.path.exists(hashfile):
+        os.chmod(hashfile, dstats.st_mode-73)
+        os.chown(hashfile, dstats.st_uid, dstats.st_gid)
+
+
+
+
 def process_file(datalock, i, fn, force, echo):
 
     global SHADATA
-        
+
     filename = os.path.basename(fn)
     dirname = os.path.dirname(fn)
 
@@ -74,7 +90,7 @@ def process_file(datalock, i, fn, force, echo):
     sha1_hash_file = os.path.join(dirname, 'SHA1SUMS')
 
     sha1_file = hash.check_hashfile(sha1_hash_file, filename)
-    
+
     qd = hash.get_qdhash(fn)
     qd_file = hash.check_hashfile(qd_hash_file, filename)
 
@@ -88,7 +104,7 @@ def process_file(datalock, i, fn, force, echo):
     datalock.acquire() #processing the SHADATA global data structure - lock
 
     SHADATA[dirname].append((filename, sha1))
-        
+
     datalock.release()
 
 
@@ -100,16 +116,16 @@ def dispatch():
     parser.add_argument('-e', '--echo', action='store_true')
     parser.add_argument('-v', '--verbose', action='store_true')
     parser.add_argument('file', nargs='*')
-    
+
     args = parser.parse_args()
-    
+
     if args.verbose:
         lg.setLevel(logging.DEBUG)
-        
+
     pool = ThreadPool(args.threads)
 
     dlock = Lock()
-    
+
     for i, fn in enumerate(util.get_filenames(args)):
         if '/.' in fn and (not args.do_dot_dirs):
             #no dot dirs
@@ -120,7 +136,7 @@ def dispatch():
     lg.info("processed all files - waiting for threads to finish")
     pool.close()
     pool.join()
-    
+
     lg.info("finished - flushing cache")
     for dirname in SHADATA:
         if len(SHADATA[dirname]) == 0:
