@@ -8,6 +8,9 @@ import os
 import sys
 import time
 
+import yaml
+
+
 from mad2 import hash
 from mad2 import util
 
@@ -36,6 +39,7 @@ lg.info('start sha1p')
 SHADATA = collections.defaultdict(list)
 LOCKED = ""
 JOBS_DONE = 0
+SCHEDULED = 0
 
 def write_both_checksums(dirname, files):
     lg.debug("writing sha1 checksum")
@@ -115,7 +119,7 @@ def process_file(*args, **kwargs):
 
 def process_file_2(datalock, i, fn, force, echo):
 
-    global SHADATA, LOCKED, JOBS_DONE
+    global SHADATA, LOCKED, JOBS_DONE, SCHEDULED
 
     filename = os.path.basename(fn)
     dirname = os.path.dirname(fn)
@@ -132,31 +136,52 @@ def process_file_2(datalock, i, fn, force, echo):
         #nothing changed - sha1 is present - not force - return
         return
 
-    sha1 = hash.get_sha1sum(fn)
-    lg.debug('hash of %s is %s', fn, sha1)
+    #if not in the shasum files - then - maybe there is an old .mad file
+    #
+    sha1 = None
+
+    madfile = os.path.join(dirname, '.{}.mad'.format(filename))
+    if os.path.exists(madfile):
+        with open(madfile) as F:
+            maf = yaml.load(F)
+            if 'hash' in maf:
+                sha1 = maf['hash'].get('sha1')
+                qd_file = maf['hash'].get('qdhash')
+
+    if qd_file == qd and (not sha1 is None):
+        #use mad file sha1
+        lg.debug('reusing .mad hash: %s is %s', fn, sha1)
+    else:
+
+        sha1 = hash.get_sha1sum(fn)
+        lg.debug('calculated hash: %s is %s', fn, sha1)
 
     datalock.acquire() #processing the SHADATA global data structure - lock
     assert(LOCKED == "")
     LOCKED = "YES"
 
-    lg.debug("updating SHADATA")
+    #lg.debug("updating SHADATA")
 
     SHADATA[dirname].append((filename, sha1, qd))
 
-    if i > 0 and i % 10 == 0:
+    if i > 0 and i % 100 == 0:
         for dirname in SHADATA:
             if len(SHADATA[dirname]) == 0:
                 continue
-            lg.debug('flushing to dir: "%s"', dirname)
+            #lg.debug('flushing to dir: "%s"', dirname)
             write_both_checksums(dirname, SHADATA[dirname])
             SHADATA[dirname] = []
-        lg.info('processed & written %d files', i)
+        lg.info('processed & written %d files (%d scheduled)',
+                i, SCHEDULED)
 
     LOCKED = ""
     datalock.release()
 
 
 def dispatch():
+
+    global SCHEDULED
+
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--force', action='store_true')
     parser.add_argument('-d', '--do_dot_dirs', action='store_true')
@@ -182,6 +207,7 @@ def dispatch():
             lg.debug("ignoring in dotdir %s", fn)
             continue
         pool.apply_async(process_file, (dlock, i, fn, args.force, args.echo))
+        SCHEDULED += 1
 
     lg.info(("processed all (%d) files - waiting for threads to " +
             "finish"),i)
