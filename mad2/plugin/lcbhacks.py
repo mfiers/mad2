@@ -19,4 +19,7 @@ def lbconthefly(app, madfile):
 
     server = mtch.groups()[0]
 
-    madfile['host'] = server.upper()
+    #TDDO: remove this later - bugfix
+    if 'host' in madfile.mad:
+        del madfile.mad['host']
+    madfile.all['host'] = server.upper()

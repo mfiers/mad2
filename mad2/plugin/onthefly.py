@@ -167,6 +167,9 @@ def onthefly(app, madfile):
         madfile.all['userid'] = userinfo.pw_name
         madfile.all['username'] = userinfo.pw_gecos
 
+    # if not app.conf.get('username') is None:
+    #     madfile.all['username'] = app.conf['username']
+
     mtime = datetime.utcfromtimestamp(
         filestat.st_mtime)
     atime = datetime.utcfromtimestamp(

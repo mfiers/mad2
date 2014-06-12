@@ -13,7 +13,7 @@ import leip
 import mad2.hash
 
 lg = logging.getLogger(__name__)
-lg.setLevel(logging.DEBUG)
+#lg.setLevel(logging.DEBUG)
 
 MONGO_SAVE_CACHE = []
 MONGO_SAVE_COUNT = 0
@@ -26,11 +26,10 @@ def mongo_prep_mad(mf):
 
     mongo_id = mf['sha1sum'][:24]
     d['_id'] = mongo_id
-
-    mongo_id = mf['sha1sum'][:24]
-    d['_id'] = mongo_id
-
+    d['sha1sum'] = mf['sha1sum']
     d['save_time'] = datetime.datetime.utcnow()
+    del d['hash']
+    del d['uuid']
     return mongo_id, d
 
 
@@ -47,11 +46,15 @@ class MongoStore():
         self.db_core = self.client[self.db_name][self.collection_name]
 
     def prepare(self, madfile):
+
         if madfile.get('isdir', False):
             #no directories
             return
-        #nothing to prepare -
-        pass
+
+        #get the sha1sum from the SHA1SUMS file
+        sha1 = mad2.hash.get_or_create_sha1sum(madfile['inputfile'])
+        madfile.all['sha1sum'] = sha1
+
 
     def save(self, madfile):
         """Save data to the mongo database"""
@@ -61,7 +64,11 @@ class MongoStore():
 
         mongo_id = madfile['sha1sum'][:24]
         core = dict(madfile.mad)
-        full = dict(madfile)
+        core['sha1sum'] = madfile['sha1sum']
+        if 'hash' in core:
+            del core['hash']
+        if 'uuid' in core:
+            del core['uuid']
 
         lg.debug("mongo save {}".format(madfile['inputfile']))
         lg.debug("mongo id {}".format(mongo_id))
@@ -78,8 +85,7 @@ class MongoStore():
         if not 'sha1sum' in madfile:
             return
 
-        hashfile = os.path.join(madfile['dirname'], 'SHA1SUMS')
-        sha1 = mad2.hash.check_hashfile(hashfile, madfile['filename'])
+        sha1 = madfile['sha1sum']
         mongo_id = sha1[:24]
         lg.debug("getting mad data for {}".format(
                  madfile['inputfile']))

@@ -58,6 +58,9 @@ class SidecarStore():
 
     def save(self, madfile):
 
+        if self.conf.get('readonly'):
+            return
+            
         try:
             lg.debug("saving to %s" % madfile['madname'])
             # note the mad file data is in stack[1] - 0 is transient
@@ -71,7 +74,9 @@ class SidecarStore():
                 raise
 
     def load(self, madfile):
+
         lg.debug("sidecar load: %s", madfile)
+
         if os.path.exists(madfile['madname']):
             lg.debug("loading madfile {0}".format(madfile['madname']))
 

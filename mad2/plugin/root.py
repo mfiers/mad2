@@ -26,3 +26,18 @@ def root(app, madfile):
         fstats = os.stat(filename)
         os.chmod(madname, fstats.st_mode)
         os.chown(madname, fstats.st_uid, fstats.st_gid)
+
+    #change SHA1SUM file
+    dirname = madfile['dirname']
+    sha1name = os.path.join(dirname, 'SHA1SUMS')
+    qdname = os.path.join(dirname, 'QDSUMS')
+
+    dstats = os.stat(dirname)
+
+    if os.path.exists(sha1name):
+        os.chmod(sha1name, dstats.st_mode-73)
+        os.chown(sha1name, dstats.st_uid, dstats.st_gid)
+    if os.path.exists(qdname):
+        os.chmod(qdname, dstats.st_mode-73)
+        os.chown(qdname, dstats.st_uid, dstats.st_gid)
+

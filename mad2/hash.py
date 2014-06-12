@@ -15,17 +15,30 @@ def append_hashfile(hashfile, filename, hash):
         if os.path.exists(hashfile):
             with open(hashfile) as F:
                 for line in F:
-                    hsh, fn = line.strip().split()
+                    hsh, fn = line.strip().split(None, 1)
                     hashes[fn] = hsh
 
         #insert our sha1 - possibly overwriting other version
         hashes[filename] = hash
 
         #write new sha1file
-        hashes.keys
         with open(hashfile, 'w') as F:
             for fn in sorted(hashes.keys()):
+                if fn in ['QDSUMS', 'SHA1SUMS']:
+                    continue
                 F.write("{}  {}\n".format(hashes[fn], fn))
+
+def get_or_create_sha1sum(filename):
+    """
+    Get a sha1sum, if it does not exist
+    """
+    dirname, basename = os.path.split(filename)
+    sha1file = os.path.join(dirname, 'SHA1SUMS')
+    sha1 = check_hashfile(sha1file, basename)
+    if sha1 is None:
+        sha1 = get_sha1sum(filename)
+        append_hashfile(sha1file, basename, sha1)
+    return sha1
 
 
 def check_hashfile(hashfile, filename):
@@ -36,7 +49,7 @@ def check_hashfile(hashfile, filename):
         return None
     with open(hashfile) as F:
         for line in F:
-            hsh, fn = line.strip().split()
+            hsh, fn = line.strip().split(None, 1)
             if fn == filename:
                 return hsh
     return None

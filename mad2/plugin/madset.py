@@ -108,6 +108,7 @@ def mset(app, args):
         all_kvs.append(_getkeyval(app, k, v, args.force))
 
     for madfile in get_all_mad_files(app, args):
+        print madfile
         for key, val, list_mode in all_kvs:
             if list_mode:
                 if not key in madfile:
