@@ -35,9 +35,9 @@ def root(app, madfile):
     dstats = os.stat(dirname)
 
     if os.path.exists(sha1name):
-        os.chmod(sha1name, dstats.st_mode-73)
+        os.chmod(sha1name, 0o664)
         os.chown(sha1name, dstats.st_uid, dstats.st_gid)
     if os.path.exists(qdname):
-        os.chmod(qdname, dstats.st_mode-73)
+        os.chmod(qdname, 0o664)
         os.chown(qdname, dstats.st_uid, dstats.st_gid)
 
