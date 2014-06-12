@@ -100,7 +100,7 @@ def write_to_checksum_file(hashfile, files):
     dstats = os.stat(dirname)
 
     if os.path.exists(hashfile):
-        os.chmod(hashfile, dstats.st_mode-73)
+        os.chmod(hashfile, 0o664)
         os.chown(hashfile, dstats.st_uid, dstats.st_gid)
 
     return j
