@@ -201,8 +201,8 @@ def mongo_sum(app, args):
         {"$sort" : { "total": -1
                   }}
     ])
-    total_size = 0
-    total_count = 0
+    total_size = long(0)
+    total_count = long(0)
 
     mgn = len("Total")
     for reshost in res['result']:
@@ -214,22 +214,22 @@ def mongo_sum(app, args):
 
     fms = "{:" + str(mgn) + "}\t{:>10}\t{:>9}"
     for reshost in res['result']:
-        total = reshost['total']
+        total = long(reshost['total'])
         count = reshost['count']
-        total_size += total
+        total_size += long(total)
         total_count += count
         if args.human:
-            total = humansize(total)
+            total_human = humansize(total)
             print(fms.format(
-                reshost['_id'], total, count))
+                reshost['_id'], total_human, count))
         else:
             print("{}\t{}\t{}".format(
                 reshost['_id'], total, count))
 
     if args.human:
-        total_size = humansize(total_size)
+        total_size_human = humansize(total_size)
         print(fms.format(
-            "Total", total, count))
+            "Total", total_size_human, count))
     else:
         print("Total\t{}\t{}".format(total_size, total_count))
 
