@@ -200,6 +200,7 @@ def dispatch():
 
     pool = ThreadPool(args.threads)
     dlock = Lock()
+    i = 0
 
     for i, fn in enumerate(util.get_filenames(args)):
         if '/.' in fn and (not args.do_dot_dirs):
