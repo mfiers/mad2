@@ -180,8 +180,6 @@ def mongo_last(app, args):
               r['filename'], r.get('_id', ''),
               r.get('sha1sum')[:24] ]))
 
-#        print(r)
-
 
 
 @leip.flag('-H', '--human', help='human readable')
