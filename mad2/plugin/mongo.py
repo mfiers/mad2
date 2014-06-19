@@ -202,7 +202,7 @@ def mongo_sum(app, args):
                   }}
     ])
     total_size = long(0)
-    total_count = long(0)
+    total_count = 0
 
     mgn = len("Total")
     for reshost in res['result']:
@@ -214,7 +214,7 @@ def mongo_sum(app, args):
 
     fms = "{:" + str(mgn) + "}\t{:>10}\t{:>9}"
     for reshost in res['result']:
-        total = long(reshost['total'])
+        total = reshost['total']
         count = reshost['count']
         total_size += long(total)
         total_count += count
