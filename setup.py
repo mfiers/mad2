@@ -29,7 +29,7 @@ setup(name='mad2',
           'Jinja2',
           'lockfile',
           'python-dateutil',
-          'py2mongo',
+          'pymongo',
           ],
       classifiers=[
           'Development Status :: 4 - Beta',
