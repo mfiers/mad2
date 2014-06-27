@@ -20,27 +20,21 @@ class SidecarStore():
         filename = madfile['filename']
         dirname = madfile['dirname']
 
-        if os.path.isdir(inputfile):
+        if madfile.dirmode:
+            lg.warning('no dirs')
+            return #not doing directories anymore
 
-            maddir = os.path.join(os.path.abspath(inputfile),
-                                  '.mad', 'config')
-            if not os.path.exists(maddir):
-                os.makedirs(maddir)
-            lg.debug("'{}' is a dir".format(inputfile))
-            madname = os.path.join(maddir, '_root.config')
+        # looking at file
+        if filename[-4:] == '.mad':
 
+            if filename[0] == '.':
+                filename = filename[1:-4]
+
+            madname = inputfile
+            inputfile = os.path.join(dirname, filename)
         else:
-            # looking at file
-            if filename[-4:] == '.mad':
-
-                if filename[0] == '.':
-                    filename = filename[1:-4]
-
-                madname = inputfile
-                inputfile = os.path.join(dirname, filename)
-            else:
-                inputfile = inputfile
-                madname = os.path.join(dirname, '.' + filename + '.mad')
+            inputfile = inputfile
+            madname = os.path.join(dirname, '.' + filename + '.mad')
 
         lg.debug("madname: {}".format(madname))
         lg.debug("inputfile: {}".format(inputfile))
@@ -51,7 +45,6 @@ class SidecarStore():
         if os.path.exists(madname) and not os.access(madname, os.R_OK):
             raise MadPermissionDenied()
 
-
         if madfile.get('orphan', False) and os.path.exists(madname):
             lg.warning("Orphaned mad file: {}".format(madname))
             lg.debug("  | can't find: {}".format(inputfile))
@@ -60,7 +53,8 @@ class SidecarStore():
 
         if self.conf.get('readonly'):
             return
-            
+
+        # if self.
         try:
             lg.debug("saving to %s" % madfile['madname'])
             # note the mad file data is in stack[1] - 0 is transient

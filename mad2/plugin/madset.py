@@ -7,8 +7,9 @@ import subprocess
 
 from dateutil.parser import parse as dateparse
 import leip
+import fantail
 
-from mad2.util import  get_mad_file, get_all_mad_files
+from mad2.util import  get_mad_file, get_all_mad_files, get_filenames
 from mad2.ui import message, error, errorexit
 import mad2.ui
 
@@ -130,6 +131,9 @@ def mset(app, args):
 
 @leip.arg('-f', '--force', action='store_true', help='apply force')
 @leip.arg('-p', '--prompt', action='store_true', help='show a prompt')
+@leip.arg('-D', '--dir', action='store_true', help='dir modus - write ' +
+          'to ./mad.config files to be read for all files in the dir ' +
+          '(and below)')
 @leip.arg('-d', '--editor', action='store_true', help='open an editor')
 @leip.arg('-e', '--echo', action='store_true', help='echo filename')
 @leip.arg('file', nargs='*')
@@ -165,8 +169,21 @@ def set(app, args):
 
     #gather all madfiles for later parsing
     use_stdin = not (args.prompt or args.editor)
-    for m in get_all_mad_files(app, args, use_stdin):
-        madfiles.append(m)
+    if args.dir:
+        for m in get_filenames(args, use_stdin, allow_dirs=True):
+            if not os.path.isdir(m):
+                continue
+
+            fn = os.path.join(m, 'mad.config')
+            mf = fantail.Fantail()
+            if os.path.exists(fn):
+                mf = fantail.yaml_file_loader(fn)
+            mf._mad_dir_name = m
+            mf._mad_file_name = fn
+            madfiles.append(mf)
+    else:
+        for m in get_all_mad_files(app, args, use_stdin):
+            madfiles.append(m)
 
     #check if mad needs to show a prompt or editor
     if val is None and not (args.prompt or args.editor):
@@ -217,6 +234,7 @@ def set(app, args):
     # Now process madfiles
     lg.debug("processing %d files" % len(madfiles))
 
+
     for madfile in madfiles:
         if list_mode:
             if not key in madfile:
@@ -225,11 +243,24 @@ def set(app, args):
                 oldval = madfile.get(key)
                 if not isinstance(oldval, list):
                     oldval = [oldval]
-            madfile.mad[key] = oldval + [val]
+            if args.dir:
+                madfile[key] = oldval + [val]
+            else:
+                madfile.mad[key] = oldval + [val]
         else:
             #not listmode
-            madfile.mad[key] = val
+            if args.dir:
+                madfile[key] = val
+            else:
+                madfile.mad[key] = val
 
         if args.echo:
-            print(madfile['filename'])
-        madfile.save()
+            if args.dir:
+                print(madfile._mad_dir_name)
+            else:
+                print(madfile['filename'])
+
+        if args.dir:
+            fantail.yaml_file_save(madfile, madfile._mad_file_name)
+        else:
+            madfile.save()

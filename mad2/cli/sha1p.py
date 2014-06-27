@@ -100,7 +100,7 @@ def write_to_checksum_file(hashfile, files):
     dstats = os.stat(dirname)
 
     if os.path.exists(hashfile):
-        os.chmod(hashfile, dstats.st_mode-73)
+        os.chmod(hashfile, 0o664)
         os.chown(hashfile, dstats.st_uid, dstats.st_gid)
 
     return j
@@ -200,6 +200,7 @@ def dispatch():
 
     pool = ThreadPool(args.threads)
     dlock = Lock()
+    i = 0
 
     for i, fn in enumerate(util.get_filenames(args)):
         if '/.' in fn and (not args.do_dot_dirs):

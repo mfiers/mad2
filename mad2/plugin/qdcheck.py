@@ -34,7 +34,7 @@ def append_qdsumfile(qdfile, filename, qd):
         if os.path.exists(qdfile):
             with open(qdfile) as F:
                 for line in F:
-                    hsh, fn = line.strip().split()
+                    hsh, fn = line.strip().split(None, 1)
                     qds[fn] = hsh
 
         #insert our qd - possibly overwriting other version
@@ -63,7 +63,7 @@ def qdhook(app, madfile):
 
     if filename in ['QDSUMS', 'SHA1SUMS']:
         return
-        
+
     qdfile = os.path.join(dirname, 'QDSUMS')
 
     try:

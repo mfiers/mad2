@@ -60,12 +60,13 @@ def apply_file_format(app, madfile, filename=None):
         apply_file_format(app, madfile, base)
 
 
+
 @leip.hook("madfile_pre_load")
 def recursive_dir_data(app, madfile):
 
     global RECURSE_CACHE
 
-    lg.debug("start pre load for {}".format(madfile['inputfile']))
+    lg.debug("start recursive data load for {}".format(madfile['inputfile']))
     here = madfile['dirname'].rstrip('/')
     conf = []
 
@@ -82,7 +83,7 @@ def recursive_dir_data(app, madfile):
             print(last, here)
             raise
 
-        here_c = os.path.join(here, '.mad', 'config')
+        here_c = os.path.join(here, 'mad.config')
         if os.path.exists(here_c):
             conf.append(here_c)
 
@@ -103,7 +104,7 @@ def recursive_dir_data(app, madfile):
             print(last, here)
             print(madfile.pretty())
             raise
-        here_c = os.path.join(here, '.mad', 'config')
+        here_c = os.path.join(here, 'mad.config')
         if os.path.exists(here_c):
             if here_c in conf:
                 break  # overlap with tree from the madfile's location
@@ -123,7 +124,7 @@ def recursive_dir_data(app, madfile):
             y = RECURSE_CACHE[fullname]
         else:
             #print('start load dir', fullname)
-            y = fantail.dir_loader(fullname)
+            y = fantail.yaml_file_loader(fullname)
             RECURSE_CACHE[fullname] = y
 
         # insert in the stack just after the mad file

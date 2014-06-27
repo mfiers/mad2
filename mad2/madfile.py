@@ -38,6 +38,8 @@ class MadFile(fantail.Fanstack):
                    base.copy()])
 
         self.dirmode = False
+        if os.path.isdir(inputfile):
+            self.dirmode = True
 
         dirname = os.path.dirname(inputfile)
         filename = os.path.basename(inputfile)
@@ -99,6 +101,8 @@ class MadFile(fantail.Fanstack):
 
     def save(self):
         self.hook_method('madfile_save', self)
+        self.hook_method('madfile_pre_save', self)
+
         for s in self.stores:
                 store = self.stores[s]
                 store.save(self)

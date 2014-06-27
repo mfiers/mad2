@@ -197,8 +197,6 @@ def mongo_last(app, args):
               r['filename'], r.get('_id', ''),
               r.get('sha1sum')[:24] ]))
 
-#        print(r)
-
 
 
 @leip.flag('-H', '--human', help='human readable')
@@ -218,7 +216,7 @@ def mongo_sum(app, args):
         {"$sort" : { "total": -1
                   }}
     ])
-    total_size = 0
+    total_size = long(0)
     total_count = 0
 
     mgn = len("Total")
@@ -233,20 +231,20 @@ def mongo_sum(app, args):
     for reshost in res['result']:
         total = reshost['total']
         count = reshost['count']
-        total_size += total
+        total_size += long(total)
         total_count += count
         if args.human:
-            total = humansize(total)
+            total_human = humansize(total)
             print(fms.format(
-                reshost['_id'], total, count))
+                reshost['_id'], total_human, count))
         else:
             print("{}\t{}\t{}".format(
                 reshost['_id'], total, count))
 
     if args.human:
-        total_size = humansize(total_size)
+        total_size_human = humansize(total_size)
         print(fms.format(
-            "Total", total, count))
+            "Total", total_size_human, count))
     else:
         print("Total\t{}\t{}".format(total_size, total_count))
 

@@ -57,7 +57,7 @@ def to_mad(fn):
         return '.{}.mad'.format(fn)
 
 
-def get_filenames(args, use_stdin=True):
+def get_filenames(args, use_stdin=True, allow_dirs=False):
     """
     Get all incoming filenames
     """
@@ -79,7 +79,10 @@ def get_filenames(args, use_stdin=True):
             if 'QDSUMS' in f: continue
 
             rv = demad.sub(demadder, f)
-            if os.path.isdir(rv): continue
+
+            if not allow_dirs and os.path.isdir(rv):
+                continue
+
             yield rv
 
     elif use_stdin:
@@ -97,8 +100,8 @@ def get_all_mad_files(app, args, use_stdin=True):
     """
     get input files from sys.stdin and args.file
     """
-    for filename in get_filenames(args, use_stdin):
 
+    for filename in get_filenames(args, use_stdin):
         try:
             maf = get_mad_file(app, filename)
             yield maf
