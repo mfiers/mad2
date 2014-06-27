@@ -62,6 +62,9 @@ class MongoStore():
         if not 'sha1sum' in madfile:
             return
 
+        if madfile['sha1sum'] is None:
+            return
+
         mongo_id = madfile['sha1sum'][:24]
         core = dict(madfile.mad)
         core['sha1sum'] = madfile['sha1sum']
@@ -83,6 +86,9 @@ class MongoStore():
         """
 
         if not 'sha1sum' in madfile:
+            return
+
+        if madfile['sha1sum'] is None:
             return
 
         sha1 = madfile['sha1sum']
