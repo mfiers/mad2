@@ -10,6 +10,7 @@ from pymongo import MongoClient
 from bson.objectid import ObjectId
 
 import arrow
+import yaml
 
 import leip
 
@@ -150,8 +151,24 @@ def mongo_get(app, args):
     rec = MONGO.find_one({'_id': mongo_id})
     if not rec:
         return
-    for key in rec:
-        print('{0}\t{1}'.format(key, rec[key]))
+    print(yaml.safe_dump(rec, default_flow_style=False))
+    # for key in rec:
+    #     print('{0}\t{1}'.format(key, rec[key]))
+
+@leip.flag('-c', '--core')
+@leip.arg('mongo_id')
+@leip.subcommand(mongo, "del")
+def mongo_del(app, args):
+    """
+    get a mongodb record based on id
+    """
+    if args.core:
+        MONGO = get_mongo_core_db(app)
+    else:
+        MONGO = get_mongo_db(app)
+
+    mongo_id = args.mongo_id
+    MONGO.remove({'_id': mongo_id})
 
 
 @leip.subcommand(mongo, "count")
