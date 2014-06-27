@@ -28,16 +28,27 @@ def append_hashfile(hashfile, filename, hash):
                     continue
                 F.write("{}  {}\n".format(hashes[fn], fn))
 
+
 def get_or_create_sha1sum(filename):
     """
-    Get a sha1sum, if it does not exist
+    Get a sha1sum, if it does not exist.
+
+    Also, if there is a qdsum, and it has changed - force
+    recalculation of the sha1sum
+
     """
     dirname, basename = os.path.split(filename)
     sha1file = os.path.join(dirname, 'SHA1SUMS')
+    qdsumfile = os.path.join(dirname, 'QDSUMS')
+
     sha1 = check_hashfile(sha1file, basename)
-    if sha1 is None:
+    qd_old = check_hashfile(qdsumfile, basename)
+    qd_now = get_qdhash(filename)
+
+    if (sha1 is None) or (qd_old != qd_now):
         sha1 = get_sha1sum(filename)
         append_hashfile(sha1file, basename, sha1)
+        append_hashfile(qdsumfile, basename, qd_now)
     return sha1
 
 
@@ -60,6 +71,11 @@ def get_sha1sum(filename):
     Calculate the sha1sum
 
     """
+
+    if not os.path.exists(filename):
+        #not sure what to do with files that do not exist (yet)
+        return None
+
     h = hashlib.sha1()
 
     blocksize = 2 ** 20
@@ -73,10 +89,17 @@ def get_qdhash(filename):
     """
     Provde a quick & dirty hash -
 
-    by no means secure - but a chance of a collision is small.
+    by no means secure - but if used with care, then I'm
+    reasaonbly sure that the chance of a collision is small.
 
-    .. and this is reasonably fast.
+    .. and it is fairly fast
+
     """
+
+    if not os.path.exists(filename):
+        #not sure what to do with files that do not exist (yet)
+        return None
+
     if os.path.isdir(filename):
 
         #qdid for directories is a uuid - stored in .mad/qid
@@ -94,6 +117,7 @@ def get_qdhash(filename):
                 u = F.read().strip()
             return u
 
+
     sha1sum = hashlib.sha1()
     filesize = os.stat(filename).st_size
     if filesize < 20000:
@@ -110,3 +134,4 @@ def get_qdhash(filename):
 
 #    return sha1sum.hexdigest()[:24]#
     return sha1sum.hexdigest()
+
