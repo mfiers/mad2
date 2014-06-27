@@ -82,6 +82,12 @@ class MadFile(fantail.Fanstack):
 
     def load(self):
 
+
+        if os.path.exists(self.all['inputfile']):
+            self.all['orphan'] = False
+        else:
+            self.all['orphan'] = True
+
         self.hook_method('madfile_pre_load', self)
 
         for s in self.stores:
