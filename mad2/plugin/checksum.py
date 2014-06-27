@@ -51,7 +51,8 @@ def sha1hook_new(app, madfile):
     madfile.all['sha1sum'] = sha1
 
 
-def _calc_madfile_sum(madfile, force=False, echo=False, echo_changed=False):
+def calc_madfile_sum(madfile, force=False, echo=False,
+                     echo_changed=False):
 
     if madfile['filename'] in ['SHA1SUMS', 'QDSUMS']:
         return
@@ -101,7 +102,7 @@ def sha1(app, args):
     """
     for madfile in get_all_mad_files(app, args):
 
-        _calc_madfile_sum(madfile, args.force, args.echo, args.echo_changed)
+        calc_madfile_sum(madfile, args.force, args.echo, args.echo_changed)
 
 
 @leip.arg('file', nargs='*')
