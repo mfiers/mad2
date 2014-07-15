@@ -29,7 +29,8 @@ def errorexit(txt, exit_code=1):
     exit(exit_code)
 
 
-# Put site-packages in front of sys.path so we don't end up importing the global readline.so - osx hack
+# Put site-packages in front of sys.path so we don't end
+# up importing the global readline.so - osx hack
 sys.path = (
     [p for p in sys.path if 'site-packages' in p] + \
     [p for p in sys.path if 'site-packages' not in p])
@@ -150,15 +151,19 @@ def fsCompleter(text, state):
         return None
 
 
-def _get_mad_history_file(n):
+def _get_history_file(appname, category):
     """
     return the history file for this parameter
     """
-    histdir =  os.path.join(os.path.expanduser('~'), '.config', 'mad',
-                            'history')
+
+    histdir =  os.path.join(
+            os.path.expanduser('~'), '.config', appname,
+                               'history')
+
     if not os.path.exists(histdir):
         os.makedirs(histdir)
-    histfile = os.path.join(histdir, n)
+
+    histfile = os.path.join(histdir, category)
     return histfile
 
 def _check_history_duplicates(value):
@@ -174,7 +179,8 @@ def _check_history_duplicates(value):
                 readline.remove_history_item(histlen-1)
                 break
 
-def askUser(parameter, default="", data = {}, xtra_history=None):
+def askUser(parameter, appname='mad', default="", data = {},
+            xtra_history=None, prompt=None):
     """
     :param parameter: paramter to ask value of
     :param default: default value - if absent use the last
@@ -194,7 +200,7 @@ def askUser(parameter, default="", data = {}, xtra_history=None):
     if xtra_history:
         history_file = xtra_history
     else:
-        history_file = _get_mad_history_file(parameter)
+        history_file = _get_history_file(appname, parameter)
 
     lg.debug("reading history from %s" % history_file)
     readline.clear_history()
@@ -207,20 +213,27 @@ def askUser(parameter, default="", data = {}, xtra_history=None):
     if history_file and os.path.exists(history_file):
         readline.read_history_file(history_file)
 
+    hislen = readline.get_current_history_length()
+    if default == '__last__':
+        default = readline.get_history_item(hislen)
+
+    if prompt is None:
+        prompt = '%s: ' % parameter
+
     try:
-        vl = raw_input('%s: ' % parameter)
+        vl = raw_input(prompt)
     finally:
         readline.set_startup_hook()
 
     if not xtra_history:
-        # if we're note reading from an xtra history file -
+        # if we're not reading from an xtra history file -
         # save it to the parameter history
         _check_history_duplicates(vl)
         readline.write_history_file(history_file)
     else:
         #see if we want to write to an additional history file
         lg.debug("xtra history file processed - now do boring one")
-        history_file = _get_mad_history_file(parameter)
+        history_file = _get_history_file(appname, parameter)
         lg.debug("boring read %s" % history_file)
         readline.clear_history()
         if os.path.exists(history_file):

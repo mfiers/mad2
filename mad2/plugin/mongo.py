@@ -10,6 +10,7 @@ from pymongo import MongoClient
 from bson.objectid import ObjectId
 
 import arrow
+import yaml
 
 import leip
 
@@ -59,7 +60,7 @@ def get_mongo_core_db(app):
     port = info.get('port', 27017)
     dbname = info.get('db', 'mad2')
     coll = info.get('collection', 'core')
-    lg.warning("connect mongodb %s:%s/%s/%s", host, port, dbname, coll)
+    lg.debug("connect mongodb %s:%s/%s/%s", host, port, dbname, coll)
     client = MongoClient(host, port)
 
     MONGOCORE = client[dbname][coll]
@@ -155,8 +156,24 @@ def mongo_get(app, args):
 
     if not rec:
         return
-    for key in rec:
-        print('{0}\t{1}'.format(key, rec[key]))
+    print(yaml.safe_dump(rec, default_flow_style=False))
+    # for key in rec:
+    #     print('{0}\t{1}'.format(key, rec[key]))
+
+@leip.flag('-c', '--core')
+@leip.arg('mongo_id')
+@leip.subcommand(mongo, "del")
+def mongo_del(app, args):
+    """
+    get a mongodb record based on id
+    """
+    if args.core:
+        MONGO = get_mongo_core_db(app)
+    else:
+        MONGO = get_mongo_db(app)
+
+    mongo_id = args.mongo_id
+    MONGO.remove({'_id': mongo_id})
 
 
 
