@@ -1,3 +1,5 @@
+
+import errno
 import logging
 import os
 import re
@@ -71,12 +73,21 @@ def get_filenames(args, use_stdin=True, allow_dirs=False):
         else:
             return m.group('fn')
 
-    if 'file'in args and len(args.file) > 0:
+    if 'file' in args and len(args.file) > 0:
         for f in args.file:
             if len(f) == 0: continue
             if '.mad/' in f: continue
             if 'SHA1SUMS' in f: continue
             if 'QDSUMS' in f: continue
+
+            try:
+                os.stat(f)
+            except OSError, e:
+                if e.errno == errno.ENOENT:
+                    #path does not exists - or is a broken symlink
+                    continue
+                else:
+                    raise
 
             rv = demad.sub(demadder, f)
 
