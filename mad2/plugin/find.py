@@ -1,4 +1,5 @@
 
+import errno
 import logging
 import os
 import re
@@ -67,6 +68,16 @@ def find(app, args):
             dirnames.remove(d)
 
         for f in filenames:
+            if f in ['QDSUMS', 'SHA1SUMS']:
+                continue
+            try:
+                os.stat(f)
+            except OSError, e:
+                if e.errno == errno.ENOENT:
+                    #path does not exists - or is a broken symlink
+                    continue
+                else:
+                    raise
 
             if (not args.do_dot_files) and \
                     f[0] == '.':
