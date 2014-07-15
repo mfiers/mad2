@@ -1,9 +1,7 @@
-
 import errno
 import logging
 import os
 import re
-import sys
 
 import leip
 
