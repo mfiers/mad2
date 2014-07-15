@@ -12,11 +12,13 @@ lg = logging.getLogger(__name__)
 
 @leip.hook("madfile_post_save", 100)
 def root(app, madfile):
+    """
+    Set owner & permission (if allowed to do so)
 
-
+    """
 
     filename = madfile['inputfile']
-    madname = madfile['madname']
+    madname = madfile.get('madname')
 
     #change SHA1SUM file
     dirname = madfile['dirname']
@@ -26,7 +28,8 @@ def root(app, madfile):
 
     #attempt to set  permissions as non root
     try:
-        if os.path.exists(madname):
+        if not madname is None and \
+                os.path.exists(madname):
             fstats = os.stat(filename)
             os.chmod(madname, fstats.st_mode)
     except:
@@ -54,4 +57,3 @@ def root(app, madfile):
 
     if os.path.exists(qdname):
         os.chown(qdname, dstats.st_uid, dstats.st_gid)
-
