@@ -109,6 +109,6 @@ class MadFile(fantail.Fanstack):
 
         self.hook_method('madfile_post_save', self)
 
-    def pretty(self):
-        import pprint
-        return pprint.pformat(dict(self.all).update(self.mad))
+    # def pretty(self):
+    #     print (self.stack.pretty())
+#        return pprint.pformat(dict(self.all).update(self.mad))
