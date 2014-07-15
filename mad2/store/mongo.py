@@ -66,8 +66,10 @@ class MongoStore():
             return
 
         mongo_id = madfile['sha1sum'][:24]
+
         core = dict(madfile.mad)
         core['sha1sum'] = madfile['sha1sum']
+
         if 'hash' in core:
             del core['hash']
         if 'uuid' in core:
@@ -75,6 +77,11 @@ class MongoStore():
 
         lg.debug("mongo save {}".format(madfile['inputfile']))
         lg.debug("mongo id {}".format(mongo_id))
+
+
+        #might give an error on update if file has changed
+        if '_id' in core:
+            del core['_id']
 
         self.db_core.update({'_id': mongo_id}, core, True)
         #self.db_full.update({'_id': mongo_id}, full, True)

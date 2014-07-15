@@ -60,7 +60,7 @@ def get_mongo_core_db(app):
     port = info.get('port', 27017)
     dbname = info.get('db', 'mad2')
     coll = info.get('collection', 'core')
-    lg.warning("connect mongodb %s:%s/%s/%s", host, port, dbname, coll)
+    lg.debug("connect mongodb %s:%s/%s/%s", host, port, dbname, coll)
     client = MongoClient(host, port)
 
     MONGOCORE = client[dbname][coll]
