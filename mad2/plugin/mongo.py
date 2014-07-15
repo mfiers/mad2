@@ -141,17 +141,24 @@ def mongo_get(app, args):
     """
     get a mongodb record based on id
     """
-    if args.core:
-        MONGO = get_mongo_core_db(app)
-    else:
-        MONGO = get_mongo_db(app)
+    MONGO_D = get_mongo_db(app)
 
     mongo_id = args.mongo_id
-    rec = MONGO.find_one({'_id': mongo_id})
+
+    rec = MONGO_D.find_one({'_id': mongo_id})
+
+    if args.core:
+         MONGO_C = get_mongo_core_db(app)
+         core_id = rec['sha1sum'][:24]
+         rec = MONGO_C.find_one({'_id': core_id})
+
+
     if not rec:
         return
     for key in rec:
         print('{0}\t{1}'.format(key, rec[key]))
+
+
 
 
 @leip.subcommand(mongo, "count")
@@ -177,8 +184,7 @@ def mongo_last(app, args):
             break
         print("\t".join(
             [ arrow.get(r['save_time']).humanize(),
-              r['filename'], r.get('_id', ''),
-              r.get('sha1sum')[:24] ]))
+              r['filename'], r.get('_id', '')]))
 
 
 
