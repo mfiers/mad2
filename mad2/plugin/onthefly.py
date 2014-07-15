@@ -142,7 +142,10 @@ def onthefly(app, madfile):
     lg.debug("running onthelfy")
 
     lg.debug("get fqdn")
-    madfile.all['host'] = socket.gethostname()
+    host = socket.gethostname()
+    madfile.all['host'] = host
+    lg.debug('host: %s', host)
+
 
     madfile.all['uri'] = "file://{}{}".format(
         madfile.all['host'], madfile['fullpath'])
@@ -184,5 +187,28 @@ def onthefly(app, madfile):
     madfile.all['basename'] = madfile.all['filename']
 
     apply_file_format(app, madfile)
+
+
+    thesaurus = app.conf['plugin.onthefly.thesaurus.general']
+    thesaurus.update( app.conf['plugin.onthefly.thesaurus'][host] )
+
+    #thesaurus path changes
+    for p in thesaurus['path']:
+        pdat = thesaurus['path'][p]
+        pattern = pdat['pattern']
+        appl_dat = pdat.copy()
+        del appl_dat['pattern']
+        if pattern in madfile['fullpath']:
+            madfile.all.update(appl_dat)
+
+    #thesaurus userid changes
+    for u in thesaurus['user']:
+        pdat = thesaurus['user'][u]
+        pattern = pdat['pattern']
+        appl_dat = pdat.copy()
+        del appl_dat['pattern']
+        if pattern in madfile.all['userid']:
+            madfile.all.update(appl_dat)
+
 
     lg.debug("finished onthefly")
