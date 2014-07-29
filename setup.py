@@ -14,7 +14,7 @@ entry_points = {
     ]}
 
 setup(name='mad2',
-      version='0.1.1',
+      version='0.1.2',
       description=DESCRIPTION,
       author='Mark Fiers',
       author_email='mark.fiers42@gmail.com',
