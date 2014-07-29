@@ -205,6 +205,30 @@ def mongo_last(app, args):
 
 
 
+@leip.arg('-u', '--username')
+@leip.arg('-b', '--backup')
+@leip.subcommand(mongo, "find")
+def mongo_find(app, args):
+    """
+    Find files
+    """
+
+    MONGO_mad = get_mongo_db(app)
+
+    query = {}
+
+    for f in ['username', 'backup', 'test']:
+        if not f in args:
+            continue
+        v = getattr(args, f)
+        if v is None:
+            continue
+        query[f] = v
+
+    res = MONGO_mad.find(query)
+    for r in res:
+        print(r['fullpath'])
+
 @leip.flag('-H', '--human', help='human readable')
 @leip.arg('group_by', nargs='?', default='host')
 @leip.subcommand(mongo, "sum")
