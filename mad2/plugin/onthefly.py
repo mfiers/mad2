@@ -3,6 +3,7 @@ from __future__ import print_function, division
 from datetime import datetime
 import os
 import logging
+import re
 import socket
 
 import leip
@@ -188,27 +189,54 @@ def onthefly(app, madfile):
 
     apply_file_format(app, madfile)
 
-
-    thesaurus = app.conf['plugin.onthefly.thesaurus.general']
-    thesaurus.update( app.conf['plugin.onthefly.thesaurus'][host] )
-
-    #thesaurus path changes
-    for p in thesaurus['path']:
-        pdat = thesaurus['path'][p]
-        pattern = pdat['pattern']
-        appl_dat = pdat.copy()
-        del appl_dat['pattern']
-        if pattern in madfile['fullpath']:
-            madfile.all.update(appl_dat)
-
-    #thesaurus userid changes
-    for u in thesaurus['user']:
-        pdat = thesaurus['user'][u]
-        pattern = pdat['pattern']
-        appl_dat = pdat.copy()
-        del appl_dat['pattern']
-        if pattern in madfile.all['userid']:
-            madfile.all.update(appl_dat)
-
+    thesaurus = app.conf['thesaurus']
+    for t in thesaurus.values():
+        if len(t['find']) != 1:
+            lg.critical("cannot handle multiple search fields")
+            exit(0)
+        f_field = t['find'].keys()[0]
+        f_pattern = t['find'].values()[0]
+        replace = t['replace']
+        if f_field in madfile and re.match(f_pattern, madfile[f_field]):
+            #match - now update the
+            madfile.all.update(replace)
 
     lg.debug("finished onthefly")
+
+@leip.arg('alias')
+@leip.arg('userid')
+@leip.command
+def user_alias(app, args):
+    lg.info("setting user alias: '%s' to '%s'", args.userid, args.alias)
+    loco = leip.get_local_config_file('mad2')
+    thes = loco['thesaurus']
+
+    #always use the same id!
+    lid = 'user_' + args.userid
+
+    thes[lid]['find.userid'] = args.userid
+    thes[lid]['replace.username'] = args.alias
+    #print(loco.pretty())
+
+    leip.save_local_config_file(loco, 'mad2')
+    leip.get_config('mad2', rehash=True)
+
+@leip.arg('hostname')
+@leip.arg('path_fragment')
+@leip.command
+def host_alias(app, args):
+
+    loco = leip.get_local_config_file('mad2')
+    thes = loco['thesaurus']
+
+    #always use the same id!
+    lid = 'path_' + re.sub('\W+', '_', args.path_fragment).strip("_")
+    rex = '.*' + re.escape(args.path_fragment) + '.*'
+    thes[lid]['find.fullpath'] = rex
+    thes[lid]['replace.host'] = args.hostname
+    print(loco.pretty())
+
+    leip.save_local_config_file(loco, 'mad2')
+    lgf = logging.getLogger("fantail.util")
+    lgf.setLevel(logging.INFO)
+    leip.get_config('mad2', rehash=True)
