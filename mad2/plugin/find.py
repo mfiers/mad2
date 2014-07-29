@@ -50,6 +50,14 @@ def find(app, args):
 
         dirs_to_remove = set()
 
+        if 'mad.ignore' in filenames:
+            #ignore this directory - this cpature is
+            #only necessary for the root
+            #remove all from dirnames
+            dirnames[:] = []
+            continue
+
+
         #never traverse into a .mad directorie
         while '.mad' in dirnames:
             dirnames.remove('.mad')
@@ -59,6 +67,7 @@ def find(app, args):
             if (not args.do_dot_dirs) and d[0] == '.':
                 dirs_to_remove.add(d)
             if not args.ignore_mad_ignore:
+
                 madignore = os.path.join(
                     dirpath, d, 'mad.ignore')
                 if os.path.exists(madignore):
