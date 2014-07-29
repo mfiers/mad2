@@ -44,7 +44,9 @@ def find(app, args):
     """
     minsize = dehumanize(args.minsize)
 
+    #lg.setLevel(logging.DEBUG)
     for dirpath, dirnames, filenames in os.walk('.'):
+        lg.debug("considering %s", dirpath)
 
         dirs_to_remove = set()
 
@@ -65,29 +67,37 @@ def find(app, args):
         for d in dirs_to_remove:
             dirnames.remove(d)
 
+        lg.debug(" - have %d subdirs left", len(dirnames))
+        lg.debug(" - processing %d files", len(filenames))
+
         for f in filenames:
+
+            ffn = os.path.join(dirpath, f)
+            #lg.debug("considering file: %s", f)
+
             if f in ['QDSUMS', 'SHA1SUMS']:
                 continue
+
+            if (not args.do_dot_files) and \
+                    f[0] == '.':
+                continue
+
             try:
-                os.stat(f)
+                filestat = os.stat(ffn)
             except OSError, e:
+                lg.debug(" --- cannot stat: %s (%d)", f, e.errno)
                 if e.errno == errno.ENOENT:
                     #path does not exists - or is a broken symlink
                     continue
                 else:
                     raise
 
-            if (not args.do_dot_files) and \
-                    f[0] == '.':
-                continue
-
             if minsize > 0:
-                ffn = os.path.join(dirpath, f)
-                st = os.stat(ffn)
-                if st.st_size < minsize:
+                if filestat.st_size < minsize:
+                    #lg.debug(" --- too small: %s (%d)", f, filestat.st_size)
                     continue
 
-            print(os.path.join(dirpath, f))
+            print(ffn)
 
         if dirpath == '.' and args.no_recurse:
             break
