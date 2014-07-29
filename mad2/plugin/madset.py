@@ -24,6 +24,9 @@ lg = logging.getLogger(__name__)
 @leip.arg('-e', '--echo', help='echo ')
 @leip.command
 def unset(app, args):
+    """
+    Remove a key/value from a file
+    """
     lg.debug("unsetting: %s".format(args.key))
     key = args.key
     keyinfo = app.conf['keywords.{}'.format(key)]
@@ -127,6 +130,35 @@ def mset(app, args):
         if args.echo:
             print(madfile.filename)
         madfile.save()
+
+
+@leip.command
+def keywords(app, args):
+    """
+    Show allowed keywords
+    """
+    maxkeylen = 0
+
+    for key, keyinfo in app.conf['keywords'].iteritems():
+        if keyinfo['hide']:
+            continue
+        maxkeylen = max(maxkeylen, len(key))
+    for key, keyinfo in app.conf['keywords'].iteritems():
+        if keyinfo['hide']:
+            continue
+        print(('{:' + str(maxkeylen) + '} : {}').format(
+                key, keyinfo['description']))
+        if keyinfo['type'] == 'restricted':
+            for i, allowed in enumerate(keyinfo['allowed']):
+                ad = keyinfo['allowed'][allowed]
+                if i == 0:
+                    fl = 'allowed:'
+                else:
+                    fl = ''
+                print(('    {:>' + str(maxkeylen) + '} "{}": ({})').format(
+                        fl, allowed, ad))
+
+
 
 
 @leip.arg('-f', '--force', action='store_true', help='apply force')
