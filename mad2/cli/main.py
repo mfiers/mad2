@@ -3,7 +3,10 @@ from __future__ import print_function,  unicode_literals
 
 import logging
 from signal import signal, SIGPIPE, SIG_DFL
+import os
 import sys
+
+os.environ['TERM'] = 'xterm' #prevent weird output excape code
 
 
 import leip
@@ -17,7 +20,9 @@ from mad2.util import get_all_mad_files
 # see http://docs.python.org/library/signal.html
 signal(SIGPIPE, SIG_DFL)
 
+
 lg = logging.getLogger(__name__)
+
 
 PROFILE = False
 

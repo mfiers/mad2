@@ -213,8 +213,6 @@ def dispatch():
     lg.info(("processed all (%d) files - waiting for threads to " +
             "finish"),i)
 
-    lg.info("closing pool")
-
     pool.close()
 
     pool.join()

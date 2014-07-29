@@ -97,6 +97,7 @@ def get_filenames(args, use_stdin=True, allow_dirs=False):
             yield rv
 
     elif use_stdin:
+
         # nothing in args - see if there is something on stdin
         for line in sys.stdin:
             line = line.strip()
