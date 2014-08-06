@@ -2,17 +2,18 @@
 from __future__ import print_function,  unicode_literals
 
 import logging
+from datetime import datetime
 from signal import signal, SIGPIPE, SIG_DFL
 import os
 import sys
 
 os.environ['TERM'] = 'xterm' #prevent weird output excape code
 
-
+import arrow
 import leip
 import mad2.ui
 
-from mad2.util import get_all_mad_files
+import mad2.util
 
 # Ignore SIG_PIPE and don't throw exceptions
 # otherwise it crashes when you pipe into, for example, head
@@ -41,7 +42,7 @@ def dispatch():
         pr.disable()
         handle = tempfile.NamedTemporaryFile(
             delete=False, dir=os.getcwd(), prefix='Mad2.', suffix='.profiler')
-        sortby = 'cumulative'
+        sortby = 'tottime'
         ps = pstats.Stats(pr, stream=handle).sort_stats(sortby)
         ps.print_stats()
         handle.close()
@@ -49,30 +50,76 @@ def dispatch():
         app.run()
 
 
-        #
-# define Mad commands
-#
+# make sure stores are cleaned up.
+# note that initialization takes place in mad2.util - and only
+# when a record is actually saved.
+@leip.hook('finish')
+def cleanup_stores(app):
+    lg.debug("cleanup stores")
+    mad2.util.cleanup_stores(app)
 
 
 #
 # define show
 #
+@leip.arg('-r', '--raw', help='output yaml representation')
+@leip.arg('-t', '--tsv', help='output tab delimited representation '
+          + '(top level only)')
 @leip.arg('file', nargs='*')
 @leip.command
 def show(app, args):
+    """ Show mad annotation of one or more file(s)
+
+    default shows a screen formatted output
+    """
+
+
     i = 0
 
-    for madfile in get_all_mad_files(app, args):
-        if i > 0:
-            print('---')
+    if args.tsv:
+        for madfile in mad2.util.get_all_mad_files(app, args):
+            if i > 0:
+                print('---')
 
-        for k in sorted(madfile.keys()):
-            v = madfile[k]
+            for k in sorted(madfile.keys()):
+                v = madfile[k]
 
-            if isinstance(v, dict):
-                continue
-            print("{}\t{}".format(k, v))
-        i += 1
+                v = _format_value(madfile[k])
+
+            i += 1
+    elif args.raw:
+        lg.warning("not implemented")
+    else:
+        for madfile in mad2.util.get_all_mad_files(app, args):
+            print_nicely(madfile)
+
+def _format_value(v):
+    if isinstance(v, dict):
+        return '...'
+    elif isinstance(v, list):
+        return v[:5]
+    elif isinstance(v, datetime):
+        return str(arrow.get(v).to('local'))
+    else:
+        return str(v)
+
+def print_nicely(madfile):
+    implicit = []
+    explicit = []
+    max_key_len = 0
+    for k in madfile.keys():
+        max_key_len = max(len(k), max_key_len)
+        v = _format_value(madfile[k])
+        if k in madfile.mad:
+            explicit.append((k,v))
+        else:
+            implicit.append((k,v))
+
+    fs = '{:2} {:<' + str(max_key_len+1) + '}: {}'
+    for k, v in sorted(explicit):
+        print(fs.format('x', k, v))
+    for k, v in sorted(implicit):
+        print(fs.format('i', k, v))
 
 
 @leip.commandName('key')
