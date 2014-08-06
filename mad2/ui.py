@@ -4,25 +4,26 @@ import sys
 import glob
 
 
-def message(txt):
+def message(txt, *args):
     """
     Message to the user (always on stderr)
     """
-    if not sys.stdout.isatty():
-        sys.stderr.write(txt.rstrip() + "\n")
+    if not sys.stderr.isatty():
+        sys.stderr.write(txt.rstrip() % args + "\n")
         return
-    sys.stderr.write('\033[1;97;48;5;70mMad:\033[0m')
-    sys.stderr.write(txt.strip() + "\n")
 
-def error(txt):
+    sys.stderr.write('\033[1;97;48;5;70mMad:\033[0m ')
+    sys.stderr.write(txt.strip() % args + "\n")
+
+def error(txt, *args):
     """
     Message to the user (always on stderr)
     """
     if not sys.stdout.isatty():
-        sys.stderr.write("Error: " + txt.strip() + "\n")
+        sys.stderr.write("Error: " + txt.strip() % args + "\n")
         return
     sys.stderr.write('\033[1;97;48;5;124mError:\033[0m')
-    sys.stderr.write(txt.strip() + "\n")
+    sys.stderr.write(txt.strip() % args + "\n")
 
 def errorexit(txt, exit_code=1):
     error(txt)
