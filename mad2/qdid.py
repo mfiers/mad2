@@ -13,6 +13,7 @@ def get_qdhash(filename):
 
     .. and this is reasonably fast.
     """
+    lg.critical("DEPRECATED")
     if os.path.isdir(filename):
 
         #qdid for directories is a uuid - stored in .mad/qid

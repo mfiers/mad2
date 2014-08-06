@@ -23,6 +23,8 @@ def root(app, madfile):
     #change SHA1SUM file
     dirname = madfile['dirname']
     sha1name = os.path.join(dirname, 'SHA1SUMS')
+    metaname = os.path.join(dirname, 'SHA1SUMS.META')
+
     qdname = os.path.join(dirname, 'QDSUMS')
     dstats = os.stat(dirname)
 
@@ -38,6 +40,8 @@ def root(app, madfile):
     try:
         if os.path.exists(sha1name):
             os.chmod(sha1name, 0o664)
+        if os.path.exists(metaname):
+            os.chmod(metaname, 0o664)
         if os.path.exists(qdname):
             os.chmod(qdname, 0o664)
     except:
@@ -54,6 +58,9 @@ def root(app, madfile):
 
     if os.path.exists(sha1name):
         os.chown(sha1name, dstats.st_uid, dstats.st_gid)
+
+    if os.path.exists(metaname):
+        os.chown(metaname, dstats.st_uid, dstats.st_gid)
 
     if os.path.exists(qdname):
         os.chown(qdname, dstats.st_uid, dstats.st_gid)

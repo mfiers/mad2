@@ -1,4 +1,8 @@
 
+
+import collections
+import functools
+
 import errno
 import logging
 import os
@@ -11,7 +15,6 @@ from mad2.madfile import MadFile
 
 import fantail
 
-import mad2.store
 
 lg = logging.getLogger(__name__)
 
@@ -26,6 +29,9 @@ lg = logging.getLogger(__name__)
 STORES = None
 
 def initialize_stores(app):
+    #prevent circular import
+    import mad2.store
+
     global STORES
     STORES = {}
     for store in app.conf['store']:
@@ -36,6 +42,13 @@ def initialize_stores(app):
             continue
         STORES[store] = mad2.store.all_stores[store](store_conf)
 
+def cleanup_stores(app):
+    if STORES is None:
+        return
+
+    for store_name in STORES:
+        store = STORES[store_name]
+        store.finish()
 
 def get_mad_file(app, filename):
     """
@@ -64,7 +77,6 @@ def get_filenames(args, use_stdin=True, allow_dirs=False):
     Get all incoming filenames
     """
     filenames = []
-
     demad = re.compile(r'^(?P<path>.*/)?\.(?P<fn>[^/].+)\.mad$')
 
     def demadder(m):
@@ -78,11 +90,17 @@ def get_filenames(args, use_stdin=True, allow_dirs=False):
             if len(f) == 0: continue
             if '.mad/' in f: continue
             if 'SHA1SUMS' in f: continue
+            if 'SHA1SUMS.META' in f: continue
             if 'QDSUMS' in f: continue
+
+            if not os.access(f, os.R_OK):
+                #no read access - ignore this file
+                continue
 
             try:
                 os.stat(f)
             except OSError, e:
+                lg.warning("Problem getting stats from %s", f)
                 if e.errno == errno.ENOENT:
                     #path does not exists - or is a broken symlink
                     continue
@@ -156,3 +174,40 @@ def render(txt, data):
         return value
     except jinja2.exceptions.TemplateSyntaxError:
         return value
+
+
+# Borrowed from: http://tinyurl.com/majcr53
+class memoized(object):
+   '''Decorator. Caches a function's return value each time it is called.
+   If called later with the same arguments, the cached value is returned
+   (not reevaluated).
+   '''
+   def __init__(self, func):
+      self.func = func
+      self.cache = {}
+   def __call__(self, *args):
+      if not isinstance(args, collections.Hashable):
+         # uncacheable. a list, for instance.
+         # better to not cache than blow up.
+         return self.func(*args)
+      if args in self.cache:
+         return self.cache[args]
+      else:
+         value = self.func(*args)
+         self.cache[args] = value
+         return value
+   def __repr__(self):
+      '''Return the function's docstring.'''
+      return self.func.__doc__
+   def __get__(self, obj, objtype):
+      '''Support instance methods.'''
+      return functools.partial(self.__call__, obj)
+
+# @memoized
+# def fibonacci(n):
+#    "Return the nth fibonacci number."
+#    if n in (0, 1):
+#       return n
+#    return fibonacci(n-1) + fibonacci(n-2)
+
+# print fibonacci(12)

@@ -48,12 +48,14 @@ def append_qdsumfile(qdfile, filename, qd):
                 F.write("{}  {}\n".format(qds[fn], fn))
 
 
-@leip.hook("madfile_post_load", 250)
+#@leip.hook("madfile_post_load", 250)
 def qdhook(app, madfile):
 
+    lg.critical("Deprecated")
     if madfile.get('orphan', False):
         # won't deal with orphaned files
         return
+
     if madfile.get('isdir', False):
         # won't deal with dirs
         return

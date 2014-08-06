@@ -1,32 +1,207 @@
 
-
+import arrow
 import os
 import hashlib
+import logging
 import uuid
 
 from lockfile import FileLock
 
+import mad2.util
 
-def append_hashfile(hashfile, filename, hash):
+lg = logging.getLogger(__name__)
+
+
+# def sha1sum_check_meta():
+#     pass
+
+SHA1CACHE = {}
+
+def get_sha1sum_mad(madfile):
+    """
+    One function to rule them all!
+    """
+
+    ##import traceback
+    #print(traceback.print_stack())
+    global SHA1CACHE
+
+    now_time = str(arrow.get(madfile['mtime']).to('local'))
+    now_size = madfile['filesize']
+
+    dirname = madfile['dirname']
+    filename = madfile['filename']
+    fullpath = madfile['fullpath']
+
+    sha1file = os.path.join(dirname, 'SHA1SUMS')
+    qdfile = os.path.join(dirname, 'QDSUMS')
+
+    metafile = os.path.join(dirname, 'SHA1SUMS.META')
+
+    #first check metafile
+    meta_time, meta_size = None, None
+    if os.path.exists(metafile):
+        with open(metafile) as F:
+            for line in F:
+                meta_time, meta_size, meta_file = line.strip().split(None, 2)
+                if meta_file == filename:
+                    break
+            else:
+                meta_time, meta_size = None, None
+
+    stored_sha1 = check_hashfile(sha1file, filename)
+
+    #print(now_time, meta_time)
+    if (not stored_sha1 is None) \
+            and now_time == meta_time \
+            and now_size == int(meta_size):
+
+        #all is well - metadata has not changed - return sha1
+        madfile.all['sha1sum'] = stored_sha1
+        return
+
+    #print (meta_time, meta_size)
+
+    if  (not stored_sha1 is None) \
+            and  (meta_time is None) \
+            and (meta_size is None):
+
+        # no metadata - check if there is a qd hash
+        # For the time being - see if the QDHASH is correct - until all
+        # hash files have a meta file
+        now_qd = get_qdhash(fullpath)
+        file_qd = check_hashfile(qdfile, filename)
+        if now_qd == file_qd:
+
+            #assume all is well.. (re-)store the sha1
+            #so that the metadata gets stored as well.
+            #sha1 = check_hashfile(sha1file, filename)
+
+            new_store_sha1(sha1file, metafile, filename,
+                           stored_sha1, now_time, now_size)
+            madfile.all['sha1sum'] = stored_sha1
+            return
+
+    # we need to (re-)calculate the SHA1SUM
+    #lg.warning("C:" + filename)
+    if stored_sha1 is None:
+        #no sha1 - assuming this is the first time
+        lg.warning("Calculating SHA1SUM for %s", madfile['inputfile'])
+    else:
+        #there is one, but metadata/qdsum does not match - recalc
+        lg.warning("!! recalculating SHA1SUM for %s", madfile['inputfile'])
+
+    sha1 = get_sha1sum(fullpath)
+    #and save (regardless - if only to update the metadata)
+    new_store_sha1(sha1file, metafile, filename,
+                   sha1, now_time, now_size)
+
+    madfile.all['sha1sum'] = sha1
+
+    if not stored_sha1 is None and \
+            sha1 != stored_sha1:
+        lg.warning("File changed: %s", madfile['inputfile'])
+        #store old sha1 for posterity
+        madfile['past_sha1sums'] = madfile.mad.get('past_sha1sums', []) + \
+                                        [stored_sha1]
+        madfile.dirty = True
+        madfile.save()
+
+def new_store_sha1(sha1file, metafile, filename,
+                   sha1, atime, size):
+
     hashes = {}
+    metas = {}
+
+
+    #TODO: Figure out if I an do this with file locks - so far it keeps
+    #       on giving problems - os for now I'm not.
+    #       Not using a lock may result in losing the SHA1SUM - but that
+    #       should only result in time loss - since data is linked against
+    #       the actual sha1sum.
+
+    lg.debug("writing hash to %s", sha1file)
+    #with FileLock(sha1file):
+     #read old sha1file
+    if os.path.exists(sha1file):
+        with open(sha1file) as F:
+            for line in F:
+                _hsh, _fn = line.strip().split(None, 1)
+                hashes[_fn] = _hsh
+
+    #read old metafile
+    if os.path.exists(metafile):
+        with open(metafile) as F:
+            for line in F:
+                _date, _size, _fn = line.strip().split(None, 2)
+                metas[_fn] = (_date, _size)
+
+    #insert our sha1 - possibly overwriting other version
+    hashes[filename] = sha1
+
+    #insert our metadata - possible overwriting previous data
+    metas[filename] = (atime, size)
+
+    #write new sha1file
+    with open(sha1file, 'w') as F:
+        for fn in sorted(hashes.keys()):
+            if fn in ['QDSUMS', 'SHA1SUMS']:
+                continue
+            F.write("{}  {}\n".format(hashes[fn], fn))
+
+    #write new metafile
+    with open(metafile, 'w') as F:
+        for fn in sorted(metas.keys()):
+            if fn in ['QDSUMS', 'SHA1SUMS']:
+                continue
+            _date, _size = metas[fn]
+            #print ('meta', fn, _date, _size)
+            F.write("{}  {}  {}\n".format(_date, _size, fn))
+
+#    lg.debug("finished writing hash to %s", sha1file)
+
+#    sha1lock.release()
+
+
+
+
+
+# sha1 = mad2.hash.get_or_create_sha1sum(madfile['inputfile'])
+# madfile.all['sha1sum'] = sha1
+
+def append_hashfile(hashfile, filename, hash, date, size):
+
+    hashes = {}
+    metas = {}
+
+    metafile = hashfile + '.META'
 
     with FileLock(hashfile):
-        #read old sha1file
-        if os.path.exists(hashfile):
-            with open(hashfile) as F:
-                for line in F:
-                    hsh, fn = line.strip().split(None, 1)
-                    hashes[fn] = hsh
+        with FileLock(metafile):
+            #read old sha1file
+            if os.path.exists(hashfile):
+                with open(hashfile) as F:
+                    for line in F:
+                        hsh, fn = line.strip().split(None, 1)
+                        hashes[fn] = hsh
 
-        #insert our sha1 - possibly overwriting other version
-        hashes[filename] = hash
+            #read old metafile
+            if os.path.exists(metafile):
+                with open(metafile) as F:
+                    for line in F:
+                        date, size, fn = line.strip().split(None, 2)
+                        hashes[fn] = (date, size)
 
-        #write new sha1file
-        with open(hashfile, 'w') as F:
-            for fn in sorted(hashes.keys()):
-                if fn in ['QDSUMS', 'SHA1SUMS']:
-                    continue
-                F.write("{}  {}\n".format(hashes[fn], fn))
+            #insert our sha1 - possibly overwriting other version
+            hashes[filename] = hash
+            #dates[filename =]
+
+            #write new sha1file
+            with open(hashfile, 'w') as F:
+                for fn in sorted(hashes.keys()):
+                    if fn in ['QDSUMS', 'SHA1SUMS']:
+                        continue
+                    F.write("{}  {}\n".format(hashes[fn], fn))
 
 
 def get_or_create_sha1sum(filename):
@@ -37,6 +212,10 @@ def get_or_create_sha1sum(filename):
     recalculation of the sha1sum
 
     """
+
+    # import traceback
+    # traceback.print_stack()
+
     dirname, basename = os.path.split(filename)
     sha1file = os.path.join(dirname, 'SHA1SUMS')
     qdsumfile = os.path.join(dirname, 'QDSUMS')
@@ -52,18 +231,29 @@ def get_or_create_sha1sum(filename):
     return sha1
 
 
+HASH_CACHE = {}
+
 def check_hashfile(hashfile, filename):
     """
     Check a hashfile & return the checksum
     """
+
+    global HASH_CACHE
+
     if not os.path.exists(hashfile):
         return None
+
+    #cached??
+    hckey = (hashfile, filename)
+    if hckey in HASH_CACHE:
+        return HASH_CACHE[hckey]
+
     with open(hashfile) as F:
         for line in F:
             hsh, fn = line.strip().split(None, 1)
-            if fn == filename:
-                return hsh
-    return None
+            HASH_CACHE[(hashfile, fn)] = hsh
+
+    return HASH_CACHE.get(hckey)
 
 
 def get_sha1sum(filename):
@@ -85,6 +275,7 @@ def get_sha1sum(filename):
     return h.hexdigest()
 
 
+@mad2.util.memoized
 def get_qdhash(filename):
     """
     Provde a quick & dirty hash -
@@ -96,6 +287,7 @@ def get_qdhash(filename):
 
     """
 
+#    lg.critical("MM")
     if not os.path.exists(filename):
         #not sure what to do with files that do not exist (yet)
         return None

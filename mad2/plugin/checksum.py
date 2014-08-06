@@ -12,43 +12,43 @@ lg = logging.getLogger(__name__)
 lg.setLevel(logging.DEBUG)
 
 
-@leip.hook("madfile_post_load", 50)
-def sha1hook_new(app, madfile):
+# @leip.hook("madfile_post_load", 50)
+# def sha1hook_new(app, madfile):
 
-    if madfile.get('orphan', False):
-        # won't deal with orphaned files
-        return
-    if madfile.get('isdir', False):
-        # won't deal with dirs
-        return
+#     if madfile.get('orphan', False):
+#         # won't deal with orphaned files
+#         return
+#     if madfile.get('isdir', False):
+#         # won't deal with dirs
+#         return
 
-    dirname = madfile['dirname']
-    filename = madfile['filename']
+#     dirname = madfile['dirname']
+#     filename = madfile['filename']
 
-    sha1file = os.path.join(dirname, 'SHA1SUMS')
-    qdhashfile = os.path.join(dirname, 'QDSUMS')
+#     sha1file = os.path.join(dirname, 'SHA1SUMS')
+#     qdhashfile = os.path.join(dirname, 'QDSUMS')
 
-    sha1 = mad2.hash.check_hashfile(sha1file, filename)
+#     sha1 = mad2.hash.check_hashfile(sha1file, filename)
 
-    #see if we can get the hash from the old mad file -
-    sha1_mad_oldstyle = None
-    if 'hash.sha1' in madfile:
-        sha1_mad_oldstyle = madfile['hash.sha1']
+#     #see if we can get the hash from the old mad file -
+#     #sha1_mad_oldstyle = None
+#     #if 'hash.sha1' in madfile:
+#     #    sha1_mad_oldstyle = madfile['hash.sha1']
 
-    if sha1 is None:
-        #if not in the hashfile - calculate & add to the hashfile
+#     if sha1 is None:
+#         #if not in the hashfile - calculate & add to the hashfile
 
-        if not sha1_mad_oldstyle is None:
-            sha1 = sha1_mad_oldstyle
-        else:
-            sha1 = mad2.hash.get_sha1sum(madfile['fullpath'])
+#         if not sha1_mad_oldstyle is None:
+#             sha1 = sha1_mad_oldstyle
+#         else:
+#             sha1 = mad2.hash.get_sha1sum(madfile['fullpath'])
 
-        mad2.hash.append_hashfile(sha1file, filename, sha1)
+#         mad2.hash.append_hashfile(sha1file, filename, sha1)
 
-        qd = mad2.hash.get_qdhash(madfile['fullpath'])
-        mad2.hash.append_hashfile(qdhashfile, filename, qd)
+#         qd = mad2.hash.get_qdhash(madfile['fullpath'])
+#         mad2.hash.append_hashfile(qdhashfile, filename, qd)
 
-    madfile.all['sha1sum'] = sha1
+#     madfile.all['sha1sum'] = sha1
 
 
 def calc_madfile_sum(madfile, force=False, echo=False,
