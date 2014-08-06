@@ -77,3 +77,9 @@ class SidecarStore():
             # note the mad file data is in stack[1] - 0 is transient
             madfile.mad.update(
                 fantail.yaml_file_loader(madfile['madname']))
+
+
+    def finish(self):
+        lg.debug("cleaning up")
+
+
