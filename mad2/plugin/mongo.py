@@ -3,6 +3,9 @@ from __future__ import print_function
 import datetime
 import logging
 import os
+import re
+
+import socket
 
 import hashlib
 
@@ -86,24 +89,62 @@ def mongo_prep_mad(mf):
 
     return mongo_id, d
 
+MONGO_SAVE_CACHE = []
 
-def save_to_mongo(MONGO, madfile):
+
+
+def mongo_flush(app):
+
+    global MONGO_SAVE_CACHE
+    if len(MONGO_SAVE_CACHE) == 0:
+        return
+
+    collection = get_mongo_db(app)
+    bulk = collection.initialize_unordered_bulk_op()
+
+    for i, r in MONGO_SAVE_CACHE:
+         bulk.find({'_id': i}).upsert().replace_one(r)
+    res = bulk.execute()
+
+    #print(res)
+    lg.debug("Modified %d records", res['nModified'])
+    MONGO_SAVE_CACHE = []
+
+
+def save_to_mongo(app, madfile):
     global MONGO_SAVE_COUNT
     global MONGO_SAVE_CACHE
 
     MONGO_SAVE_COUNT += 1
 
-    lg.debug("collection object {}".format(MONGO))
     mongo_id, newrec = mongo_prep_mad(madfile)
 
-    MONGO.update({'_id': mongo_id}, newrec, True)
+    MONGO_SAVE_CACHE.append((mongo_id, newrec))
+
+    if len(MONGO_SAVE_CACHE) > 33:
+        mongo_flush(app)
+        # # bulk = MONGO.initialize_unordered_bulk_op()
+
+        # #     print(r)
+        # #     bulk.update({'_id' : i}, r, True)
+        # # res = bulk.execute()
+        # # print(res)
+        # for i, r in MONGO_SAVE_CACHE:
+        #    MONGO.update({'_id': i}, r, True)
+        # MONGO_SAVE_CACHE = []
+
+
+@leip.hook("finish")
+def save_to_mongo_finish(app):
+    mongo_flush(app)
+
+    #lg.critical('Finish')
 
 
 @leip.hook("madfile_save")
 def store_in_mongodb(app, madfile):
     lg.debug("running store_in_mongodb")
-    MONGO = get_mongo_db(app)
-    save_to_mongo(MONGO, madfile)
+    save_to_mongo(app, madfile)
 
 
 @leip.subparser
@@ -204,7 +245,6 @@ def mongo_last(app, args):
               r['filename'], r.get('_id', '')]))
 
 
-
 @leip.arg('-u', '--username')
 @leip.arg('-b', '--backup')
 @leip.subcommand(mongo, "find")
@@ -228,6 +268,7 @@ def mongo_find(app, args):
     res = MONGO_mad.find(query)
     for r in res:
         print(r['fullpath'])
+
 
 @leip.flag('-H', '--human', help='human readable')
 @leip.arg('group_by', nargs='?', default='host')
@@ -280,6 +321,7 @@ def mongo_sum(app, args):
 
 
 @leip.flag('-H', '--human', help='human readable')
+@leip.flag('-s', '--sort_on_field')
 @leip.arg('group_by_2')
 @leip.arg('group_by_1')
 @leip.subcommand(mongo, "sum2")
@@ -293,6 +335,13 @@ def mongo_sum2(app, args):
     gb_pair_field = "${}_${}".format(gb1_field, gb2_field)
 
     MONGO_mad = get_mongo_db(app)
+
+    if args.sort_on_field:
+        sort_field = '_id'
+        sort_order = 1
+    else:
+        sort_field = 'total'
+        sort_order = -1
     res = MONGO_mad.aggregate([
             {'$group': {
                 "_id": {
@@ -300,8 +349,9 @@ def mongo_sum2(app, args):
                     "group2": gb2_field },
                 "total": {"$sum": "$filesize"},
                 "count": {"$sum": 1}}},
-             {"$sort" : { "total": -1
-                          }}
+             {"$sort" : {
+                sort_field: sort_order
+              }}
         ])
     total_size = 0
     total_count = 0
@@ -309,6 +359,7 @@ def mongo_sum2(app, args):
     gl1 = gl2 = len("Total")
 
     for r in res['result']:
+        print(r)
         g1 = str(r['_id'].get('group1'))
         g2 = str(r['_id'].get('group2'))
         gl1 = max(gl1, len(g1))
@@ -335,6 +386,56 @@ def mongo_sum2(app, args):
     else:
         print("Total\t\t{}\t{}".format(total_size, total_count))
 
+
+@leip.flag('--run', help='actually run - otherwise it\'s a dry run showing ' +
+           'what would be deleted')
+@leip.flag('-e', '--echo', help='echo all files')
+@leip.arg('dir', nargs='?', default='.')
+@leip.subcommand(mongo, 'flush_dir')
+def mongo_flush_dir(app, args):
+    """
+    Recursively flush deleted files from the dump db
+    """
+
+    MONGO_mad = get_mongo_db(app)
+
+    host = socket.gethostname()
+    wd = os.path.abspath(os.getcwd())
+
+    rex = re.compile("^" + wd)
+
+    query = {
+        'host' : host,
+        'dirname' : rex}
+
+    ids_to_remove = []
+
+    if args.run:
+        pass
+
+    res = MONGO_mad.find(query)
+    for r in res:
+
+
+        if os.path.exists(r['fullpath']):
+            if args.echo:
+                print("+ " + r['fullpath'])
+                continue
+        else:
+            print("- " + r['fullpath'])
+
+        ids_to_remove.append(r['_id'])
+
+        if args.run and len(ids_to_remove) >= 100:
+            lg.warning("removing %d records", len(ids_to_remove))
+            MONGO_mad.remove( {'_id' : { '$in' : ids_to_remove } } )
+            ids_to_remove = []
+
+    if args.run:
+        lg.warning("removing %d records", len(ids_to_remove))
+        MONGO_mad.remove( {'_id' : { '$in' : ids_to_remove } } )
+
+
 @leip.flag('-f', '--force')
 @leip.subcommand(mongo, "drop")
 def mongo_drop(app, args):
@@ -356,15 +457,14 @@ def mongo_save(app, args):
     """
     Save to mongodb
     """
-    MONGO = get_mongo_db(app)
     for madfile in get_all_mad_files(app, args):
         lg.debug("save to mongodb: %s", madfile['inputfile'])
-        save_to_mongo(MONGO, madfile)
+        save_to_mongo(app, madfile)
         if args.echo:
             print(madfile['inputfile'])
 
 
-@leip.subcommand(mongo, "prepare")
+@leip.subcommand(mongo, "create_index")
 def mongo_index(app, args):
     """
     Ensure indexes on the relevant fields

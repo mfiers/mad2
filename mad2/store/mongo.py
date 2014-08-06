@@ -45,25 +45,24 @@ class MongoStore():
         self.collection_name = self.conf.get('collection', 'core')
         self.db_core = self.client[self.db_name][self.collection_name]
 
+        self.save_cache = []
+
     def prepare(self, madfile):
 
-        if madfile.get('isdir', False):
-            #no directories
-            return
-
-        #get the sha1sum from the SHA1SUMS file
-        sha1 = mad2.hash.get_or_create_sha1sum(madfile['inputfile'])
-        madfile.all['sha1sum'] = sha1
+        return
 
 
     def save(self, madfile):
         """Save data to the mongo database"""
 
         if not 'sha1sum' in madfile:
+            lg.warning("cannot save to mongodb without a sha1sum")
             return
 
         if madfile['sha1sum'] is None:
+            lg.warning("cannot save to mongodb without a sha1sum")
             return
+
 
         mongo_id = madfile['sha1sum'][:24]
 
@@ -75,16 +74,38 @@ class MongoStore():
         if 'uuid' in core:
             del core['uuid']
 
-        lg.debug("mongo save {}".format(madfile['inputfile']))
-        lg.debug("mongo id {}".format(mongo_id))
+        core['_id'] = mongo_id
+        del core['_id']
+        self.save_cache.append((mongo_id, core))
 
 
-        #might give an error on update if file has changed
-        if '_id' in core:
-            del core['_id']
+        if len(self.save_cache) > 50:
+            self.flush()
 
-        self.db_core.update({'_id': mongo_id}, core, True)
-        #self.db_full.update({'_id': mongo_id}, full, True)
+
+    def flush(self):
+
+        if len(self.save_cache) == 0:
+            return
+
+        bulk = self.db_core.initialize_unordered_bulk_op()
+        for i, r in self.save_cache:
+             bulk.find({'_id': i}).upsert().replace_one(r)
+        res = bulk.execute()
+        #print(res)
+        lg.debug("Modified %d records", res['nModified'])
+        self.save_cache = []
+
+            # lg.debug("mongo save {}".format(madfile['inputfile']))
+            # lg.debug("mongo id {}".format(mongo_id))
+
+
+        # #might give an error on update if file has changed
+        # if '_id' in core:
+        #     del core['_id']
+
+        # self.db_core.update({'_id': mongo_id}, core, True)
+        # #self.db_full.update({'_id': mongo_id}, full, True)
 
 
     def load(self, madfile):
@@ -106,3 +127,9 @@ class MongoStore():
         lg.debug(" - mongo_id: {}".format(mongo_id))
         data = self.db_core.find_one({'_id': mongo_id})
         madfile.mad.update(data)
+
+    def finish(self):
+        lg.debug("cleaning up")
+        self.flush()
+
+
