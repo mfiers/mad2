@@ -5,6 +5,8 @@ import re
 
 import leip
 
+from mad2 import ui
+
 lg = logging.getLogger(__name__)
 
 def isint(n):
@@ -62,7 +64,7 @@ def find(app, args):
 
     #lg.setLevel(logging.DEBUG)
     for dirpath, dirnames, filenames in os.walk('.'):
-        lg.warning("considering %s (%d dirs, %d files)",
+        ui.message("considering %s (%d dirs, %d files)",
                    dirpath, len(dirnames), len(filenames))
 
         # if it's unlikely that we're able to write sha1sums to a
@@ -118,6 +120,10 @@ def find(app, args):
                 if filestat.st_size < minsize:
                     #lg.debug(" --- too small: %s (%d)", f, filestat.st_size)
                     continue
+
+            if not os.access(ffn, os.R_OK):
+                #no read permission
+                continue
 
             print(ffn)
 
