@@ -16,6 +16,8 @@ lg = logging.getLogger(__name__)
 
 
 def check_qdsumfile(qdfile, filename):
+    lg.warning("DEPRECATED")
+
     if not os.path.exists(qdfile):
         return None
     with open(qdfile) as F:
@@ -27,6 +29,8 @@ def check_qdsumfile(qdfile, filename):
 
 
 def append_qdsumfile(qdfile, filename, qd):
+    lg.warning("DEPRECATED")
+
     qds = {}
 
     with FileLock(qdfile):
@@ -50,6 +54,7 @@ def append_qdsumfile(qdfile, filename, qd):
 
 #@leip.hook("madfile_post_load", 250)
 def qdhook(app, madfile):
+    lg.warning("DEPRECATED")
 
     lg.critical("Deprecated")
     if madfile.get('orphan', False):

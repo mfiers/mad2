@@ -359,7 +359,7 @@ def mongo_sum2(app, args):
     gl1 = gl2 = len("Total")
 
     for r in res['result']:
-        print(r)
+        #print(r)
         g1 = str(r['_id'].get('group1'))
         g2 = str(r['_id'].get('group2'))
         gl1 = max(gl1, len(g1))

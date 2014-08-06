@@ -54,6 +54,8 @@ lg.setLevel(logging.DEBUG)
 def calc_madfile_sum(madfile, force=False, echo=False,
                      echo_changed=False):
 
+    lg.warning("DEPRECATED")
+
     if madfile['filename'] in ['SHA1SUMS', 'QDSUMS']:
         return
 
@@ -100,20 +102,22 @@ def sha1(app, args):
 
     note - this ensures that the sha1sum is calculated
     """
+    lg.warning("DEPRECATED")
+
     for madfile in get_all_mad_files(app, args):
 
         calc_madfile_sum(madfile, args.force, args.echo, args.echo_changed)
 
 
-@leip.arg('file', nargs='*')
-@leip.command
-def qdhash(app, args):
-    """
-    print the qdhash to screen
-    """
-    for madfile in get_all_mad_files(app, args):
-        qd = mad2.hash.get_qdhash(madfile['fullpath'])
-        print('{} \t {}'.format(madfile['inputfile'], qd))
+# @leip.arg('file', nargs='*')
+# @leip.command
+# def qdhash(app, args):
+#     """
+#     print the qdhash to screen
+#     """
+#     for madfile in get_all_mad_files(app, args):
+#         qd = mad2.hash.get_qdhash(madfile['fullpath'])
+#         print('{} \t {}'.format(madfile['inputfile'], qd))
 
 
 @leip.arg('file', nargs='*')

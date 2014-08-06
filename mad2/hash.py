@@ -22,8 +22,6 @@ def get_sha1sum_mad(madfile):
     One function to rule them all!
     """
 
-    ##import traceback
-    #print(traceback.print_stack())
     global SHA1CACHE
 
     now_time = str(arrow.get(madfile['mtime']).to('local'))
@@ -166,11 +164,8 @@ def new_store_sha1(sha1file, metafile, filename,
 
 
 
-# sha1 = mad2.hash.get_or_create_sha1sum(madfile['inputfile'])
-# madfile.all['sha1sum'] = sha1
-
 def append_hashfile(hashfile, filename, hash, date, size):
-
+    lg.warning("DEPRECATED")
     hashes = {}
     metas = {}
 
@@ -212,7 +207,7 @@ def get_or_create_sha1sum(filename):
     recalculation of the sha1sum
 
     """
-
+    lg.warning("DEPRECATED")
     # import traceback
     # traceback.print_stack()
 
@@ -286,6 +281,7 @@ def get_qdhash(filename):
     .. and it is fairly fast
 
     """
+    lg.warning("DEPRECATED get_qdhash")
 
 #    lg.critical("MM")
     if not os.path.exists(filename):
