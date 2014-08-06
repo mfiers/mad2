@@ -50,22 +50,13 @@ def dispatch():
         app.run()
 
 
-# make sure stores are cleaned up.
-# note that initialization takes place in mad2.util - and only
-# when a record is actually saved.
-@leip.hook('finish')
-def cleanup_stores(app):
-    lg.debug("cleanup stores")
-    mad2.util.cleanup_stores(app)
-
-
 #
 # define show
 #
-@leip.arg('-r', '--raw', help='output yaml representation')
-@leip.arg('-t', '--tsv', help='output tab delimited representation '
-          + '(top level only)')
 @leip.arg('file', nargs='*')
+@leip.flag('-r', '--raw', help='output yaml representation')
+@leip.flag('-t', '--tsv', help='output tab delimited representation '
+          + '(top level only)')
 @leip.command
 def show(app, args):
     """ Show mad annotation of one or more file(s)
@@ -88,7 +79,11 @@ def show(app, args):
 
             i += 1
     elif args.raw:
-        lg.warning("not implemented")
+        for madfile in mad2.util.get_all_mad_files(app, args):
+            x = madfile.all.copy()
+            x.update(madfile.mad)
+            print(x.pretty())
+
     else:
         for madfile in mad2.util.get_all_mad_files(app, args):
             print_nicely(madfile)
