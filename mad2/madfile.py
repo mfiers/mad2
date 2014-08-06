@@ -28,7 +28,6 @@ class MadFile(fantail.Fanstack):
                  base=fantail.Fantail(),
                  hook_method=dummy_hook_method):
 
-
         self.stores = stores
         self.hook_method = hook_method
 
@@ -55,6 +54,8 @@ class MadFile(fantail.Fanstack):
 
         if not os.path.exists(inputfile):
             self.all['orphan'] = True
+            self.all['sha1sum'] = None
+
 
         for s in self.stores:
             store = self.stores[s]
