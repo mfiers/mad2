@@ -160,6 +160,7 @@ def onthefly(app, madfile):
     madfile.all['host'] = host
     lg.debug('host: %s', host)
 
+    madfile.all['volume'] = host
 
     madfile.all['uri'] = "file://{}{}".format(
         madfile.all['host'], madfile['fullpath'])
@@ -238,10 +239,10 @@ def user_alias(app, args):
     leip.save_local_config_file(loco, 'mad2')
     leip.get_config('mad2', rehash=True)
 
-@leip.arg('hostname')
+@leip.arg('volume_name')
 @leip.arg('path_fragment')
 @leip.command
-def host_alias(app, args):
+def volume_alias(app, args):
 
     loco = leip.get_local_config_file('mad2')
     thes = loco['thesaurus']
@@ -250,7 +251,7 @@ def host_alias(app, args):
     lid = 'path_' + re.sub('\W+', '_', args.path_fragment).strip("_")
     rex = '.*' + re.escape(args.path_fragment) + '.*'
     thes[lid]['find.fullpath'] = rex
-    thes[lid]['replace.host'] = args.hostname
+    thes[lid]['replace.volume'] = args.hostname
     print(loco.pretty())
 
     leip.save_local_config_file(loco, 'mad2')
