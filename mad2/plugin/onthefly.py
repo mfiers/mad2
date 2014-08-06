@@ -10,6 +10,8 @@ import leip
 import fantail
 from pwd import getpwuid
 
+import mad2.hash
+
 lg = logging.getLogger(__name__)
 
 EXTENSION_DATA = None
@@ -61,28 +63,27 @@ def apply_file_format(app, madfile, filename=None):
         apply_file_format(app, madfile, base)
 
 
-
-@leip.hook("madfile_pre_load")
-def recursive_dir_data(app, madfile):
+def _get_recursive_dir_data(pth):
 
     global RECURSE_CACHE
+    lg.debug("start recursive data load for {}".format(pth))
 
-    lg.debug("start recursive data load for {}".format(madfile['inputfile']))
-    here = madfile['dirname'].rstrip('/')
+    pth = os.path.abspath(pth)
+
+    if os.path.exists(pth) and not os.path.isdir(pth):
+        here = os.path.dirname(pth)
+    else:
+        here = pth
+
+    here = here.rstrip('/')
     conf = []
 
     # find existing directory configuration from the perspective
     # of the madfile
     last = here
+
     while True:
-        try:
-            assert(os.path.isdir(here))
-        except AssertionError:
-            print(last, here)
-            raise
-        except:
-            print(last, here)
-            raise
+        assert(os.path.isdir(here))
 
         here_c = os.path.join(here, 'mad.config')
         if os.path.exists(here_c):
@@ -99,12 +100,8 @@ def recursive_dir_data(app, madfile):
     last = here
     cwdconf = []
     while True:
-        try:
-            assert(os.path.isdir(here))
-        except:
-            print(last, here)
-            print(madfile.pretty())
-            raise
+        assert(os.path.isdir(here))
+
         here_c = os.path.join(here, 'mad.config')
         if os.path.exists(here_c):
             if here_c in conf:
@@ -119,6 +116,8 @@ def recursive_dir_data(app, madfile):
 
     conf = cwdconf + conf
     # load (or get from cache)
+
+    rv = fantail.Fantail()
     for c in conf[::-1]:
         fullname = os.path.expanduser(os.path.abspath(c))
         if fullname in RECURSE_CACHE:
@@ -127,12 +126,26 @@ def recursive_dir_data(app, madfile):
             #print('start load dir', fullname)
             y = fantail.yaml_file_loader(fullname)
             RECURSE_CACHE[fullname] = y
+        rv.update(y)
+    return rv
 
-        # insert in the stack just after the mad file
-        madfile.all.update(y)
+@leip.arg("dir", nargs='?', default='.')
+@leip.command
+def project(app, args):
+    rdd = _get_recursive_dir_data(args.dir)
+    project = rdd.get('project', '')
+    if len(project) > 0:
+        print(project)
 
 
-@leip.hook("madfile_post_load")
+@leip.hook("madfile_pre_load")
+def recursive_dir_data(app, madfile):
+    y = _get_recursive_dir_data(madfile['fullpath'])
+    # insert in the stack just after the mad file
+    madfile.mad.update(y)
+
+
+@leip.hook("madfile_pre_load")
 def onthefly(app, madfile):
 
     # if sorted(list(madfile.keys())) == ['hash']:
@@ -155,8 +168,8 @@ def onthefly(app, madfile):
         # orphaned is file - little we can do
         return
 
-#    if not os.path.exists(madfile['fullpath'])
-    filestat = os.stat(madfile['fullpath'])
+    #    if not os.path.exists(madfile['fullpath'])
+    filestat = os.lstat(madfile['fullpath'])
     # print(filestat)
 
     madfile.all['filesize'] = filestat.st_size
@@ -176,7 +189,7 @@ def onthefly(app, madfile):
     #     madfile.all['username'] = app.conf['username']
 
     mtime = datetime.utcfromtimestamp(
-        filestat.st_mtime)
+                filestat.st_mtime)
     atime = datetime.utcfromtimestamp(
         filestat.st_atime)
 
@@ -200,6 +213,10 @@ def onthefly(app, madfile):
         if f_field in madfile and re.match(f_pattern, madfile[f_field]):
             #match - now update the
             madfile.all.update(replace)
+
+    # last - but not least
+    # make sure the file has a SHA1SUM, and that it is up to date
+    mad2.hash.get_sha1sum_mad(madfile)
 
     lg.debug("finished onthefly")
 
