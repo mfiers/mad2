@@ -160,6 +160,21 @@ def keywords(app, args):
 
 
 
+@leip.arg('-d', '--editor', action='store_true', help='open an editor')
+@leip.arg('-f', '--force', action='store_true', help='apply force')
+@leip.arg('-p', '--prompt', action='store_true', help='show a prompt')
+@leip.arg('file', metavar='dir', nargs='?', default='.')
+@leip.arg('value', help='value to set')
+@leip.arg('key', help='key to set')
+@leip.command
+def dset(app, args):
+    """
+    Like set, but at the directory level
+    """
+    args.dir = True
+    args.echo = False
+    madset(app, args)
+
 
 @leip.arg('-f', '--force', action='store_true', help='apply force')
 @leip.arg('-p', '--prompt', action='store_true', help='show a prompt')
@@ -171,8 +186,8 @@ def keywords(app, args):
 @leip.arg('file', nargs='*')
 @leip.arg('value', help='value to set', nargs='?')
 @leip.arg('key', help='key to set')
-@leip.command
-def set(app, args):
+@leip.commandName('set')
+def madset(app, args):
     """
     Set a key/value for one or more files.
 
