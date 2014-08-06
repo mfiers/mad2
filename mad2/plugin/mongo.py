@@ -70,16 +70,18 @@ def get_mongo_core_db(app):
 
     return MONGOCORE
 
-def mongo_prep_mad(mf):
-
-    d = dict(mf)
-
+def get_mongo_dump_id(mf):
     sha1sum = hashlib.sha1()
     sha1sum.update(mf['sha1sum'])
     sha1sum.update(mf['host'])
     sha1sum.update(mf['fullpath'])
+    return sha1sum.hexdigest()[:24]
 
-    mongo_id = sha1sum.hexdigest()[:24]
+def mongo_prep_mad(mf):
+
+    mongo_id = get_mongo_dump_id(mf)
+
+    d = dict(mf)
     d['_id'] = mongo_id
     if 'uuid' in d:
         del d['uuid']
@@ -140,6 +142,9 @@ def save_to_mongo_finish(app):
 
     #lg.critical('Finish')
 
+@leip.hook("madfile_post_load")
+def add_hook(app, madfile):
+    madfile.mad['_id_dump'] = get_mongo_dump_id(madfile)
 
 @leip.hook("madfile_save")
 def store_in_mongodb(app, madfile):

@@ -28,8 +28,11 @@ def mongo_prep_mad(mf):
     d['_id'] = mongo_id
     d['sha1sum'] = mf['sha1sum']
     d['save_time'] = datetime.datetime.utcnow()
-    del d['hash']
-    del d['uuid']
+
+    if 'hash' in d: del d['hash']
+    if 'uuid' in d: del d['uuid']
+    if '_id_dump' in d: del d['_id_dump']
+
     return mongo_id, d
 
 
@@ -73,11 +76,14 @@ class MongoStore():
             del core['hash']
         if 'uuid' in core:
             del core['uuid']
+        if '_id_dump' in core:
+            del core['_id_dump']
 
         core['_id'] = mongo_id
         del core['_id']
-        self.save_cache.append((mongo_id, core))
 
+        lg.warning("saving to id %s", mongo_id)
+        self.save_cache.append((mongo_id, core))
 
         if len(self.save_cache) > 50:
             self.flush()
@@ -128,8 +134,9 @@ class MongoStore():
         data = self.db_core.find_one({'_id': mongo_id})
         madfile.mad.update(data)
 
+
     def finish(self):
-        lg.debug("cleaning up")
+        lg.warning("cleaning up")
         self.flush()
 
 
