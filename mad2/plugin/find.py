@@ -44,19 +44,33 @@ def find(app, args):
     """
     minsize = dehumanize(args.minsize)
 
+    def check_write_permission(d):
+        sha1file = os.path.join(d, 'SHA1SUMS')
+        # we'll assume that if we have access to the sha1 file we also
+        # have access to the meta file
+        if os.path.exists(sha1file):
+            if os.access(sha1file, os.W_OK):
+                return True
+            else:
+                lg.debug("No write permission on %s", sha1file)
+                return False
+
+        #no sha1file - then check for write access on the directory
+        return os.access(d, os.W_OK)
+
+
+
     #lg.setLevel(logging.DEBUG)
     for dirpath, dirnames, filenames in os.walk('.'):
-        lg.debug("considering %s", dirpath)
+        lg.warning("considering %s (%d dirs, %d files)",
+                   dirpath, len(dirnames), len(filenames))
 
-        dirs_to_remove = set()
-
-        if 'mad.ignore' in filenames:
-            #ignore this directory - this cpature is
-            #only necessary for the root
-            #remove all from dirnames
-            dirnames[:] = []
+        # if it's unlikely that we're able to write sha1sums to a
+        # local file, we're not going to process this file
+        if not check_write_permission(dirpath):
             continue
 
+        dirs_to_remove = set()
 
         #never traverse into a .mad directorie
         while '.mad' in dirnames:
@@ -67,7 +81,6 @@ def find(app, args):
             if (not args.do_dot_dirs) and d[0] == '.':
                 dirs_to_remove.add(d)
             if not args.ignore_mad_ignore:
-
                 madignore = os.path.join(
                     dirpath, d, 'mad.ignore')
                 if os.path.exists(madignore):
@@ -84,7 +97,7 @@ def find(app, args):
             ffn = os.path.join(dirpath, f)
             #lg.debug("considering file: %s", f)
 
-            if f in ['QDSUMS', 'SHA1SUMS']:
+            if f in ['QDSUMS', 'SHA1SUMS', 'SHA1SUMS.META']:
                 continue
 
             if (not args.do_dot_files) and \
