@@ -74,7 +74,7 @@ class MongoStore():
         core['_id'] = mongo_id
         del core['_id']
 
-        lg.warning("saving to id %s", mongo_id)
+        lg.debug("saving to id %s", mongo_id)
         self.save_cache.append((mongo_id, core))
 
         if len(self.save_cache) > 50:
