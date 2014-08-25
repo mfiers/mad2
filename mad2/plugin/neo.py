@@ -103,6 +103,7 @@ def neo_clean(app, args):
     db = get_db(app)
     db.db.clear()
 
+
 @leip.hook("madfile_save", 200)
 def neo_hook_save(app, madfile):
     if not app.conf.plugin.neo4j.get('autostore', False):

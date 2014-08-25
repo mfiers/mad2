@@ -16,6 +16,7 @@ def dummy_hook_method(*args, **kw):
 
 STORES = None
 
+
 class MadFile(fantail.Fanstack):
 
     """
@@ -39,9 +40,11 @@ class MadFile(fantail.Fanstack):
         self.dirmode = False
         if os.path.isdir(inputfile):
             self.dirmode = True
-
-        dirname = os.path.dirname(inputfile)
-        filename = os.path.basename(inputfile)
+            dirname = inputfile
+            filename = ''
+        else:
+            dirname = os.path.dirname(inputfile)
+            filename = os.path.basename(inputfile)
 
         lg.debug(
             "Instantiating a madfile for '{}' / '{}'".format(
@@ -52,10 +55,11 @@ class MadFile(fantail.Fanstack):
         self.all['filename'] = filename
         self.all['fullpath'] = os.path.abspath(inputfile)
 
+        self.mad['sha1sum'] = ""
+        #self.all['sha1sum'] = ""
+
         if not os.path.exists(inputfile):
             self.all['orphan'] = True
-            self.all['sha1sum'] = None
-
 
         for s in self.stores:
             store = self.stores[s]
@@ -82,9 +86,11 @@ class MadFile(fantail.Fanstack):
     def __str__(self):
         return '<mad2.madfile.MadFile {}>'.format(self['inputfile'])
 
+    def check_sha1sum(self):
+        import mad2.hash
+        mad2.hash.get_sha1sum_mad(self)
 
     def load(self):
-
 
         if os.path.exists(self.all['inputfile']):
             self.all['orphan'] = False
@@ -109,7 +115,3 @@ class MadFile(fantail.Fanstack):
                 store.save(self)
 
         self.hook_method('madfile_post_save', self)
-
-    # def pretty(self):
-    #     print (self.stack.pretty())
-#        return pprint.pformat(dict(self.all).update(self.mad))

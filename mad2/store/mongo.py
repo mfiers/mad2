@@ -1,16 +1,8 @@
-import logging
-import os
-
-import fantail
 
 import datetime
+import logging
 
 from pymongo import MongoClient
-from bson.objectid import ObjectId
-
-import leip
-
-import mad2.hash
 
 lg = logging.getLogger(__name__)
 #lg.setLevel(logging.DEBUG)
@@ -29,9 +21,12 @@ def mongo_prep_mad(mf):
     d['sha1sum'] = mf['sha1sum']
     d['save_time'] = datetime.datetime.utcnow()
 
-    if 'hash' in d: del d['hash']
-    if 'uuid' in d: del d['uuid']
-    if '_id_dump' in d: del d['_id_dump']
+    if 'hash' in d:
+        del d['hash']
+    if 'uuid' in d:
+        del d['uuid']
+    if '_id_dump' in d:
+        del d['_id_dump']
 
     return mongo_id, d
 
@@ -51,9 +46,7 @@ class MongoStore():
         self.save_cache = []
 
     def prepare(self, madfile):
-
         return
-
 
     def save(self, madfile):
         """Save data to the mongo database"""
@@ -65,7 +58,6 @@ class MongoStore():
         if madfile['sha1sum'] is None:
             lg.warning("cannot save to mongodb without a sha1sum")
             return
-
 
         mongo_id = madfile['sha1sum'][:24]
 
@@ -88,7 +80,6 @@ class MongoStore():
         if len(self.save_cache) > 50:
             self.flush()
 
-
     def flush(self):
 
         if len(self.save_cache) == 0:
@@ -96,23 +87,11 @@ class MongoStore():
 
         bulk = self.db_core.initialize_unordered_bulk_op()
         for i, r in self.save_cache:
-             bulk.find({'_id': i}).upsert().replace_one(r)
+            bulk.find({'_id': i}).upsert().replace_one(r)
         res = bulk.execute()
         #print(res)
         lg.debug("Modified %d records", res['nModified'])
         self.save_cache = []
-
-            # lg.debug("mongo save {}".format(madfile['inputfile']))
-            # lg.debug("mongo id {}".format(mongo_id))
-
-
-        # #might give an error on update if file has changed
-        # if '_id' in core:
-        #     del core['_id']
-
-        # self.db_core.update({'_id': mongo_id}, core, True)
-        # #self.db_full.update({'_id': mongo_id}, full, True)
-
 
     def load(self, madfile):
         """
@@ -134,9 +113,6 @@ class MongoStore():
         data = self.db_core.find_one({'_id': mongo_id})
         madfile.mad.update(data)
 
-
     def finish(self):
-        lg.warning("cleaning up")
+        lg.debug("cleaning up")
         self.flush()
-
-

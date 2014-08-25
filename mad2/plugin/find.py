@@ -40,7 +40,7 @@ def dehumanize(n):
 @leip.arg('-a', '--do_dot_files', action='store_true',
           help='do not ignore .* files')
 @leip.command
-def find(app, args):
+def scan(app, args):
     """
     (recursively) find and print files may have a mad annotation
     """
@@ -60,12 +60,11 @@ def find(app, args):
         #no sha1file - then check for write access on the directory
         return os.access(d, os.W_OK)
 
-
-
     #lg.setLevel(logging.DEBUG)
     for dirpath, dirnames, filenames in os.walk('.'):
         ui.message("considering %s (%d dirs, %d files)",
-                   dirpath, len(dirnames), len(filenames))
+                   os.path.basename(dirpath), len(dirnames),
+                   len(filenames))
 
         # if it's unlikely that we're able to write sha1sums to a
         # local file, we're not going to process this file

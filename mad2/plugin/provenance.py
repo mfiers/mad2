@@ -1,13 +1,14 @@
 from __future__ import print_function
 
-import datetime
 import logging
 import os
+import socket
+import textwrap
 
 import leip
 
-import mad2.util
-from mad2.util import get_all_mad_files, humansize
+from mad2.util import get_all_mad_files, get_mad_file
+from termcolor import cprint
 
 lg = logging.getLogger(__name__)
 
@@ -17,6 +18,7 @@ lg = logging.getLogger(__name__)
 # @leip.arg('-u', '--used', action='append', default=[])
 # @leip.arg('-g', '--generated_by', action='append', nargs=3, default=[],
 #           help="name version path")
+
 
 @leip.arg('file', nargs="*")
 @leip.command
@@ -28,6 +30,7 @@ def raw(app, args):
         print(madfile.pretty())
 
 
+@leip.flag('-r', '--raw', help='raw output of provenance data')
 @leip.arg('file', nargs="*")
 @leip.command
 def prov(app, args):
@@ -36,44 +39,80 @@ def prov(app, args):
     """
     for madfile in get_all_mad_files(app, args):
         if not 'provenance' in madfile:
-            #nothing to show - continue
+            # nothing to show - continue
             continue
 
         prov_data = madfile['provenance']
         prov_keys = sorted(prov_data.keys())
         latest_key = prov_keys[-1]
         prov = prov_data[latest_key]
-        print("provenance_key: {}".format(latest_key))
-        print(prov.pretty())
+
+        if args.raw:
+            print("provenance_key: {}".format(latest_key))
+            print(prov.pretty())
+            return
+
+        def ccp(*args, **kwargs):
+            if not 'end' in kwargs:
+                kwargs['end'] = ''
+            cprint(*args, **kwargs)
+
+        def cckv(key, val, **kwargs):
+            cprint(key, "yellow", end=": ")
+            cprint(val)
+
+        # pretty output
+        cckv("Date", prov['stopped_at_time'])
+        cckv("Tool", prov['tool_name'])
+        version = prov['tool_version']
+        if len(version) > 50:
+            ccp('Version: ', "yellow")
+            for i, line in enumerate(textwrap.wrap(version,
+                                                   initial_indent="         ",
+                                                   subsequent_indent="     ")):
+                if i == 0:
+                    line = line.strip()
+                print(line)
+        else:
+            cckv("Version", prov['tool_version'])
+
+        ccp("Command line:", "yellow", end="\n")
+        print(" \\\n".join(textwrap.wrap(prov['kea_command_line'],
+                                         initial_indent='  ',
+                                         subsequent_indent='       ')))
+        cprint("Related files:", "yellow")
+        this_host = socket.gethostname()
+
+        for filename in prov['derived_from']:
+            finf = prov['derived_from'][filename]
+            ccp("  " + finf['category'], 'magenta')
+            ccp("/" + filename, "blue")
+            ccp("\n")
+            ccp("    Host: ", "yellow")
+            if finf['host'] == this_host:
+                ccp("{host}\n".format(**finf), "green")
+            else:
+                ccp("{host}\n".format(**finf), "red")
+
+            ccp("    Path: ", "yellow")
+            if finf['host'] == this_host:
+                if os.path.exists(finf['filename']):
+                    ccp("{filename}\n".format(**finf), "green")
+                else:
+                    ccp("{filename}\n".format(**finf), "red")
+            else:
+                ccp("{filename}\n".format(**finf), "grey")
 
 
-#
-#         if args.command_line:
-#             madfile.mad['provenance.command_line'] = args.command_line
-#
-#         derf = madfile.mad['provenance.derived_from']
-#         for derived_from in args.derived_from:
-#             df_mad = mad2.util.get_mad_file(app, derived_from)
-#             df_name = df_mad['filename']
-#             dfid = df_mad['qid']
-#             derf['{}.path'.format(dfid)] = df_mad['fullpath']
-#             derf['{}.host'.format(dfid)] = df_mad['host']
-#             if 'hash.sha1' in df_mad:
-#                 derf['{}.sha1'.format(dfid)] = df_mad['hash.sha1']
-#
-#         if args.used:
-#             used = madfile.mad['provenance.used']
-#         for use in args.used:
-#             use_mad = mad2.util.get_mad_file(app, use)
-#             use_name = use_mad['filename']
-#             usid = use_mad['qid']
-#             used['{}.path'.format(usid)] = use_mad['fullpath']
-#             if 'hash.sha1' in use_mad:
-#                 derf['{}.sha1'.format(dfid)] = use_mad['hash.sha1']
-#
-#         for i, gb in enumerate(args.generated_by):
-#             gb_name, gb_path, gb_version = gb
-#             gby = madfile.mad['provenance.generated_by.' + gb_name]
-#             gby['path'] = gb_path
-#             gby['version'] = gb_version
-#         madfile.save()
+            ccp("    Sha1sum: ", "yellow")
+            if finf['host'] == this_host:
+                fmaf = get_mad_file(app, finf['filename'])
+                if fmaf['sha1sum'] == finf['sha1sum']:
+                    ccp("{sha1sum}\n".format(**finf), "green")
+                else:
+                    ccp("{sha1sum}\n".format(**finf), "red")
+            else:
+                ccp("{sha1sum}\n".format(**finf), "grey")
+
+#        print(finf.pretty())#
+

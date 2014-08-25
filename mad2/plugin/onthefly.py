@@ -10,8 +10,6 @@ import leip
 import fantail
 from pwd import getpwuid
 
-import mad2.hash
-
 lg = logging.getLogger(__name__)
 
 EXTENSION_DATA = None
@@ -83,13 +81,15 @@ def _get_recursive_dir_data(pth):
     last = here
 
     while True:
-        assert(os.path.isdir(here))
 
-        here_c = os.path.join(here, 'mad.config')
-        if os.path.exists(here_c):
-            conf.append(here_c)
+        if os.path.isdir(here):
+
+            here_c = os.path.join(here, 'mad.config')
+            if os.path.exists(here_c):
+                conf.append(here_c)
 
         parent = os.path.dirname(here)
+
         if parent == '/':  # no config in the root - that would be evil!
             break
         last = here
@@ -147,11 +147,6 @@ def recursive_dir_data(app, madfile):
 
 @leip.hook("madfile_pre_load")
 def onthefly(app, madfile):
-
-    # if sorted(list(madfile.keys())) == ['hash']:
-    #     madfile.all['annotated'] = False
-    # else:
-    #     madfile.all['annotated'] = True
 
     lg.debug("running onthelfy")
 
@@ -217,7 +212,7 @@ def onthefly(app, madfile):
 
     # last - but not least
     # make sure the file has a SHA1SUM, and that it is up to date
-    mad2.hash.get_sha1sum_mad(madfile)
+    madfile.check_sha1sum()
 
     lg.debug("finished onthefly")
 
@@ -238,6 +233,7 @@ def user_alias(app, args):
 
     leip.save_local_config_file(loco, 'mad2')
     leip.get_config('mad2', rehash=True)
+
 
 @leip.arg('volume_name')
 @leip.arg('path_fragment')

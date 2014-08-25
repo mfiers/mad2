@@ -32,6 +32,7 @@ setup(name='mad2',
           'pymongo',
           'colorlog',
           'arrow',
+          'termcolor',
           ],
       classifiers=[
           'Development Status :: 4 - Beta',

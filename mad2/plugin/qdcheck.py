@@ -56,7 +56,6 @@ def append_qdsumfile(qdfile, filename, qd):
 def qdhook(app, madfile):
     lg.warning("DEPRECATED")
 
-    lg.critical("Deprecated")
     if madfile.get('orphan', False):
         # won't deal with orphaned files
         return

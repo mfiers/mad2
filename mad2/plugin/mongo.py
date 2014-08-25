@@ -9,10 +9,9 @@ import socket
 
 import hashlib
 
-from pymongo import MongoClient
-from bson.objectid import ObjectId
-
 import arrow
+from pymongo import MongoClient
+from termcolor import cprint
 import yaml
 
 import leip
@@ -49,6 +48,7 @@ def get_mongo_db(app):
 
     return MONGO
 
+
 def get_mongo_core_db(app):
     """
     Get the core collection object
@@ -70,12 +70,14 @@ def get_mongo_core_db(app):
 
     return MONGOCORE
 
+
 def get_mongo_dump_id(mf):
     sha1sum = hashlib.sha1()
     sha1sum.update(mf['sha1sum'])
     sha1sum.update(mf['host'])
     sha1sum.update(mf['fullpath'])
     return sha1sum.hexdigest()[:24]
+
 
 def mongo_prep_mad(mf):
 
@@ -94,7 +96,6 @@ def mongo_prep_mad(mf):
 MONGO_SAVE_CACHE = []
 
 
-
 def mongo_flush(app):
 
     global MONGO_SAVE_CACHE
@@ -105,7 +106,7 @@ def mongo_flush(app):
     bulk = collection.initialize_unordered_bulk_op()
 
     for i, r in MONGO_SAVE_CACHE:
-         bulk.find({'_id': i}).upsert().replace_one(r)
+        bulk.find({'_id': i}).upsert().replace_one(r)
     res = bulk.execute()
 
     #print(res)
@@ -142,9 +143,11 @@ def save_to_mongo_finish(app):
 
     #lg.critical('Finish')
 
+
 @leip.hook("madfile_post_load")
 def add_hook(app, madfile):
     madfile.mad['_id_dump'] = get_mongo_dump_id(madfile)
+
 
 @leip.hook("madfile_save")
 def store_in_mongodb(app, madfile):
@@ -181,6 +184,7 @@ def mongo_show(app, args):
                     continue
                 print('{0}\t{1}'.format(key, rec[key]))
 
+
 @leip.flag('-c', '--core')
 @leip.arg('mongo_id')
 @leip.subcommand(mongo, "get")
@@ -206,6 +210,7 @@ def mongo_get(app, args):
     # for key in rec:
     #     print('{0}\t{1}'.format(key, rec[key]))
 
+
 @leip.flag('-c', '--core')
 @leip.arg('mongo_id')
 @leip.subcommand(mongo, "del")
@@ -220,8 +225,6 @@ def mongo_del(app, args):
 
     mongo_id = args.mongo_id
     MONGO.remove({'_id': mongo_id})
-
-
 
 
 @leip.subcommand(mongo, "count")
@@ -250,10 +253,40 @@ def mongo_last(app, args):
               r['filename'], r.get('_id', '')]))
 
 
+@leip.flag('-e', '--echo')
+@leip.arg('file', nargs="*")
+@leip.command
+def repl(app, args):
+    """
+    Save to mongodb
+    """
+
+    MONGO_mad = get_mongo_db(app)
+
+    for madfile in get_all_mad_files(app, args):
+        print(madfile['sha1sum'])
+        query = {'sha1sum': madfile['sha1sum']}
+        res = MONGO_mad.find(query)
+        for r in res:
+#            print(r)
+
+            if r.get('is_backup_volume'):
+                cprint('B', 'green', end='')
+            else:
+                cprint('O', 'yellow', end='')
+            cprint('%1d' % r['nlink'], end="")
+            cprint(" ", end="")
+            cprint(r['host'], 'cyan', end=':')
+            cprint(r['fullpath'], 'blue')
+
+
+@leip.flag('--delete')
 @leip.arg('-u', '--username')
 @leip.arg('-b', '--backup')
-@leip.subcommand(mongo, "find")
-def mongo_find(app, args):
+@leip.arg('-v', '--volume')
+@leip.arg('-H', '--host')
+@leip.command
+def search(app, args):
     """
     Find files
     """
@@ -262,13 +295,18 @@ def mongo_find(app, args):
 
     query = {}
 
-    for f in ['username', 'backup', 'test']:
+    for f in ['username', 'backup', 'volume', 'host']:
         if not f in args:
             continue
+
         v = getattr(args, f)
         if v is None:
             continue
         query[f] = v
+
+    if args.delete:
+        MONGO_mad.remove(query)
+        return
 
     res = MONGO_mad.find(query)
     for r in res:
