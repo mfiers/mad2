@@ -283,8 +283,10 @@ def repl(app, args):
 @leip.flag('--delete')
 @leip.arg('-u', '--username')
 @leip.arg('-b', '--backup')
+@leip.arg('-B', '--ignore_backup_volumes')
 @leip.arg('-v', '--volume')
 @leip.arg('-H', '--host')
+
 @leip.command
 def search(app, args):
     """

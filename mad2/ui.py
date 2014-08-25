@@ -1,6 +1,8 @@
 import os
 import logging
+import subprocess
 import sys
+import tempfile
 import glob
 
 
@@ -179,6 +181,31 @@ def _check_history_duplicates(value):
                 lg.debug("removing duplicate %s" % value)
                 readline.remove_history_item(histlen-1)
                 break
+
+def askUserEditor(default):
+    editor = os.environ.get('EDITOR', 'vim')
+    tmp_file = tempfile.NamedTemporaryFile('wb', delete=False)
+
+    #write default value to the tmp file
+    if default:
+        tmp_file.write(default + "\n")
+    else:
+        tmp_file.write("\n")
+    tmp_file.close()
+
+    tty = open('/dev/tty')
+
+    subprocess.call('{} {}'.format(editor, tmp_file.name),
+        stdin=tty, shell=True)
+    sys.stdin = sys.__stdin__
+
+
+    #read value back in
+    with open(tmp_file.name, 'r') as F:
+        #removing trailing space
+        val = F.read().rstrip()
+    #remove tmp file
+    os.unlink(tmp_file.name)
 
 def askUser(parameter, appname='mad', default="", data = {},
             xtra_history=None, prompt=None):
