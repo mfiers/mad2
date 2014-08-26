@@ -14,6 +14,9 @@ class SidecarStore():
     def __init__(self, conf):
         self.conf = conf
 
+    def changed(self, madfile):
+        pass
+
     def prepare(self, madfile):
 
         inputfile = madfile['inputfile']
@@ -67,7 +70,12 @@ class SidecarStore():
             else:
                 raise
 
-    def load(self, madfile):
+    def load(self, madfile, sha1sum=None):
+        """
+
+        sha1sum is never used for sidecars
+
+        """
 
         lg.debug("sidecar load: %s", madfile)
 

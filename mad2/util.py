@@ -156,6 +156,7 @@ def get_all_mad_files(app, args, use_stdin=True, warn_on_errors=True):
             if warn_on_errors:
                 lg.warning("Error instantiating %s", filename)
                 lg.warning("Error: %s", str(e))
+                raise
             else:
                 raise
 

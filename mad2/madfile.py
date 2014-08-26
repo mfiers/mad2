@@ -90,7 +90,15 @@ class MadFile(fantail.Fanstack):
         import mad2.hash
         mad2.hash.get_sha1sum_mad(self)
 
-    def load(self):
+    def on_change(self):
+        #call when the madfile gets changed
+        pass
+
+    def load(self, sha1sum=None):
+        """
+        load the record from the database, possibly with an
+        alternative id (used when files change)
+        """
 
         if os.path.exists(self.all['inputfile']):
             self.all['orphan'] = False
@@ -101,7 +109,7 @@ class MadFile(fantail.Fanstack):
 
         for s in self.stores:
             store = self.stores[s]
-            store.load(self)
+            store.load(self, sha1sum=sha1sum)
 
         self.hook_method('madfile_load', self)
         self.hook_method('madfile_post_load', self)

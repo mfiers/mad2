@@ -55,10 +55,10 @@ def get_sha1sum_mad(madfile):
 
     #print(now_time, meta_time)
     lg.debug("stored sha1: %s", stored_sha1)
-    lg.debug(" * now time  : %s", now_time)
-    lg.debug(" * meta time : %s", meta_time)
-    lg.debug(" * now size  : %s", now_size)
-    lg.debug(" * meta size : %s", meta_size)
+    # lg.debug(" * now time  : %s", now_time)
+    # lg.debug(" * meta time : %s", meta_time)
+    # lg.debug(" * now size  : %s", now_size)
+    # lg.debug(" * meta size : %s", meta_size)
 
     if (not stored_sha1 is None) \
             and now_time == meta_time \
@@ -98,24 +98,40 @@ def get_sha1sum_mad(madfile):
         lg.warning("Calculating SHA1SUM for %s", madfile['inputfile'])
     else:
         # there is one, but metadata/qdsum does not match - recalc
-        lg.warning("!! recalculating SHA1SUM for %s", madfile['inputfile'])
+        lg.warning("Recalculating sha1sum for %s", madfile['inputfile'])
+        lg.warning("Old sha1sum: %s", stored_sha1)
 
     sha1 = get_sha1sum(fullpath)
+    lg.warning("Current sha1sum: %s", sha1)
+
     # and save (regardless - if only to update the metadata)
     new_store_sha1(sha1file, metafile, filename,
                    sha1, now_time, now_size)
 
-    madfile.all['sha1sum'] = sha1
+    madfile.all['sha1sum'] = sha1 #should not be necessary.
     madfile.mad['sha1sum'] = sha1
 
     if not stored_sha1 is None and \
             sha1 != stored_sha1:
         lg.warning("File changed: %s", madfile['inputfile'])
+
+        #load the old data!
+        lg.warning("load data from old record (%s)", stored_sha1)
+        madfile.load(stored_sha1)
+
         # store old sha1 for posterity
-        madfile['past_sha1sums'] = \
-            madfile.mad.get('past_sha1sums', []) \
-            + [stored_sha1]
-        madfile.dirty = True
+        print madfile.mad['old_sha1sum']
+        if not isinstance(madfile.mad['old_sha1sum'], list):
+            madfile.mad['old_sha1sum'] = []
+        while stored_sha1 in madfile.mad['old_sha1sum']:
+            madfile.mad['old_sha1sum'].remove(stored_sha1)
+        madfile.mad['old_sha1sum'].insert(0, stored_sha1)
+
+
+        #since the sha1 is stored in the database - reset this
+        #to make sure we use the new sha1sum from now on
+        madfile.all['sha1sum'] = sha1 #should not be necessary.
+        madfile.mad['sha1sum'] = sha1
         madfile.save()
 
 

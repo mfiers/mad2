@@ -48,6 +48,9 @@ class MongoStore():
     def prepare(self, madfile):
         return
 
+    def changed(self, madfile):
+        pass
+
     def save(self, madfile):
         """Save data to the mongo database"""
 
@@ -74,7 +77,7 @@ class MongoStore():
         core['_id'] = mongo_id
         del core['_id']
 
-        lg.debug("saving to id %s", mongo_id)
+        lg.warning("saving to id %s", mongo_id)
         self.save_cache.append((mongo_id, core))
 
         if len(self.save_cache) > 50:
@@ -93,18 +96,22 @@ class MongoStore():
         lg.debug("Modified %d records", res['nModified'])
         self.save_cache = []
 
-    def load(self, madfile):
+    def load(self, madfile, sha1sum):
         """
-        Load the
+        Load the file from the databse,
+        possibly with an alternative sha1sum
         """
 
-        if not 'sha1sum' in madfile:
+        if not sha1sum is None:
+            lg.warning("load from record with alternative cs %s", sha1sum)
+            sha1 = sha1sum
+        else:
+
+            sha1 = madfile.get('sha1sum')
+
+        if sha1 is None:
             return
 
-        if madfile['sha1sum'] is None:
-            return
-
-        sha1 = madfile['sha1sum']
         mongo_id = sha1[:24]
         lg.debug("getting mad data for {}".format(
                  madfile['inputfile']))
