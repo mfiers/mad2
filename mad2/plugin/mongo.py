@@ -140,7 +140,7 @@ def save_to_mongo(app, madfile):
         MONGO_REMOVE_CACHE.append(mongo_id)
         lg.warning("removing %s from dump db", madfile['inputfile'])
     else:
-        print(newrec['host'])
+        #print(newrec['host'])
         MONGO_SAVE_CACHE.append((mongo_id, newrec))
 
     if len(MONGO_SAVE_CACHE)  + len(MONGO_REMOVE_CACHE) > 33:
@@ -451,8 +451,51 @@ def mongo_sum2(app, args):
     else:
         print("Total\t\t{}\t{}".format(total_size, total_count))
 
+
+@leip.flag('--remove-from-core', help='also remove from the core db')
+@leip.arg('file', nargs="*")
+@leip.command
+def forget(app, args):
+    MONGO = get_mongo_db(app)
+    MONGO_CORE = get_mongo_core_db(app)
+    to_remove = []
+    to_remove_core = []
+
+    def go(coll, lst):
+        coll.remove( {'_id' : { '$in' : lst } } )
+
+    for madfile in get_all_mad_files(app, args):
+        to_remove.append(madfile['_id_dump'])
+        if args.remove_from_core:
+            to_remove_core.append(['_id'])
+
+        if len(to_remove) > 100:
+            go(MONGO, to_remove)
+            to_remove = []
+        if len(to_remove_core) > 100:
+            go(MONGO_CORE, to_remove_core)
+            to_remove_core = []
+
+    go(MONGO, to_remove)
+    go(MONGO_CORE, to_remove_core)
+
+
+@leip.flag('--remove-from-core', help='also remove from the core db')
 @leip.flag('--run', help='actually run - otherwise it\'s a dry run showing ' +
            'what would be deleted')
+@leip.arg('dir', nargs="?", default='.')
+@leip.flag('-e', '--echo', help='echo all files')
+@leip.command
+def forget_dir(app, args):
+    args.forget_all = True
+    flush_dir(app, args)
+
+
+@leip.flag('--remove-from-core', help='also remove from the core db')
+@leip.flag('--run', help='actually run - otherwise it\'s a dry run showing ' +
+           'what would be deleted')
+@leip.flag('--forget-all', help='forget all files in this directory ' +
+           'and below')
 @leip.flag('-e', '--echo', help='echo all files')
 @leip.arg('dir', nargs='?', default='.')
 @leip.command
@@ -462,6 +505,7 @@ def flush_dir(app, args):
     """
 
     MONGO_mad = get_mongo_db(app)
+    MONGO_core = get_mongo_core_db(app)
 
     host = socket.gethostname()
     wd = os.path.abspath(os.getcwd())
@@ -473,6 +517,7 @@ def flush_dir(app, args):
         'dirname' : rex}
 
     ids_to_remove = []
+    core_to_remove = []
 
     if args.run:
         pass
@@ -480,25 +525,38 @@ def flush_dir(app, args):
     res = MONGO_mad.find(query)
     for r in res:
 
-
         if os.path.exists(r['fullpath']):
             if args.echo:
                 print("+ " + r['fullpath'])
-                continue
+                if not args.forget_all:
+                    continue
         else:
             print("- " + r['fullpath'])
 
         ids_to_remove.append(r['_id'])
+        if args.remove_from_core:
+            core_to_remove.append(r['sha1sum'][:24])
 
         if args.run and len(ids_to_remove) >= 100:
             lg.warning("removing %d records", len(ids_to_remove))
             MONGO_mad.remove( {'_id' : { '$in' : ids_to_remove } } )
             ids_to_remove = []
 
+        if args.run and args.remove_from_core and \
+                len(core_to_remove) >= 100:
+            lg.warning("removing %d records from core",
+                       len(core_to_remove))
+            MONGO_core.remove( {'_id' : { '$in' : core_to_remove } } )
+            core_to_remove = []
+
     if args.run:
         lg.warning("removing %d records", len(ids_to_remove))
         MONGO_mad.remove( {'_id' : { '$in' : ids_to_remove } } )
 
+    if args.run and args.remove_from_core:
+            lg.warning("removing %d records from core",
+                       len(core_to_remove))
+            MONGO_core.remove( {'_id' : { '$in' : core_to_remove } } )
 
 @leip.flag('-f', '--force')
 @leip.subcommand(mongo, "drop")
@@ -629,6 +687,8 @@ WASTE_PIPELINE = [
     {"$group": {"_id": None,
                 "no_files": {"$sum": 1 },
                 "waste": {"$sum": "$waste" }}}]
+
+
 
 @leip.flag('-f', '--force')
 @leip.command
