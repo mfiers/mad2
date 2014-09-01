@@ -122,6 +122,9 @@ def save_to_mongo(app, madfile):
 
     MONGO_SAVE_COUNT += 1
 
+    if madfile['orphan'] == True:
+        lg.warning("removing %s from dump db", madfile['inputfile'])
+
     mongo_id, newrec = mongo_prep_mad(madfile)
 
     MONGO_SAVE_CACHE.append((mongo_id, newrec))
@@ -596,7 +599,6 @@ def _run_mongo_command(app, name, collection, query, kwargs={}, force=False):
 
 WASTE_PIPELINE = [
     {"$sort": {"sha1sum": 1 } },
-    {"$limit": 100 },
     {"$project": {"filesize": 1,
                    "sha1sum": 1,
                    "usage": {"$divide": ["$filesize", "$nlink"]}}},

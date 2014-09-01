@@ -62,6 +62,7 @@ class MongoStore():
 
         if madfile['orphan']:
             lg.warning("Will not save non-existing files")
+            return
 
         mongo_id = madfile['sha1sum'][:24]
 
