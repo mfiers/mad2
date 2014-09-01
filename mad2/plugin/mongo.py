@@ -131,11 +131,12 @@ def save_to_mongo(app, madfile):
 
     MONGO_SAVE_COUNT += 1
 
+    mongo_id, newrec = mongo_prep_mad(madfile)
+
     if madfile['orphan']:
         MONGO_REMOVE_CACHE.append(mongo_id)
         lg.warning("removing %s from dump db", madfile['inputfile'])
 
-    mongo_id, newrec = mongo_prep_mad(madfile)
 
     MONGO_SAVE_CACHE.append((mongo_id, newrec))
 
