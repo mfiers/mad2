@@ -52,7 +52,8 @@ def root(app, madfile):
         return
 
 
-    if os.path.exists(madname):
+    if not madname is None and \
+            os.path.exists(madname):
         fstats = os.stat(filename)
         os.chown(madname, fstats.st_uid, fstats.st_gid)
 
