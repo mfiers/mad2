@@ -25,8 +25,12 @@ def root(app, madfile):
     sha1name = os.path.join(dirname, 'SHA1SUMS')
     metaname = os.path.join(dirname, 'SHA1SUMS.META')
 
-    qdname = os.path.join(dirname, 'QDSUMS')
+    if not os.path.exists(dirname):
+        #can't do much if there is not containing directory
+        return
+
     dstats = os.stat(dirname)
+
 
     #attempt to set  permissions as non root
     try:
@@ -42,8 +46,6 @@ def root(app, madfile):
             os.chmod(sha1name, 0o664)
         if os.path.exists(metaname):
             os.chmod(metaname, 0o664)
-        if os.path.exists(qdname):
-            os.chmod(qdname, 0o664)
     except:
         pass
 
@@ -63,5 +65,3 @@ def root(app, madfile):
     if os.path.exists(metaname):
         os.chown(metaname, dstats.st_uid, dstats.st_gid)
 
-    if os.path.exists(qdname):
-        os.chown(qdname, dstats.st_uid, dstats.st_gid)
