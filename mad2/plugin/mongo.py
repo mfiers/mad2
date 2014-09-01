@@ -111,12 +111,12 @@ def mongo_flush(app):
 
     for i, r in MONGO_SAVE_CACHE:
         bulk.find({'_id': i}).upsert().replace_one(r)
+    res = bulk.execute()
 
     for i in MONGO_REMOVE_CACHE:
-        print(dir(bulk))
-        bulk.remove({'_id': i})
+        #should try to do this in bulk, but uncertain how...
+        collection.remove({'_id': i})
 
-    res = bulk.execute()
 
     #print(res)
     lg.debug("Modified %d records", res['nModified'])
