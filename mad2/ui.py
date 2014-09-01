@@ -11,10 +11,10 @@ def message(txt, *args):
     Message to the user (always on stderr)
     """
     if not sys.stderr.isatty():
-        sys.stderr.write(txt.rstrip() % args + "\n")
+        sys.stderr.write('Mad: ' + txt.rstrip() % args + "\n")
         return
 
-    sys.stderr.write('\033[1;97;48;5;70mMad:\033[0m ')
+    sys.stderr.write('\033[1;97;48;5;70mMad\033[0m: ')
     sys.stderr.write(txt.strip() % args + "\n")
 
 def error(txt, *args):
