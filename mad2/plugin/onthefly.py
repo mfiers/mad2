@@ -142,7 +142,7 @@ def project(app, args):
 def recursive_dir_data(app, madfile):
     y = _get_recursive_dir_data(madfile['fullpath'])
     # insert in the stack just after the mad file
-    madfile.mad.update(y)
+    madfile.all.update(y)
 
 
 @leip.hook("madfile_pre_load")
