@@ -23,6 +23,7 @@ def get_sha1sum_mad(madfile):
     global SHA1CACHE
 
     if madfile['orphan'] == True:
+        lg.warning("ORPHAN ALERT!")
         madfile.mad['sha1sum'] = ""
 #        madfile.all['sha1sum'] = ""
         return

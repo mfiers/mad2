@@ -19,7 +19,7 @@ import yaml
 import leip
 
 from mad2.util import get_all_mad_files, humansize, persistent_cache
-
+from mad2.ui import message
 
 lg = logging.getLogger(__name__)
 
@@ -75,7 +75,7 @@ def get_mongo_core_db(app):
 
 def get_mongo_dump_id(mf):
     sha1sum = hashlib.sha1()
-    sha1sum.update(mf['sha1sum'])
+    #sha1sum.update(mf['sha1sum'])
     sha1sum.update(mf['host'])
     sha1sum.update(mf['fullpath'])
     return sha1sum.hexdigest()[:24]
@@ -434,7 +434,6 @@ def mongo_sum2(app, args):
     else:
         print("Total\t\t{}\t{}".format(total_size, total_count))
 
-
 @leip.flag('--run', help='actually run - otherwise it\'s a dry run showing ' +
            'what would be deleted')
 @leip.flag('-e', '--echo', help='echo all files')
@@ -522,6 +521,66 @@ def mongo_index(app, args):
         print("create index on: {}".format(f))
         MONGO_mad.ensure_index(f)
 
+@persistent_cache(leip.get_cache_dir('mad2', 'mongo', 'keys'),
+                  1, 60*60*24)
+def _get_mongo_keys(app, collection, force=False):
+    from bson.code import Code
+    mapper = Code("""
+        function() {
+            for (var key in this) { emit(key, 1); }
+        } """)
+
+    rv = {}
+
+    reducer = Code("function(key, vals) { return Array.sum(vals); }")
+    if collection == 'dump':
+        message("Get keys from the dump db")
+        COLLECTION = get_mongo_db(app)
+    else:
+        message("Get keys from the core db")
+        COLLECTION = get_mongo_core_db(app)
+
+    res =  COLLECTION.map_reduce(mapper, reducer, "my_collection" + "_keys")
+
+    for r in res.find():
+        rv[r['_id']] = int(r['value'])
+
+    return rv
+
+
+@leip.flag('-f', '--force')
+@leip.subcommand(mongo, 'keys')
+def mongo_keys(app, args):
+    dump = _get_mongo_keys(app, 'dump', force=args.force)
+    core = _get_mongo_keys(app, 'core', force=args.force)
+    all_keys = list(sorted(set(dump.keys()) | set(core.keys())))
+    max_key_len = max([len(x) for x in all_keys])
+    print( ('%-' + str(max_key_len) + 's: %12s %12s') % (
+          '#key', 'dump', 'core'))
+
+    for k in all_keys:
+        print( ('%-' + str(max_key_len) + 's: %12s %12s') % (
+              k, dump.get(k, ''), core.get(k, '')))
+
+
+@leip.flag('--I-am-sure')
+@leip.arg('key')
+@leip.arg('database', choices=['core', 'dump'])
+@leip.subcommand(mongo, 'remove_key_from_db')
+def mongo_remove_key(app, args):
+    lg.warning("removing %s from the %s db", args.key, args.database)
+    if args.database == 'core':
+        COLLECTION = get_mongo_core_db(app)
+    elif args.databse == 'dump':
+        COLLECTION = get_mongo_db(app)
+
+    print(COLLECTION)
+    query = {args.key : {'$exists': True}}
+    update = {"$unset": { args.key: "" }}
+    print(query)
+    print(update)
+    COLLECTION.update(query, update, multi=True)
+
 
 @persistent_cache(leip.get_cache_dir('mad2', 'mongo', 'command'),
                   1,  1)
@@ -529,8 +588,6 @@ def _run_mongo_command(app, name, collection, query, kwargs={}, force=False):
     """
     Execute mongo command.
     """
-    MONGO_mad = get_mongo_db(app)
-
     MONGO_mad = get_mongo_db(app)
     res = MONGO_mad.database.command(query, collection, **kwargs)
 

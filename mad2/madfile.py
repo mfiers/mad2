@@ -91,7 +91,11 @@ class MadFile(fantail.Fanstack):
         mad2.hash.get_sha1sum_mad(self)
 
     def on_change(self):
-        #call when the madfile gets changed
+        #call when the file has been changed
+        pass
+
+    def on_delete(self):
+        #call when the file has been is deleted
         pass
 
     def load(self, sha1sum=None):

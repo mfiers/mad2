@@ -21,9 +21,7 @@ import fantail
 
 
 lg = logging.getLogger(__name__)
-
-
-# lg.setLevel(logging.DEBUG)
+#lg.setLevel(logging.DEBUG)
 
 #
 # Helper function - instantiate a madfile, and provide it with a
@@ -49,7 +47,7 @@ def persistent_cache(path, cache_on, duration):
                 cache_name = args[cache_on]
 
             full_cache_name = os.path.join(path, cache_name)
-
+            lg.debug("cache file: %s", full_cache_name)
             run = False
 
             if kwargs.get('force'):
@@ -64,18 +62,23 @@ def persistent_cache(path, cache_on, duration):
                 mtime = os.path.getmtime(full_cache_name)
                 age = time.time() - mtime
                 if age > duration:
+                    lg.debug("Cache file is too recent")
+                    lg.debug("age: %d", age)
+                    lg.debug("cache refresh: %d", duration)
                     run = True
 
             if not run:
                 #load from cache
+                lg.debug("loading from cache: %s", full_cache_name)
                 with open(full_cache_name) as F:
                     res = cPickle.load(F)
                     return res
 
 
             #no cache - create
+            lg.debug("no cache - running function %s", original_func)
             rv = original_func(*args, **kwargs)
-            print('write cache')
+            lg.debug('write to cache: %s', full_cache_name)
 
             if not os.path.exists(path):
                 os.makedirs(path)

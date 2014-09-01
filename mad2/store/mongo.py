@@ -11,6 +11,8 @@ MONGO_SAVE_CACHE = []
 MONGO_SAVE_COUNT = 0
 MNG = None
 
+#These fields we do not want to see in the core database
+FORBIDDEN = ['hash', 'uuid', '_id_dump', 'host', 'volume']
 
 def mongo_prep_mad(mf):
 
@@ -21,13 +23,9 @@ def mongo_prep_mad(mf):
     d['sha1sum'] = mf['sha1sum']
     d['save_time'] = datetime.datetime.utcnow()
 
-    if 'hash' in d:
-        del d['hash']
-    if 'uuid' in d:
-        del d['uuid']
-    if '_id_dump' in d:
-        del d['_id_dump']
-
+    for f in FORBIDDEN:
+        if f in d:
+            del d[f]
     return mongo_id, d
 
 
@@ -62,6 +60,9 @@ class MongoStore():
             lg.warning("cannot save to mongodb without a sha1sum")
             return
 
+        if madfile['orphan']:
+            lg.warning("Will not save non-existing files")
+
         mongo_id = madfile['sha1sum'][:24]
 
         core = dict(madfile.mad)
@@ -77,7 +78,7 @@ class MongoStore():
         core['_id'] = mongo_id
         del core['_id']
 
-        lg.warning("saving to id %s", mongo_id)
+        lg.debug("saving to id %s", mongo_id)
         self.save_cache.append((mongo_id, core))
 
         if len(self.save_cache) > 50:

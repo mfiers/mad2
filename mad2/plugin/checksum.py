@@ -92,6 +92,9 @@ def save(app, args):
     note - this ensures that the sha1sum is calculated
     """
     for madfile in get_all_mad_files(app, args):
+        if madfile['orphan']:
+            lg.warning("removing %s", madfile['inputfile'])
+            lg.warning("sha1sum is/was: %s", madfile['sha1sum'])
         madfile.save()
         if args.echo:
             print madfile['inputfile']
