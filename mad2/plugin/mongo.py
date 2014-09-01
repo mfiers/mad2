@@ -139,9 +139,9 @@ def save_to_mongo(app, madfile):
     if madfile['orphan']:
         MONGO_REMOVE_CACHE.append(mongo_id)
         lg.warning("removing %s from dump db", madfile['inputfile'])
-
-
-    MONGO_SAVE_CACHE.append((mongo_id, newrec))
+    else:
+        print(newrec['host'])
+        MONGO_SAVE_CACHE.append((mongo_id, newrec))
 
     if len(MONGO_SAVE_CACHE)  + len(MONGO_REMOVE_CACHE) > 33:
         mongo_flush(app)
