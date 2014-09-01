@@ -25,6 +25,7 @@ lg = logging.getLogger(__name__)
 
 MONGO_SAVE_CACHE = []
 MONGO_SAVE_COUNT = 0
+MONGO_REMOVE_COUNT = 0
 MONGO = None
 MONGOCORE = None
 
@@ -96,40 +97,49 @@ def mongo_prep_mad(mf):
     return mongo_id, d
 
 MONGO_SAVE_CACHE = []
-
+MONGO_REMOVE_CACHE = []
 
 def mongo_flush(app):
 
+    global MONGO_REMOVE_CACHE
     global MONGO_SAVE_CACHE
-    if len(MONGO_SAVE_CACHE) == 0:
-        return
 
-    collection = get_mongo_db(app)
-    bulk = collection.initialize_unordered_bulk_op()
+    if (len(MONGO_SAVE_CACHE) + len(MONGO_REMOVE_CACHE)) > 0:
+
+        collection = get_mongo_db(app)
+        bulk = collection.initialize_unordered_bulk_op()
 
     for i, r in MONGO_SAVE_CACHE:
         bulk.find({'_id': i}).upsert().replace_one(r)
+
+    for i in MONGO_REMOVE_CACHE:
+        bulk.remove({'_id': i})
+
     res = bulk.execute()
 
     #print(res)
     lg.debug("Modified %d records", res['nModified'])
     MONGO_SAVE_CACHE = []
+    MONGO_REMOVE_CACHE= []
 
 
 def save_to_mongo(app, madfile):
     global MONGO_SAVE_COUNT
     global MONGO_SAVE_CACHE
+    global MONGO_REMOVE_CACHE
+    global MONGO_REMOVE_COUNT
 
     MONGO_SAVE_COUNT += 1
 
-    if madfile['orphan'] == True:
+    if madfile['orphan']:
+        MONGO_REMOVE_CACHE.append(mongo_id)
         lg.warning("removing %s from dump db", madfile['inputfile'])
 
     mongo_id, newrec = mongo_prep_mad(madfile)
 
     MONGO_SAVE_CACHE.append((mongo_id, newrec))
 
-    if len(MONGO_SAVE_CACHE) > 33:
+    if len(MONGO_SAVE_CACHE)  + len(MONGO_REMOVE_CACHE) > 33:
         mongo_flush(app)
 
 
