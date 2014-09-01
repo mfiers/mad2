@@ -116,6 +116,7 @@ def mongo_flush(app):
 
     for i in MONGO_REMOVE_CACHE:
         #should try to do this in bulk, but uncertain how...
+        lg.warning("removing id: %s", i)
         collection.remove({'_id': i})
 
 
