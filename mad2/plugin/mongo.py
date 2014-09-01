@@ -113,6 +113,7 @@ def mongo_flush(app):
         bulk.find({'_id': i}).upsert().replace_one(r)
 
     for i in MONGO_REMOVE_CACHE:
+        print(dir(bulk))
         bulk.remove({'_id': i})
 
     res = bulk.execute()
