@@ -3,12 +3,14 @@
 import collections
 import functools
 
+import cPickle
 import errno
 import logging
 import os
 import re
 import select
 import sys
+import time
 
 from termcolor import cprint
 
@@ -29,6 +31,62 @@ lg = logging.getLogger(__name__)
 #
 
 STORES = None
+
+
+
+def persistent_cache(path, cache_on, duration):
+    """
+    Disk persistent cache that reruns a function once every
+    'duration' no of seconds
+    """
+    def decorator(original_func):
+
+        def new_func(*args, **kwargs):
+
+            if isinstance(cache_on, str):
+                cache_name = kwargs[cache_on]
+            elif isinstance(cache_on, int):
+                cache_name = args[cache_on]
+
+            full_cache_name = os.path.join(path, cache_name)
+
+            run = False
+
+            if kwargs.get('force'):
+                run = True
+
+            if not os.path.exists(full_cache_name):
+                #file does not exist. Run!
+                run = True
+            else:
+                #file exists - but is it more recent than
+                #duration (in seconds)
+                mtime = os.path.getmtime(full_cache_name)
+                age = time.time() - mtime
+                if age > duration:
+                    run = True
+
+            if not run:
+                #load from cache
+                with open(full_cache_name) as F:
+                    res = cPickle.load(F)
+                    return res
+
+
+            #no cache - create
+            rv = original_func(*args, **kwargs)
+            print('write cache')
+
+            if not os.path.exists(path):
+                os.makedirs(path)
+            with open(full_cache_name, 'wb') as F:
+                cPickle.dump(rv, F)
+
+            return rv
+
+        return new_func
+
+    return decorator
 
 
 def initialize_stores(app):

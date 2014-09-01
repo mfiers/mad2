@@ -132,6 +132,7 @@ def get_sha1sum_mad(madfile):
         #to make sure we use the new sha1sum from now on
         madfile.all['sha1sum'] = sha1 #should not be necessary.
         madfile.mad['sha1sum'] = sha1
+
         madfile.save()
 
 

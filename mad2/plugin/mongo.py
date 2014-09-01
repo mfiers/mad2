@@ -1,9 +1,11 @@
 from __future__ import print_function
 
+import cPickle
 import datetime
 import logging
 import os
 import re
+import time
 
 import socket
 
@@ -16,7 +18,7 @@ import yaml
 
 import leip
 
-from mad2.util import get_all_mad_files, humansize
+from mad2.util import get_all_mad_files, humansize, persistent_cache
 
 
 lg = logging.getLogger(__name__)
@@ -126,15 +128,6 @@ def save_to_mongo(app, madfile):
 
     if len(MONGO_SAVE_CACHE) > 33:
         mongo_flush(app)
-        # # bulk = MONGO.initialize_unordered_bulk_op()
-
-        # #     print(r)
-        # #     bulk.update({'_id' : i}, r, True)
-        # # res = bulk.execute()
-        # # print(res)
-        # for i, r in MONGO_SAVE_CACHE:
-        #    MONGO.update({'_id': i}, r, True)
-        # MONGO_SAVE_CACHE = []
 
 
 @leip.hook("finish")
@@ -207,8 +200,6 @@ def mongo_get(app, args):
     if not rec:
         return
     print(yaml.safe_dump(rec, default_flow_style=False))
-    # for key in rec:
-    #     print('{0}\t{1}'.format(key, rec[key]))
 
 
 @leip.flag('-c', '--core')
@@ -286,6 +277,7 @@ def repl(app, args):
 @leip.arg('-B', '--ignore_backup_volumes')
 @leip.arg('-v', '--volume')
 @leip.arg('-H', '--host')
+@leip.arg('-s', '--sha1sum')
 @leip.command
 def search(app, args):
     """
@@ -296,7 +288,8 @@ def search(app, args):
 
     query = {}
 
-    for f in ['username', 'backup', 'volume', 'host']:
+    for f in ['username', 'backup', 'volume', 'host',
+              'sha1sum']:
         if not f in args:
             continue
 
@@ -314,6 +307,25 @@ def search(app, args):
         print(r['fullpath'])
 
 
+@persistent_cache(leip.get_cache_dir('mad2', 'mongo', 'sum'),
+                  'group_by', 60 * 60 * 24)
+def _single_sum(app, group_by=None, force=False):
+    groupby_field = "${}".format(group_by)
+    MONGO_mad = get_mongo_db(app)
+
+    res = MONGO_mad.aggregate([
+        {'$group': {
+            "_id": groupby_field,
+            "total": {"$sum": "$filesize"},
+            "count": {"$sum": 1}}},
+        {"$sort" : { "total": -1
+                  }}])
+
+    return res['result']
+
+
+@leip.flag('-f', '--force', help='force query (otherwise use cache, and'
+           + ' query only once per day')
 @leip.flag('-H', '--human', help='human readable')
 @leip.arg('group_by', nargs='?', default='host')
 @leip.subcommand(mongo, "sum")
@@ -321,29 +333,21 @@ def mongo_sum(app, args):
     """
     Show the associated mongodb record
     """
-    groupby_field = "${}".format(args.group_by)
-    MONGO_mad = get_mongo_db(app)
-    res = MONGO_mad.aggregate([
-        {'$group': {
-            "_id": groupby_field,
-            "total": {"$sum": "$filesize"},
-            "count": {"$sum": 1}}},
-        {"$sort" : { "total": -1
-                  }}
-    ])
+
+    res = _single_sum(app, group_by=args.group_by, force=args.force)
     total_size = long(0)
     total_count = 0
 
     mgn = len("Total")
-    for reshost in res['result']:
+    for reshost in res:
         gid = reshost['_id']
         if gid is None:
             mgn = max(4, mgn)
         else:
-            mgn = max(len(reshost['_id']), mgn)
+            mgn = max(len(str(reshost['_id'])), mgn)
 
     fms = "{:" + str(mgn) + "}\t{:>10}\t{:>9}"
-    for reshost in res['result']:
+    for reshost in res:
         total = reshost['total']
         count = reshost['count']
         total_size += long(total)
@@ -394,7 +398,7 @@ def mongo_sum2(app, args):
                 "total": {"$sum": "$filesize"},
                 "count": {"$sum": 1}}},
              {"$sort" : {
-                sort_field: sort_order
+              "sort_field": sort_order
               }}
         ])
     total_size = 0
@@ -435,8 +439,8 @@ def mongo_sum2(app, args):
            'what would be deleted')
 @leip.flag('-e', '--echo', help='echo all files')
 @leip.arg('dir', nargs='?', default='.')
-@leip.subcommand(mongo, 'flush_dir')
-def mongo_flush_dir(app, args):
+@leip.command
+def flush_dir(app, args):
     """
     Recursively flush deleted files from the dump db
     """
@@ -517,3 +521,71 @@ def mongo_index(app, args):
     for f in app.conf['plugin.mongo.indici']:
         print("create index on: {}".format(f))
         MONGO_mad.ensure_index(f)
+
+
+@persistent_cache(leip.get_cache_dir('mad2', 'mongo', 'command'),
+                  1,  1)
+def _run_mongo_command(app, name, collection, query, kwargs={}, force=False):
+    """
+    Execute mongo command.
+    """
+    MONGO_mad = get_mongo_db(app)
+
+    MONGO_mad = get_mongo_db(app)
+    res = MONGO_mad.database.command(query, collection, **kwargs)
+
+    return res
+
+
+WASTE_PIPELINE = [
+    {"$sort": {"sha1sum": 1 } },
+    {"$limit": 100 },
+    {"$project": {"filesize": 1,
+                   "sha1sum": 1,
+                   "usage": {"$divide": ["$filesize", "$nlink"]}}},
+    {"$group": {"_id": "$sha1sum",
+                 "no_records": {"$sum": 1 },
+                 "mean_usage": {"$avg": "$usage" },
+                 "total_usage": {"$sum": "$usage" },
+                 "filesize": {"$max": "$filesize" }}},
+     {"$project": {"filesize": 1,
+                   "sha1sum": 1,
+                   "total_usage": 1,
+                   "waste": {"$subtract": ["$total_usage", "$filesize"]}}},
+    {"$match": {"waste": {"$gt": 500}}},
+    {"$group": {"_id": None,
+                "no_files": {"$sum": 1 },
+                "waste": {"$sum": "$waste" }}}]
+
+@leip.flag('-f', '--force')
+@leip.command
+def waste(app, args):
+
+    mongo_info = app.conf['plugin.mongo']
+    coll = mongo_info.get('collection', 'mad2')
+
+    print(WASTE_PIPELINE)
+    # res = _run_mongo_command(app, 'waste',  coll, WASTE_QUERY)
+    # print(res)
+# get
+
+# db.runCommand(
+#   { "aggregate": "dump",
+#     "pipeline": [
+#     { "$sort": { "sha1sum": 1 } },
+#     { "$project": { "filesize": 1,  "sha1sum": 1,
+#                   "usage": { "$divide": [ "$filesize", "$nlink" ] } } },
+#     { "$group": { "_id": "$sha1sum",
+#                "no_records": { "$sum": NumberInt(1) },
+#                "mean_usage": { "$avg": "$usage" },
+#                "total_usage": { "$sum": "$usage" },
+#                "filesize": { "$max": "$filesize" } } },
+#      { "$project": { "filesize": 1, "sha1sum": 1, "total_usage": 1,
+#                   "waste": {"$subtract": ["$total_usage", "$filesize"] } } },
+#     { "$match": {"waste": {"$gt": 500} } },
+#     { "$group": { "_id": null,
+#                 "no_files": { "$sum": NumberInt(1) },
+#                 "waste": { "$sum": "$waste" } } },
+# ], "allowDiskUse": true }
+# )
+
