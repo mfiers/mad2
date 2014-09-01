@@ -104,10 +104,11 @@ def mongo_flush(app):
     global MONGO_REMOVE_CACHE
     global MONGO_SAVE_CACHE
 
-    if (len(MONGO_SAVE_CACHE) + len(MONGO_REMOVE_CACHE)) > 0:
+    if (len(MONGO_SAVE_CACHE) + len(MONGO_REMOVE_CACHE)) == 0:
+        return
 
-        collection = get_mongo_db(app)
-        bulk = collection.initialize_unordered_bulk_op()
+    collection = get_mongo_db(app)
+    bulk = collection.initialize_unordered_bulk_op()
 
     for i, r in MONGO_SAVE_CACHE:
         bulk.find({'_id': i}).upsert().replace_one(r)
