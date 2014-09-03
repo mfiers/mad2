@@ -1,1 +1,2 @@
-recursive-include mad2/etc *.config *.txt
+recursive-include mad2/etc *.config *.txt
+recursive-include mad2/template *.html *.js *.css
