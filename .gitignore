@@ -8,3 +8,5 @@ mad2.sublime-project
 mad2.sublime-workspace
 *.swp
 dist/
+SHA1SUMS
+SHA1SUMS.META
