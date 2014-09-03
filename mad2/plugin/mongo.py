@@ -528,8 +528,8 @@ def flush_dir(app, args):
         if os.path.exists(r['fullpath']):
             if args.echo:
                 print("+ " + r['fullpath'])
-                if not args.forget_all:
-                    continue
+            if not args.forget_all:
+                continue
         else:
             print("- " + r['fullpath'])
 
@@ -543,7 +543,7 @@ def flush_dir(app, args):
             ids_to_remove = []
 
         if args.run and args.remove_from_core and \
-                len(core_to_remove) >= 100:
+                len(core_to_remove) >= 200:
             lg.warning("removing %d records from core",
                        len(core_to_remove))
             MONGO_core.remove( {'_id' : { '$in' : core_to_remove } } )
