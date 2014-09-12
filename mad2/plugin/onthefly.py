@@ -190,10 +190,10 @@ def onthefly(app, madfile):
         filestat.st_atime)
 
     madfile.all['atime'] = atime
-    madfile.all['atime_simple'] = atime.strftime("%Y/%m/1")
+#    madfile.all['atime_simple'] = atime.strftime("%Y/%m/1")
 
     madfile.all['mtime'] = mtime
-    madfile.all['mtime_simple'] = mtime.strftime("%Y/%m/1")
+#    madfile.all['mtime_simple'] = mtime.strftime("%Y/%m/1")
     madfile.all['basename'] = madfile.all['filename']
 
     apply_file_format(app, madfile)
