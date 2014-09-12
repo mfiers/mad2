@@ -144,6 +144,14 @@ def recursive_dir_data(app, madfile):
     # insert in the stack just after the mad file
     madfile.all.update(y)
 
+    keywords = app.conf['keywords']
+
+    #add all non transient keys to the core database
+    for k in y:
+        if keywords[k]['transient']:
+            continue
+        madfile.mad[k] = y[k]
+
 
 @leip.hook("madfile_pre_load")
 def onthefly(app, madfile):
