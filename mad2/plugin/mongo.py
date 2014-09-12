@@ -65,7 +65,7 @@ def get_mongo_core_db(app):
     host = info.get('host', 'localhost')
     port = info.get('port', 27017)
     dbname = info.get('db', 'mad2')
-    coll = info.get('collection', 'core')
+    coll = info.get('collection', 'dump')
     lg.debug("connect mongodb %s:%s/%s/%s", host, port, dbname, coll)
     client = MongoClient(host, port)
 
@@ -76,7 +76,6 @@ def get_mongo_core_db(app):
 
 def get_mongo_dump_id(mf):
     sha1sum = hashlib.sha1()
-    #sha1sum.update(mf['sha1sum'])
     sha1sum.update(mf['host'])
     sha1sum.update(mf['fullpath'])
     return sha1sum.hexdigest()[:24]

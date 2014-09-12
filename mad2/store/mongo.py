@@ -34,12 +34,17 @@ class MongoStore():
     def __init__(self, conf):
         lg.debug("starting mongostore")
         self.conf = conf
+
         self.host = self.conf.get('host', 'localhost')
         self.port = int(self.conf.get('port', 27017))
         self.client = MongoClient(self.host, self.port)
         self.db_name = self.conf.get('db', 'mad2')
-        self.collection_name = self.conf.get('collection', 'core')
-        self.db_core = self.client[self.db_name][self.collection_name]
+        self.corename = self.conf.get('collection', 'core')
+
+        self.dumpname = self.conf.get('dump_collection', 'dump')
+
+        self.db_core = self.client[self.db_name][self.corename]
+        self.db_dump = self.client[self.db_name][self.dumpname]
 
         self.save_cache = []
 
@@ -97,6 +102,7 @@ class MongoStore():
         #print(res)
         lg.debug("Modified %d records", res['nModified'])
         self.save_cache = []
+
 
     def load(self, madfile, sha1sum):
         """

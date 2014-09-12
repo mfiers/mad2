@@ -104,10 +104,9 @@ class MadFile(fantail.Fanstack):
         alternative id (used when files change)
         """
 
-        if os.path.exists(self.all['inputfile']):
-            self.all['orphan'] = False
-        else:
-            self.all['orphan'] = True
+        self.all['orphan'] = False \
+            if os.path.exists(self.all['inputfile']) \
+            else True
 
         self.hook_method('madfile_pre_load', self)
 

@@ -212,6 +212,8 @@ def onthefly(app, madfile):
 
     # last - but not least
     # make sure the file has a SHA1SUM, and that it is up to date
+
+
     madfile.check_sha1sum()
 
     lg.debug("finished onthefly")
