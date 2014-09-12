@@ -11,8 +11,9 @@ os.environ['TERM'] = 'xterm' #prevent weird output excape code
 
 import arrow
 import leip
-import mad2.ui
+from termcolor import colored
 
+import mad2.ui
 import mad2.util
 
 # Ignore SIG_PIPE and don't throw exceptions
@@ -86,7 +87,7 @@ def show(app, args):
 
     else:
         for madfile in mad2.util.get_all_mad_files(app, args):
-            print_nicely(madfile)
+            print_nicely(app, madfile)
 
 def _format_value(v):
     if isinstance(v, dict):
@@ -98,7 +99,7 @@ def _format_value(v):
     else:
         return str(v)
 
-def print_nicely(madfile):
+def print_nicely(app, madfile):
     implicit = []
     explicit = []
     max_key_len = 0
@@ -110,11 +111,23 @@ def print_nicely(madfile):
         else:
             implicit.append((k,v))
 
-    fs = '{:2} {:<' + str(max_key_len+1) + '}: {}'
+    fs = '{} {}: {}'
+    ffs = '%-' + str(max_key_len) + 's'
+
     for k, v in sorted(explicit):
-        print(fs.format('x', k, v))
+        if k in ['_id', '_id_dump']:
+            continue
+
+        print(fs.format(
+              colored('x', 'red'),
+              ffs % k,
+              v))
+
     for k, v in sorted(implicit):
-        print(fs.format('i', k, v))
+        print(fs.format(
+              colored('i', 'cyan'),
+              ffs % k,
+              v))
 
 
 @leip.commandName('key')
