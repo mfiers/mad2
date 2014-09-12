@@ -3,6 +3,8 @@ import logging
 import leip
 
 import mad2.util
+from mad2.util import get_all_mad_files
+import mad2.hash
 
 lg = logging.getLogger(__name__)
 
