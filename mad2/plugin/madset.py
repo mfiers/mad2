@@ -8,6 +8,7 @@ import subprocess
 from dateutil.parser import parse as dateparse
 import leip
 import fantail
+from termcolor import cprint
 
 from mad2.util import  get_mad_file, get_all_mad_files, get_filenames
 from mad2.ui import message, error, errorexit
@@ -132,6 +133,7 @@ def mset(app, args):
         madfile.save()
 
 
+@leip.flag('-t', '--transient', help='show transient keywords')
 @leip.command
 def keywords(app, args):
     """
@@ -143,20 +145,33 @@ def keywords(app, args):
         if keyinfo['hide']:
             continue
         maxkeylen = max(maxkeylen, len(key))
-    for key, keyinfo in app.conf['keywords'].iteritems():
+
+    for key in sorted(app.conf['keywords'].keys()):
+        keyinfo = app.conf['keywords'][key]
+        transient = keyinfo['transient']
         if keyinfo['hide']:
             continue
-        print(('{:' + str(maxkeylen) + '} : {}').format(
-                key, keyinfo['description']))
+
+        if transient and not args.transient:
+            continue
+
+        cprint(('{:' + str(maxkeylen) + '}').format(key), 'yellow',
+               end=' : ')
+
+        cprint(str(keyinfo['description']), end="")
+        if transient:
+            cprint(" (transient)", 'grey')
+        else:
+            print
         if keyinfo['type'] == 'restricted':
             for i, allowed in enumerate(keyinfo['allowed']):
                 ad = keyinfo['allowed'][allowed]
                 if i == 0:
-                    fl = 'allowed:'
+                    cprint(('  allowed: -'), end='')
                 else:
-                    fl = ''
-                print(('    {:>' + str(maxkeylen) + '} "{}": ({})').format(
-                        fl, allowed, ad))
+                    cprint(('           -'), end='')
+                cprint(('{}').format(allowed), "green", end=': ')
+                cprint(ad)
 
 
 
