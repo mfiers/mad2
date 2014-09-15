@@ -297,6 +297,9 @@ def repl(app, args):
 @leip.arg('-b', '--backup')
 @leip.arg('-B', '--ignore_backup_volumes')
 @leip.arg('-v', '--volume')
+@leip.arg('-p', '--project')
+@leip.arg('-P', '--pi')
+@leip.arg('-e', '--experiment')
 @leip.arg('-H', '--host')
 @leip.arg('-s', '--sha1sum')
 @leip.command
@@ -310,7 +313,7 @@ def search(app, args):
     query = {}
 
     for f in ['username', 'backup', 'volume', 'host',
-              'sha1sum']:
+              'sha1sum', 'project', 'project', 'pi']:
         if not f in args:
             continue
 
