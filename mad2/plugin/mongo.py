@@ -733,9 +733,7 @@ def distinct(app, args):
     for v in vals:
         if v is None:
             continue
-
         cprint('"' + v + '"', 'green')
-
 
 
 @leip.flag('--I-am-sure')
@@ -798,27 +796,5 @@ def waste(app, args):
     coll = mongo_info.get('collection', 'mad2')
 
     print(WASTE_PIPELINE)
-    # res = _run_mongo_command(app, 'waste',  coll, WASTE_QUERY)
-    # print(res)
-# get
 
-# db.runCommand(
-#   { "aggregate": "dump",
-#     "pipeline": [
-#     { "$sort": { "sha1sum": 1 } },
-#     { "$project": { "filesize": 1,  "sha1sum": 1,
-#                   "usage": { "$divide": [ "$filesize", "$nlink" ] } } },
-#     { "$group": { "_id": "$sha1sum",
-#                "no_records": { "$sum": NumberInt(1) },
-#                "mean_usage": { "$avg": "$usage" },
-#                "total_usage": { "$sum": "$usage" },
-#                "filesize": { "$max": "$filesize" } } },
-#      { "$project": { "filesize": 1, "sha1sum": 1, "total_usage": 1,
-#                   "waste": {"$subtract": ["$total_usage", "$filesize"] } } },
-#     { "$match": {"waste": {"$gt": 500} } },
-#     { "$group": { "_id": null,
-#                 "no_files": { "$sum": NumberInt(1) },
-#                 "waste": { "$sum": "$waste" } } },
-# ], "allowDiskUse": true }
-# )
 
