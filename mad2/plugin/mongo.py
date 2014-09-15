@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import cPickle
+import collections
 import datetime
 import logging
 import os
@@ -15,6 +16,8 @@ import arrow
 from pymongo import MongoClient
 from termcolor import cprint
 import yaml
+
+import pandas as pd
 
 import leip
 
@@ -270,21 +273,23 @@ def repl(app, args):
 
     MONGO_mad = get_mongo_db(app)
 
+    backup_hosts = set()
+    for host in app.conf['host']:
+        if app.conf['host'][host]['backup']:
+            backup_hosts.add(host)
     for madfile in get_all_mad_files(app, args):
-        print(madfile['sha1sum'])
+        #print(madfile['sha1sum'])
         query = {'sha1sum': madfile['sha1sum']}
         res = MONGO_mad.find(query)
         for r in res:
-#            print(r)
-
-            if r.get('is_backup_volume'):
-                cprint('B', 'green', end='')
+            days = (arrow.now() - arrow.get(r['save_time'])).days
+            cprint('%1d' % r['nlink'], 'yellow', end=" ")
+            cprint('%4d' % days, 'green', end="d ")
+            if r['host'] in backup_hosts:
+                cprint(r['host'], 'green', attrs=['bold'], end=':')
             else:
-                cprint('O', 'yellow', end='')
-            cprint('%1d' % r['nlink'], end="")
-            cprint(" ", end="")
-            cprint(r['host'], 'cyan', end=':')
-            cprint(r['fullpath'], 'blue')
+                cprint(r['host'], 'cyan', end=':')
+            cprint(r['fullpath'])
 
 
 @leip.flag('--delete')
@@ -451,6 +456,68 @@ def mongo_sum2(app, args):
         print("Total\t\t{}\t{}".format(total_size, total_count))
 
 
+
+@persistent_cache(leip.get_cache_dir('mad2', 'mongo', 'sum'),
+                  'name', 60 * 60 * 23)
+def _complex_sum(app, name, fields=['username', 'host'],
+                 force=False):
+
+    MONGO_mad = get_mongo_db(app)
+    qid = dict([(x, "$" + x) for x in fields])
+    aggp = [{'$group': {
+                "_id": qid,
+                "total": {"$sum": "$filesize"},
+                "count": {"$sum": 1}}}]
+    res = MONGO_mad.aggregate(aggp)
+    return res['result']
+
+@leip.flag('-f', '--force', help='force query (otherwise use cache, and'
+           + ' query only once per day')
+@leip.arg('output_file', help='{stamp} will be replaced by a timestamp')
+@leip.subcommand(mongo, "csum")
+def complex_sum(app, args):
+    """
+    Query on a number of fields
+    """
+
+    fields = [
+        'username',
+        'experiment_type',
+        'host',
+        'volume,',
+        'filetype',
+        'organism',
+        'biologist',
+        'genome_build',
+        'experiment_type',
+        'pi',
+        'project',
+        'category',
+        'backup']
+
+
+    res = _complex_sum(app, name='table_query',
+                       fields=fields, force=args.force)
+
+    utc = arrow.now()
+    stamp = utc.format('YYYY-MM-DD')
+
+    data = collections.defaultdict(list)
+    precords = []
+    for i, rec in enumerate(res):
+        _id = rec['_id']
+        prec = {}
+        prec['count'] = rec['count']
+        prec['sum'] = rec['total']
+        for f in fields:
+            prec[f] = _id.get(f)
+        precords.append(prec)
+    df = pd.DataFrame(precords)
+
+    out = args.output_file.format(stamp=stamp)
+    df.to_csv(out, sep="\t", encoding="utf8")
+
+
 @leip.flag('--remove-from-core', help='also remove from the core db')
 @leip.arg('file', nargs="*")
 @leip.command
@@ -595,6 +662,7 @@ def mongo_index(app, args):
         print("create index on: {}".format(f))
         MONGO_mad.ensure_index(f)
 
+
 @persistent_cache(leip.get_cache_dir('mad2', 'mongo', 'keys'),
                   1, 60*60*24)
 def _get_mongo_keys(app, collection, force=False):
@@ -621,20 +689,53 @@ def _get_mongo_keys(app, collection, force=False):
 
     return rv
 
-
 @leip.flag('-f', '--force')
+@leip.arg('output_file', help='{stamp} will be replaced by a timestamp')
 @leip.subcommand(mongo, 'keys')
 def mongo_keys(app, args):
     dump = _get_mongo_keys(app, 'dump', force=args.force)
     core = _get_mongo_keys(app, 'core', force=args.force)
     all_keys = list(sorted(set(dump.keys()) | set(core.keys())))
+
     max_key_len = max([len(x) for x in all_keys])
+
+    utc = arrow.now()
+    stamp = utc.format('YYYY-MM-DD')
+
     print( ('%-' + str(max_key_len) + 's: %12s %12s') % (
           '#key', 'dump', 'core'))
 
+    records = []
+
     for k in all_keys:
+        records.append({
+            'key': k,
+            'dump' : dump.get(k),
+            'core': core.get(k) })
+
         print( ('%-' + str(max_key_len) + 's: %12s %12s') % (
               k, dump.get(k, ''), core.get(k, '')))
+
+    df = pd.DataFrame(records)
+    df.set_index('key', inplace=True)
+
+    out = args.output_file.format(stamp=stamp)
+    df.to_csv(out, sep="\t", encoding="utf8")
+
+
+@leip.arg('keyname', metavar='key')
+@leip.command
+def distinct(app, args):
+    dump = get_mongo_db(app)
+    vals = sorted(dump.distinct(args.keyname))
+    if None in vals:
+        cprint('<None>', 'yellow')
+    for v in vals:
+        if v is None:
+            continue
+
+        cprint('"' + v + '"', 'green')
+
 
 
 @leip.flag('--I-am-sure')
