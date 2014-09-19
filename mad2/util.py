@@ -153,6 +153,7 @@ def get_filenames(args, use_stdin=True, allow_dirs=False):
             return m.group('fn')
 
     if 'file' in args and len(args.file) > 0:
+
         for f in args.file:
             if len(f) == 0:
                 continue
@@ -165,9 +166,11 @@ def get_filenames(args, use_stdin=True, allow_dirs=False):
             if 'QDSUMS' in f:
                 continue
 
+
             if not os.access(f, os.R_OK):
                 # no read access - ignore this file
                 continue
+
 
             try:
                 os.stat(f)
@@ -178,6 +181,8 @@ def get_filenames(args, use_stdin=True, allow_dirs=False):
                     continue
                 else:
                     raise
+
+            lg.debug("processing %s", f)
 
             rv = demad.sub(demadder, f)
 
