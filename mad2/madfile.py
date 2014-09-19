@@ -110,9 +110,13 @@ class MadFile(fantail.Fanstack):
 
         self.hook_method('madfile_pre_load', self)
 
-        for s in self.stores:
-            store = self.stores[s]
-            store.load(self, sha1sum=sha1sum)
+        fis = self.get('filesize', -1)
+        if fis <= 0:
+            lg.info("file size zero - not annotating this")
+        else:
+            for s in self.stores:
+                store = self.stores[s]
+                store.load(self, sha1sum=sha1sum)
 
         self.hook_method('madfile_load', self)
         self.hook_method('madfile_post_load', self)
@@ -121,7 +125,11 @@ class MadFile(fantail.Fanstack):
         self.hook_method('madfile_save', self)
         self.hook_method('madfile_pre_save', self)
 
-        for s in self.stores:
+        fis = self.get('filesize', -1)
+        if fis <= 0:
+            lg.info("file size zero - not annotating this")
+        else:
+            for s in self.stores:
                 store = self.stores[s]
                 store.save(self)
 
