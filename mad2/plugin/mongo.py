@@ -17,8 +17,6 @@ from pymongo import MongoClient
 from termcolor import cprint
 import yaml
 
-import pandas as pd
-
 import leip
 
 from mad2.util import get_all_mad_files, humansize, persistent_cache
@@ -515,10 +513,10 @@ def complex_sum(app, args):
         for f in fields:
             prec[f] = _id.get(f)
         precords.append(prec)
-    df = pd.DataFrame(precords)
 
     out = args.output_file.format(stamp=stamp)
-    df.to_csv(out, sep="\t", encoding="utf8")
+    with open(out, 'w') as F:
+        F.write(yaml.safe_dump(precords, default_flow_style=False))
 
 
 @leip.flag('--remove-from-core', help='also remove from the core db')
@@ -719,11 +717,9 @@ def mongo_keys(app, args):
         print( ('%-' + str(max_key_len) + 's: %12s %12s') % (
               k, dump.get(k, ''), core.get(k, '')))
 
-    df = pd.DataFrame(records)
-    df.set_index('key', inplace=True)
-
     out = args.output_file.format(stamp=stamp)
-    df.to_csv(out, sep="\t", encoding="utf8")
+    with open(out, 'w') as F:
+        F.write(yaml.safe_dump(records, default_flow_style=False))
 
 
 @leip.arg('keyname', metavar='key')
