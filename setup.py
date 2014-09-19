@@ -33,6 +33,7 @@ setup(name='mad2',
           'colorlog',
           'arrow',
           'termcolor',
+          'readline'
           ],
       classifiers=[
           'Development Status :: 4 - Beta',
