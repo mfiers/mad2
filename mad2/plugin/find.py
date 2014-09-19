@@ -113,7 +113,9 @@ def scan(app, args):
                     #path does not exists - or is a broken symlink
                     continue
                 else:
-                    raise
+                    lg.warning("error scanning %s", ffn)
+                    lg.warning("%s", e)
+                    continue
 
             if minsize > 0:
                 if filestat.st_size < minsize:
