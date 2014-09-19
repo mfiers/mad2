@@ -179,6 +179,6 @@ def has_command(app, args):
 #
 
 app = leip.app('mad2')
-app.parser.add_argument('--trust', action='store_true', help='trust sha1sum')
+# app.parser.add_argument('--trust', action='store_true', help='trust sha1sum')
 # discover hooks in this module!
 app.discover(globals())
