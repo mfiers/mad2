@@ -38,10 +38,42 @@ def save(app, args):
 
     note - this ensures that the sha1sum is calculated
     """
+    lg.debug("start mad save")
     for madfile in get_all_mad_files(app, args):
+        lg.debug("processing %s", madfile['fullpath'])
+
         if madfile['orphan']:
             lg.warning("removing %s", madfile['inputfile'])
             lg.warning("sha1sum is/was: %s", madfile['sha1sum'])
         madfile.save()
         if args.echo:
             print madfile['inputfile']
+
+
+
+@leip.arg('-o', '--output_file', help='outputf file to dump to',
+          default='dump.yaml')
+@leip.arg('file', nargs='*')
+@leip.command
+def dump(app, args):
+    """
+    dump a yaml representation of all files.
+    """
+    import yaml
+    F = open(args.output_file, 'w')
+
+    lg.debug("start mad dump")
+    i = 0
+    for madfile in get_all_mad_files(app, args):
+        lg.debug("processing %s", madfile['fullpath'])
+
+        if madfile['orphan']:
+            continue
+
+        if i > 0:
+            F.write('---\n')
+
+        F.write(madfile.pretty())
+        i += 1
+
+    F.close()
