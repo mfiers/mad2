@@ -23,7 +23,7 @@ def get_sha1sum_mad(madfile):
     global SHA1CACHE
 
     if madfile['orphan'] == True:
-        lg.warning("ORPHAN ALERT!")
+        lg.debug("ORPHAN ALERT!")
         madfile.mad['sha1sum'] = ""
 #        madfile.all['sha1sum'] = ""
         return
@@ -96,14 +96,14 @@ def get_sha1sum_mad(madfile):
     #lg.warning("C:" + filename)
     if stored_sha1 is None:
         # no sha1 - assuming this is the first time
-        lg.warning("Calculating SHA1SUM for %s", madfile['inputfile'])
+        lg.info("Calculating SHA1SUM for %s", madfile['inputfile'])
     else:
         # there is one, but metadata/qdsum does not match - recalc
-        lg.warning("Recalculating sha1sum for %s", madfile['inputfile'])
-        lg.warning("Old sha1sum: %s", stored_sha1)
+        lg.info("Recalculating sha1sum for %s", madfile['inputfile'])
+        lg.info("Old sha1sum: %s", stored_sha1)
 
     sha1 = get_sha1sum(fullpath)
-    lg.warning("Current sha1sum: %s", sha1)
+    lg.debug("Current sha1sum: %s", sha1)
 
     # and save (regardless - if only to update the metadata)
     new_store_sha1(sha1file, metafile, filename,
