@@ -8,14 +8,13 @@ import errno
 import logging
 import os
 import re
-import select
 import sys
 import time
 
 from termcolor import cprint
 
 from mad2.exception import MadPermissionDenied, MadNotAFile
-from mad2.madfile import MadFile
+from mad2.madfile import MadFile, MadDummy
 
 import fantail
 
@@ -130,6 +129,33 @@ def get_mad_file(app, filename):
                    base=app.conf['madfile'],
                    hook_method=app.run_hook)
 
+
+def get_mad_dummy(app, data):
+    """
+    instantiate a dummy - only used to save.
+
+    """
+
+    global STORES
+    if STORES is None:
+        initialize_stores(app)
+
+    if 'madname' in data:
+        del data['madname']
+    if 'fullmadpath' in data:
+        del data['fullmadpath']
+
+    data_all = fantail.Fantail(data)
+    data_core = fantail.Fantail()
+
+    for kw in data_all.keys():
+        tra = app.conf['keywords'][kw].get('transient', False)
+        if not tra:
+            data_core[kw] = data_all[kw]
+
+    lg.debug("instantiating dummy madfile")
+    return MadDummy(data_all=data_all, data_core=data_core, stores=STORES,
+                    hook_method=app.run_hook )
 
 def to_mad(fn):
     if '/' in fn:
