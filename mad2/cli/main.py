@@ -177,8 +177,10 @@ def has_command(app, args):
 #
 # Instantiate the app and discover hooks & commands
 #
+#logging.getLogger('leip').setLevel(logging.DEBUG)
 
 app = leip.app('mad2')
+
 # app.parser.add_argument('--trust', action='store_true', help='trust sha1sum')
 # discover hooks in this module!
 app.discover(globals())
