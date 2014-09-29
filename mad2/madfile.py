@@ -134,3 +134,22 @@ class MadFile(fantail.Fanstack):
                 store.save(self)
 
         self.hook_method('madfile_post_save', self)
+
+
+
+class MadDummy(MadFile):
+     def __init__(self, data_core, data_all,
+                 stores=None,
+                 hook_method=dummy_hook_method):
+
+        self.stores = stores
+        self.hook_method = hook_method
+
+        super(MadFile, self).__init__(
+            stack=[data_core, data_all])
+
+        lg.debug("Instantiating a dummy madfile")
+
+        for s in self.stores:
+            store = self.stores[s]
+            store.prepare(self)

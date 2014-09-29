@@ -1,9 +1,11 @@
 import logging
 
 import leip
+import yaml
+
 
 import mad2.util
-from mad2.util import get_all_mad_files
+from mad2.util import get_all_mad_files, get_mad_dummy
 import mad2.hash
 
 lg = logging.getLogger(__name__)
@@ -51,6 +53,17 @@ def save(app, args):
 
 
 
+def _save_dumped_doc(app, doc):
+    dm = get_mad_dummy(app, doc)
+    dm.save()
+
+@leip.arg('dump_file', help='yaml dump file to load')
+@leip.command
+def load_dump(app, args):
+    with open(args.dump_file) as F:
+        for doc in yaml.load_all(F):
+            _save_dumped_doc(app, doc)
+
 @leip.arg('-o', '--output_file', help='outputf file to dump to',
           default='dump.yaml')
 @leip.arg('file', nargs='*')
@@ -59,7 +72,6 @@ def dump(app, args):
     """
     dump a yaml representation of all files.
     """
-    import yaml
     F = open(args.output_file, 'w')
 
     lg.debug("start mad dump")

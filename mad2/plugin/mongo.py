@@ -104,6 +104,7 @@ def mongo_flush(app):
     global MONGO_REMOVE_CACHE
     global MONGO_SAVE_CACHE
 
+    lg.debug("flush")
     if (len(MONGO_SAVE_CACHE) + len(MONGO_REMOVE_CACHE)) == 0:
         return
 
@@ -143,6 +144,7 @@ def save_to_mongo(app, madfile):
         #print(newrec['host'])
         MONGO_SAVE_CACHE.append((mongo_id, newrec))
 
+    lg.debug("prep for save: %s", madfile['inputfile'])
     if len(MONGO_SAVE_CACHE)  + len(MONGO_REMOVE_CACHE) > 33:
         mongo_flush(app)
 
@@ -336,6 +338,7 @@ def _single_sum(app, group_by=None, force=False):
     MONGO_mad = get_mongo_db(app)
 
     res = MONGO_mad.aggregate([
+        {"$match" : {"orphan" : False}},
         {'$group': {
             "_id": groupby_field,
             "total": {"$sum": "$filesize"},
@@ -413,6 +416,7 @@ def mongo_sum2(app, args):
         sort_field = 'total'
         sort_order = -1
     res = MONGO_mad.aggregate([
+            {"$match" : {"orphan" : False}},
             {'$group': {
                 "_id": {
                     "group1": gb1_field,
@@ -486,6 +490,7 @@ def complex_sum(app, args):
         'experiment_type',
         'host',
         'volume,',
+        'orphan',
         'filetype',
         'organism',
         'biologist',
@@ -547,6 +552,7 @@ def forget(app, args):
     go(MONGO_CORE, to_remove_core)
 
 
+@leip.flag('-r', '--remove-from-dump', help='remove from the dump db')
 @leip.flag('--remove-from-core', help='also remove from the core db')
 @leip.flag('--run', help='actually run - otherwise it\'s a dry run showing ' +
            'what would be deleted')
@@ -558,6 +564,8 @@ def forget_dir(app, args):
     flush_dir(app, args)
 
 
+@leip.flag('-r', '--remove-from-dump', help='remove from the dump db '
+           + 'otherwise files in dump are tagged as deleted')
 @leip.flag('--remove-from-core', help='also remove from the core db')
 @leip.flag('--run', help='actually run - otherwise it\'s a dry run showing ' +
            'what would be deleted')
@@ -571,6 +579,11 @@ def flush_dir(app, args):
     Recursively flush deleted files from the dump db
     """
 
+    if args.remove_from_core and not args.remove_from_dump:
+        lg.warning("This is an odd command to give - why remove from the core")
+        lg.warning("  and not the dump db?")
+        exit()
+
     MONGO_mad = get_mongo_db(app)
     MONGO_core = get_mongo_core_db(app)
 
@@ -581,7 +594,8 @@ def flush_dir(app, args):
 
     query = {
         'host' : host,
-        'dirname' : rex}
+        'dirname' : rex,
+        'orphan': False}
 
     ids_to_remove = []
     core_to_remove = []
@@ -601,12 +615,17 @@ def flush_dir(app, args):
             print("- " + r['fullpath'])
 
         ids_to_remove.append(r['_id'])
+
         if args.remove_from_core:
             core_to_remove.append(r['sha1sum'][:24])
 
         if args.run and len(ids_to_remove) >= 100:
-            lg.warning("removing %d records", len(ids_to_remove))
-            MONGO_mad.remove( {'_id' : { '$in' : ids_to_remove } } )
+            if args.remove_from_dump:
+                lg.warning("removing %d records", len(ids_to_remove))
+                MONGO_mad.remove( {'_id' : { '$in' : ids_to_remove } } )
+            else:
+                lg.warning("setting %d records to orphaned", len(ids_to_remove))
+
             ids_to_remove = []
 
         if args.run and args.remove_from_core and \
@@ -617,8 +636,16 @@ def flush_dir(app, args):
             core_to_remove = []
 
     if args.run:
-        lg.warning("removing %d records", len(ids_to_remove))
-        MONGO_mad.remove( {'_id' : { '$in' : ids_to_remove } } )
+        if args.remove_from_dump:
+            lg.warning("removing %d records", len(ids_to_remove))
+            MONGO_mad.remove( {'_id' : { '$in' : ids_to_remove } } )
+        else:
+            lg.warning("setting %d records to orphaned", len(ids_to_remove))
+            print(ids_to_remove)
+            MONGO_mad.update(
+                {'_id' : { '$in' : ids_to_remove } },
+                {'$set': {'orphan': True}}
+                )
 
     if args.run and args.remove_from_core:
             lg.warning("removing %d records from core",
@@ -659,9 +686,12 @@ def mongo_index(app, args):
     Ensure indexes on the relevant fields
     """
     MONGO_mad = get_mongo_db(app)
+    MONGO_core = get_mongo_core_db(app)
+
     for f in app.conf['plugin.mongo.indici']:
         print("create index on: {}".format(f))
         MONGO_mad.ensure_index(f)
+        MONGO_core.ensure_index(f)
 
 
 @persistent_cache(leip.get_cache_dir('mad2', 'mongo', 'keys'),
@@ -767,7 +797,8 @@ def _run_mongo_command(app, name, collection, query, kwargs={}, force=False):
 
 
 WASTE_PIPELINE = [
-    {"$sort": {"sha1sum": 1 } },
+    {"$match" : {"orphan" : False}},
+    {"$sort": {"sha1sum": 1 }},
     {"$project": {"filesize": 1,
                    "sha1sum": 1,
                    "usage": {"$divide": ["$filesize", "$nlink"]}}},
