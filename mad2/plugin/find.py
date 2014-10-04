@@ -62,9 +62,10 @@ def scan(app, args):
 
     #lg.setLevel(logging.DEBUG)
     for dirpath, dirnames, filenames in os.walk('.'):
-        ui.message("considering %s (%d dirs, %d files)",
-                   os.path.basename(dirpath), len(dirnames),
-                   len(filenames))
+
+        #ui.message("considering %s (%d dirs, %d files)",
+        #           os.path.basename(dirpath), len(dirnames),
+        #           len(filenames))
 
         # if it's unlikely that we're able to write sha1sums to a
         # local file, we're not going to process this file
