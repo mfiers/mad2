@@ -489,7 +489,7 @@ def complex_sum(app, args):
         'username',
         'experiment_type',
         'host',
-        'volume,',
+        'volume',
         'orphan',
         'filetype',
         'organism',
