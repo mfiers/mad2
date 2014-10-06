@@ -178,6 +178,7 @@ def onthefly(app, madfile):
 
     madfile.all['filesize'] = filestat.st_size
     madfile.all['nlink'] = filestat.st_nlink
+    madfile.all['is_symlink'] = os.path.islink(madfile['fullpath'])
 
     try:
         userinfo = getpwuid(filestat.st_uid)
