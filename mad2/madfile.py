@@ -111,8 +111,8 @@ class MadFile(fantail.Fanstack):
         self.hook_method('madfile_pre_load', self)
 
         fis = self.get('filesize', -1)
-        if fis <= 0:
-            lg.info("file size zero - not annotating this")
+        if fis < 1:
+            lg.info("file size zero, skip: {}".format(self['inputfile']))
         else:
             for s in self.stores:
                 store = self.stores[s]
