@@ -31,6 +31,8 @@ def echo(app, args):
         print(madfile['inputfile'])
 
 
+@leip.arg('-p', '--progress', action='store_true',
+          help='show indication of progress')
 @leip.flag('-e', '--echo')
 @leip.arg('file', nargs='*')
 @leip.command
@@ -41,12 +43,17 @@ def save(app, args):
     note - this ensures that the sha1sum is calculated
     """
     lg.debug("start mad save")
+    counter = 0
     for madfile in get_all_mad_files(app, args):
         lg.debug("processing %s", madfile['fullpath'])
 
         if madfile['orphan']:
             lg.warning("removing %s", madfile['inputfile'])
             lg.warning("sha1sum is/was: %s", madfile['sha1sum'])
+
+        counter += 1
+        if args.progress and counter % 500 == 0:
+            lg.warning("mad save: saved {} files".format(counter))
         madfile.save()
         if args.echo:
             print madfile['inputfile']
