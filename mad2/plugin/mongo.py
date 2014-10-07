@@ -912,6 +912,7 @@ def waste(app, args):
         cprint(", ".join(owners), 'red')
 
 
+@leip.arg('-S', '--subject')
 @leip.flag('-f', '--force')
 @leip.command
 def waste_text_report(app, args):
@@ -921,9 +922,41 @@ def waste_text_report(app, args):
     res = _run_waste_command(app, 'waste_pipeline',
                              force=args.force)['result']
 
+
+    if args.subject:
+        print("Subject: {}".format(args.subject))
+
+
+    #This week's winner
+    top = res[0]
+    sha1sum = top['_id']
+    owners = set()
+    hostcount = collections.defaultdict(lambda: 0)
+    hostsize = collections.defaultdict(lambda: 0)
+
+
+    total = 0
+    for rec in db.find({'sha1sum': sha1sum}):
+        total += 1
+        host = rec['host']
+        hostcount[host] += 1
+        hostsize[host] += float(rec['filesize']) / float(rec['nlink'])
+        owners.add(rec['username'])
+
+
+
+    print("This week's winner: {}".format(", ".join(owners)))
+    print("One file, ", end="")
+    print("{} location".format(total), end="")
+    if total > 1: print("s", end="")
+    print(", {} server,".format(len(hostcount)), end="")
+    if len(hostcount) > 1: print("s", end="")
+    print(" wasting {}.".format(humansize(top['waste'])))
+    print("try:\n   mad repl {}\n\n".format(sha1sum))
+
     no_to_print = 20
     print("Waste overview: (no / sha1sum / waste / filesize)")
-
+    print("=================================================\n")
     for i, r in enumerate(res):
         if i >= no_to_print:
             break
@@ -937,7 +970,7 @@ def waste_text_report(app, args):
 
 
     print("\n\nDetails: (nlink/symlink/size/owner)")
-
+    print("===================================")
     import textwrap
     for i, r in enumerate(res):
         if i >= no_to_print:
