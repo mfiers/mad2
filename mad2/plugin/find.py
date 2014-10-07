@@ -35,6 +35,8 @@ def dehumanize(n):
           ' default: 10k', default='10k')
 @leip.arg('-n', '--no_recurse', action='store_true',
           help='no recursive search')
+@leip.arg('-p', '--progress', action='store_true',
+          help='show some progress indicator')
 @leip.arg('-d', '--do_dot_dirs', action='store_true',
           help='do not ignore .* directories')
 @leip.arg('-a', '--do_dot_files', action='store_true',
@@ -60,6 +62,7 @@ def scan(app, args):
         #no sha1file - then check for write access on the directory
         return os.access(d, os.W_OK)
 
+    counter = 0
     #lg.setLevel(logging.DEBUG)
     for dirpath, dirnames, filenames in os.walk('.'):
 
@@ -126,7 +129,10 @@ def scan(app, args):
             if not os.access(ffn, os.R_OK):
                 #no read permission
                 continue
+            counter += 1
 
+            if args.progress and counter % 1000 == 0:
+                lg.warning("mad scan: found {} files".format(counter))
             print(ffn)
 
         if dirpath == '.' and args.no_recurse:
