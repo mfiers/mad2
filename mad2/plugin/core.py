@@ -53,7 +53,7 @@ def save(app, args):
 
         counter += 1
         if args.progress and counter % 1000 == 0:
-            lg.warning("mad save: saved {} filesdif".format(counter))
+            lg.warning("mad save: saved {} files".format(counter))
         madfile.save()
         if args.echo:
             print madfile['inputfile']
