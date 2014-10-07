@@ -79,18 +79,19 @@ def get_sha1sum_mad(madfile):
         # no metadata - check if there is a qd hash
         # For the time being - see if the QDHASH is correct - until all
         # hash files have a meta file
-        now_qd = get_qdhash(fullpath)
         file_qd = check_hashfile(qdfile, filename)
-        if now_qd == file_qd:
+        if file_qd:
+            now_qd = get_qdhash(fullpath)
+            if now_qd == file_qd:
 
-            # assume all is well.. (re-)store the sha1
-            # so that the metadata gets stored as well.
-            #sha1 = check_hashfile(sha1file, filename)
+                # assume all is well.. (re-)store the sha1
+                # so that the metadata gets stored as well.
+                #sha1 = check_hashfile(sha1file, filename)
 
-            new_store_sha1(sha1file, metafile, filename,
-                           stored_sha1, now_time, now_size)
-            madfile.all['sha1sum'] = stored_sha1
-            return
+                new_store_sha1(sha1file, metafile, filename,
+                               stored_sha1, now_time, now_size)
+                madfile.all['sha1sum'] = stored_sha1
+                return
 
     # we need to (re-)calculate the SHA1SUM
     #lg.warning("C:" + filename)
@@ -309,7 +310,6 @@ def get_qdhash(filename):
     .. and it is fairly fast
 
     """
-    lg.warning("DEPRECATED get_qdhash")
 
 #    lg.critical("MM")
     if not os.path.exists(filename):
@@ -317,21 +317,8 @@ def get_qdhash(filename):
         return None
 
     if os.path.isdir(filename):
+        return None
 
-        # qdid for directories is a uuid - stored in .mad/qid
-        maddir = os.path.join(filename, '.mad')
-        if not os.path.exists(maddir):
-            os.makedirs(maddir)
-        qidfile = os.path.join(maddir, 'qid')
-        if not os.path.exists(qidfile):
-            u = str(uuid.uuid4()).replace('-', '')[:24]
-            with open(qidfile, 'w') as F:
-                F.write(u)
-            return u
-        else:
-            with open(qidfile) as F:
-                u = F.read().strip()
-            return u
 
     sha1sum = hashlib.sha1()
     filesize = os.stat(filename).st_size
