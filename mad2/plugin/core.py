@@ -52,8 +52,8 @@ def save(app, args):
             lg.warning("sha1sum is/was: %s", madfile['sha1sum'])
 
         counter += 1
-        if args.progress and counter % 500 == 0:
-            lg.warning("mad save: saved {} files".format(counter))
+        if args.progress and counter % 1000 == 0:
+            lg.warning("mad save: saved {} filesdif".format(counter))
         madfile.save()
         if args.echo:
             print madfile['inputfile']
