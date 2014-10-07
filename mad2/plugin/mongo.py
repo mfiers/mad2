@@ -263,35 +263,6 @@ def mongo_last(app, args):
               r['filename'], r.get('_id', '')]))
 
 
-@leip.flag('-e', '--echo')
-@leip.arg('file', nargs="*")
-@leip.command
-def repl(app, args):
-    """
-    Save to mongodb
-    """
-
-    MONGO_mad = get_mongo_db(app)
-
-    backup_hosts = set()
-    for host in app.conf['host']:
-        if app.conf['host'][host]['backup']:
-            backup_hosts.add(host)
-    for madfile in get_all_mad_files(app, args):
-        #print(madfile['sha1sum'])
-        query = {'sha1sum': madfile['sha1sum']}
-        res = MONGO_mad.find(query)
-        for r in res:
-            days = (arrow.now() - arrow.get(r['save_time'])).days
-            cprint('%1d' % r['nlink'], 'yellow', end=" ")
-            cprint('%4d' % days, 'green', end="d ")
-            if r['host'] in backup_hosts:
-                cprint(r['host'], 'green', attrs=['bold'], end=':')
-            else:
-                cprint(r['host'], 'cyan', end=':')
-            cprint(r['fullpath'])
-
-
 @leip.flag('--delete')
 @leip.arg('-u', '--username')
 @leip.arg('-b', '--backup')
@@ -792,16 +763,16 @@ def _run_mongo_command(app, name, collection, query, kwargs={}, force=False):
     """
     MONGO_mad = get_mongo_db(app)
     res = MONGO_mad.database.command(query, collection, **kwargs)
-
     return res
+
 
 
 WASTE_PIPELINE = [
     {"$match" : {"orphan" : False}},
     {"$sort": {"sha1sum": 1 }},
     {"$project": {"filesize": 1,
-                   "sha1sum": 1,
-                   "usage": {"$divide": ["$filesize", "$nlink"]}}},
+                  "sha1sum": 1,
+                  "usage": {"$divide": ["$filesize", "$nlink"]}}},
     {"$group": {"_id": "$sha1sum",
                  "no_records": {"$sum": 1 },
                  "mean_usage": {"$avg": "$usage" },
@@ -817,14 +788,195 @@ WASTE_PIPELINE = [
                 "waste": {"$sum": "$waste" }}}]
 
 
+@leip.flag('-e', '--echo')
+@leip.arg('file', nargs="*")
+@leip.command
+def repl(app, args):
+    """
+    Save to mongodb
+    """
 
+    MONGO_mad = get_mongo_db(app)
+
+    backup_hosts = set()
+    for host in app.conf['host']:
+        if app.conf['host'][host]['backup']:
+            backup_hosts.add(host)
+
+
+    check_shasums = False
+    if args.file > 0:
+        for f in args.file:
+            if os.path.exists(f): break
+            if len(f) != 40: break
+        else: check_shasums = True
+
+    def _process_query(query):
+        res = MONGO_mad.find(query)
+        for r in res:
+            days = (arrow.now() - arrow.get(r['save_time'])).days
+            symlink = r.get('is_symlink', False)
+            if symlink:
+                stag = 'S'
+            else:
+                stag = '.'
+            cprint('%1d%s' % (r['nlink'], stag), 'yellow', end=" ")
+            cprint('%3d' % days, 'green', end="d ")
+            cprint('%6s' % humansize(r['filesize']), 'white', end=" ")
+            if r['host'] in backup_hosts:
+                cprint(r['host'], 'green', attrs=['bold'], end=':')
+            else:
+                cprint(r['host'], 'cyan', end=':')
+            cprint(r['fullpath'])
+
+    if check_shasums:
+        for sha1sum in args.file:
+            query = {'sha1sum' : sha1sum}
+            _process_query(query)
+    else:
+        for madfile in get_all_mad_files(app, args):
+            #print(madfile['sha1sum'])
+            query = {'sha1sum': madfile['sha1sum']}
+            _process_query(query)
+
+
+
+FIND_WASTER_PIPELINE = [
+    {"$match" : {"orphan" : False}},
+    {"$project": {"filesize": 1,
+                  "sha1sum": 1,
+                  "usage": {"$divide": ["$filesize", "$nlink"]}}},
+    {"$group": {"_id": "$sha1sum",
+                "no_records": {"$sum": 1 },
+                "mean_usage": {"$avg": "$usage" },
+                "total_usage": {"$sum": "$usage" },
+                "filesize": {"$max": "$filesize" }}},
+    {"$project": {"filesize": 1,
+                  "total_usage": 1,
+                  "waste": {"$subtract": ["$total_usage", "$filesize"]}}},
+    {"$match": {"waste": {"$gt": 500}}},
+    {"$sort" : {"waste": -1} },
+    {"$limit": 100}]
+
+
+@persistent_cache(leip.get_cache_dir('mad2', 'mongo', 'waste'), 1,  24*60*60)
+def _run_waste_command(app, name, force=False):
+    """
+    Execute mongo command.
+    """
+    MONGO_mad = get_mongo_db(app)
+    res = MONGO_mad.aggregate(FIND_WASTER_PIPELINE, allowDiskUse=True)
+    return res
+
+
+@leip.flag('-N', '--no-color', help='no ansi coloring of output')
+@leip.arg('-n', '--no-records', default=20, type=int)
 @leip.flag('-f', '--force')
 @leip.command
 def waste(app, args):
 
-    mongo_info = app.conf['plugin.mongo']
-    coll = mongo_info.get('collection', 'mad2')
+    db = get_mongo_db(app)
 
-    print(WASTE_PIPELINE)
+    res = _run_waste_command(app, 'waste_pipeline',
+                             force=args.force)['result']
 
+    for i, r in enumerate(res):
+        if i >= args.no_records:
+            break
+
+        sha1sum = r['_id']
+        if not sha1sum.strip():
+            continue
+
+        cprint(sha1sum, 'grey', end='')
+        cprint(" sz ", "grey", end="")
+        cprint("{:>9}".format(humansize(r['waste'])), end='')
+        cprint(" w ", "grey", end="")
+        cprint("{:>9}".format(humansize(r['filesize'])),end='')
+
+        hostcount = collections.defaultdict(lambda: 0)
+        hostsize = collections.defaultdict(lambda: 0)
+        owners = set()
+        for f in db.find({'sha1sum': sha1sum}):
+            owners.add(f['username'])
+            host = f['host']
+            hostcount[host] += 1
+            hostsize[host] += float(f['filesize']) / float(f['nlink'])
+
+        for h in hostcount:
+            print(' ', end='')
+            cprint(h, 'green', end=':')
+            cprint(hostcount[h], 'cyan', end="")
+
+        cprint(" ", end="")
+        cprint(", ".join(owners), 'red')
+
+
+@leip.flag('-f', '--force')
+@leip.command
+def waste_text_report(app, args):
+
+    db = get_mongo_db(app)
+
+    res = _run_waste_command(app, 'waste_pipeline',
+                             force=args.force)['result']
+
+    no_to_print = 20
+    print("Waste overview: (no / sha1sum / waste / filesize)")
+
+    for i, r in enumerate(res):
+        if i >= no_to_print:
+            break
+
+        sha1sum = r['_id']
+        if not sha1sum.strip():
+            continue
+        print("{:2d} {} {:>10} {:>10}"\
+                    .format(i, sha1sum, humansize(r['waste']),
+                            humansize(r['filesize'])))
+
+
+    print("\n\nDetails: (nlink/symlink/size/owner)")
+
+    import textwrap
+    for i, r in enumerate(res):
+        if i >= no_to_print:
+            break
+
+        sha1sum = r['_id']
+        if not sha1sum.strip():
+            continue
+
+        print("# {:2d} {} {:>10} {:>10}"\
+                    .format(i, sha1sum, humansize(r['waste']),
+                            humansize(r['filesize'])))
+
+        records = collections.defaultdict(list)
+        hostcount = collections.defaultdict(lambda: 0)
+        hostsize = collections.defaultdict(lambda: 0)
+
+        for rec in db.find({'sha1sum': sha1sum}):
+            host = rec['host']
+            records[host].append(rec)
+            hostcount[host] += 1
+            hostsize[host] += float(rec['filesize']) / float(rec['nlink'])
+
+
+        for h in hostcount:
+            print("## Host: {}, copies: {}, total use: {}".format(
+                      h, hostcount[h], humansize(hostsize[h])))
+            for rec in records[host]:
+                smarker = '.'
+                if rec.get('is_symlink'):
+                    smarker = 'S'
+                print("  {} {}".format(rec.get('nlink', '?'), smarker),
+                      end=' ')
+                print(humansize(rec['filesize']), end=' ')
+                print(rec['username'])
+                print("   " + rec['fullpath'])
+#                for j, pp in enumerate(textwrap.wrap(rec['fullpath'], 70)):
+#                    print(" " * 8 + pp)
+
+
+        print("")
 
