@@ -145,7 +145,7 @@ def save_to_mongo(app, madfile):
         MONGO_SAVE_CACHE.append((mongo_id, newrec))
 
     lg.debug("prep for save: %s", madfile['inputfile'])
-    if len(MONGO_SAVE_CACHE)  + len(MONGO_REMOVE_CACHE) > 33:
+    if len(MONGO_SAVE_CACHE)  + len(MONGO_REMOVE_CACHE) > 20:
         mongo_flush(app)
 
 

@@ -87,7 +87,7 @@ class MongoStore():
         lg.debug("saving to id %s", mongo_id)
         self.save_cache.append((mongo_id, core))
 
-        if len(self.save_cache) > 50:
+        if len(self.save_cache) > 20:
             self.flush()
 
     def flush(self):
