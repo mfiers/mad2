@@ -43,6 +43,9 @@ def save(app, args):
     note - this ensures that the sha1sum is calculated
     """
     lg.debug("start mad save")
+
+    app.trans['progress.save'] = 0
+
     counter = 0
     for madfile in get_all_mad_files(app, args):
         lg.debug("processing %s", madfile['fullpath'])
@@ -52,8 +55,14 @@ def save(app, args):
             lg.warning("sha1sum is/was: %s", madfile['sha1sum'])
 
         counter += 1
-        if args.progress and counter % 1000 == 0:
-            lg.warning("mad save: saved {} files".format(counter))
+
+
+        app.trans['progress.save'] +=1
+        pp = app.trans['progress.save']
+        if args.progress and  pp > 0 and pp % 2500 == 0:
+            lg.warning("mad save: saved {} files".format(pp))
+
+
         madfile.save()
         if args.echo:
             print madfile['inputfile']

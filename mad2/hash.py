@@ -1,10 +1,12 @@
 
-import arrow
+
+from collections import defaultdict
 import os
 import hashlib
 import logging
 import uuid
 
+import arrow
 from lockfile import FileLock
 
 import mad2.util
@@ -14,12 +16,26 @@ lg = logging.getLogger(__name__)
 
 SHA1CACHE = {}
 
+LOG_PROGRESS = True
+counters = defaultdict(lambda: 0)
 
 def get_sha1sum_mad(madfile):
     """
     One function to rule them all!
     """
 
+    global counters
+
+    pp = counters['checked']
+
+    if LOG_PROGRESS and pp > 0 and pp % 2500 == 0:
+        lg.warning("HASH check {} ok {} qd c/o {}/{} recalc {} changed {}"\
+                .format(
+            counters['checked'], counters['shasumfile'],
+            counters['qd_check'], counters['qd_ok'],
+            counters['calculated'], counters['changed']))
+
+    counters['checked'] += 1
     global SHA1CACHE
 
     if madfile['orphan'] == True:
@@ -56,10 +72,6 @@ def get_sha1sum_mad(madfile):
 
     #print(now_time, meta_time)
     lg.debug("stored sha1: %s", stored_sha1)
-    # lg.debug(" * now time  : %s", now_time)
-    # lg.debug(" * meta time : %s", meta_time)
-    # lg.debug(" * now size  : %s", now_size)
-    # lg.debug(" * meta size : %s", meta_size)
 
     if (not stored_sha1 is None) \
             and now_time == meta_time \
@@ -67,6 +79,7 @@ def get_sha1sum_mad(madfile):
 
         # all is well - metadata has not changed - return sha1
         lg.debug("metadata has not changed - use sha1sum from SHA1SUMS")
+        counters['shasumfile'] += 1
         madfile.mad['sha1sum'] = stored_sha1
         return
 
@@ -82,12 +95,14 @@ def get_sha1sum_mad(madfile):
         file_qd = check_hashfile(qdfile, filename)
         if file_qd:
             now_qd = get_qdhash(fullpath)
+            counters['qd_check'] += 1
             if now_qd == file_qd:
 
                 # assume all is well.. (re-)store the sha1
                 # so that the metadata gets stored as well.
                 #sha1 = check_hashfile(sha1file, filename)
 
+                counters['qd_ok'] += 1
                 new_store_sha1(sha1file, metafile, filename,
                                stored_sha1, now_time, now_size)
                 madfile.all['sha1sum'] = stored_sha1
@@ -95,9 +110,13 @@ def get_sha1sum_mad(madfile):
 
     # we need to (re-)calculate the SHA1SUM
     #lg.warning("C:" + filename)
+
+    counters['calculated'] += 1
+
     if stored_sha1 is None:
         # no sha1 - assuming this is the first time
         lg.info("Calculating SHA1SUM for %s", madfile['inputfile'])
+
     else:
         # there is one, but metadata/qdsum does not match - recalc
         lg.info("Recalculating sha1sum for %s", madfile['inputfile'])
@@ -113,9 +132,11 @@ def get_sha1sum_mad(madfile):
     madfile.all['sha1sum'] = sha1 #should not be necessary.
     madfile.mad['sha1sum'] = sha1
 
+
     if not stored_sha1 is None and \
             sha1 != stored_sha1:
         lg.warning("File changed: %s", madfile['inputfile'])
+        counters['changed'] += 1
 
         #load the old data!
         lg.warning("load data from old record (%s)", stored_sha1)

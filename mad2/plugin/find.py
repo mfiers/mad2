@@ -62,6 +62,7 @@ def scan(app, args):
         #no sha1file - then check for write access on the directory
         return os.access(d, os.W_OK)
 
+    app.trans['progress.find'] = 0
     counter = 0
     #lg.setLevel(logging.DEBUG)
     for dirpath, dirnames, filenames in os.walk('.'):
@@ -129,10 +130,15 @@ def scan(app, args):
             if not os.access(ffn, os.R_OK):
                 #no read permission
                 continue
+
+            app.trans['progress.find'] += 1
             counter += 1
 
-            if args.progress and counter % 1000 == 0:
-                lg.warning("mad scan: found {} files".format(counter))
+            pp = app.trans['progress.find']
+            if args.progress and  pp > 0 and pp % 2500 == 0:
+                lg.warning("mad scan: found {} files".format(pp))
+                lg.warning("  now in: {}".format(dirpath))
+
             print(ffn)
 
         if dirpath == '.' and args.no_recurse:
