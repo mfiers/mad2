@@ -48,6 +48,8 @@ def scan(app, args):
     """
     minsize = dehumanize(args.minsize)
 
+    files_to_ignore = app.conf.get('plugin.find.ignore', [])
+
     def check_write_permission(d):
         sha1file = os.path.join(d, 'SHA1SUMS')
         # we'll assume that if we have access to the sha1 file we also
@@ -103,7 +105,7 @@ def scan(app, args):
             ffn = os.path.join(dirpath, f)
             #lg.debug("considering file: %s", f)
 
-            if f in ['QDSUMS', 'SHA1SUMS', 'SHA1SUMS.META']:
+            if f in files_to_ignore:
                 continue
 
             if (not args.do_dot_files) and \
