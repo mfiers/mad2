@@ -3,6 +3,7 @@ from __future__ import print_function
 import cPickle
 import collections
 import datetime
+import glob
 import logging
 import os
 import re
@@ -14,6 +15,7 @@ import hashlib
 
 import arrow
 from pymongo import MongoClient
+import pymongo
 from termcolor import cprint
 import yaml
 
@@ -273,6 +275,10 @@ def mongo_last(app, args):
 @leip.arg('-e', '--experiment')
 @leip.arg('-H', '--host')
 @leip.arg('-s', '--sha1sum')
+@leip.arg('-S', '--sort', help='sort on this field')
+@leip.arg('-R', '--reverse_sort', help='reverse sort on this field')
+@leip.arg('-l', '--limit', default=-1, type=int)
+@leip.arg('-f', '--format', help='output format', default='{fullpath}')
 @leip.command
 def search(app, args):
     """
@@ -298,8 +304,18 @@ def search(app, args):
         return
 
     res = MONGO_mad.find(query)
+
+    if args.sort:
+        res = res.sort(args.sort, pymongo.ASCENDING)
+    elif args.reverse_sort:
+        res = res.sort(args.reverse_sort, pymongo.DESCENDING)
+
+    if args.limit > 0:
+        res = res.limit(args.limit)
+    
     for r in res:
-        print(r['fullpath'])
+
+        print(args.format.format(**r)) #['fullpath'])
 
 
 @persistent_cache(leip.get_cache_dir('mad2', 'mongo', 'sum'),
@@ -495,6 +511,88 @@ def complex_sum(app, args):
         F.write(yaml.safe_dump(precords, default_flow_style=False))
 
 
+def get_latest_csum(app, args):
+
+    import pandas as pd
+
+    #select the correct csum file
+    csum_path = app.conf['plugin.mongo.csum_path']
+    assert '{stamp}' in csum_path
+    csum_glob = csum_path.replace('{stamp}', '*')
+    csums = []
+    css = csum_path.index('{stamp}')
+    for f in glob.glob(csum_glob):
+        cdate = f[css:].split('.')[0]
+        csums.append((cdate, f))
+    csums.sort()
+    cdate, csum_file = csums[-1]
+    lg.info("Using csum file: %s", csum_file)
+    lg.info("From date: %s", cdate)
+
+    pickle_file = csum_file.replace('.yaml', '') + '.pickle'
+    if os.path.exists(pickle_file):
+        data = pd.read_pickle(pickle_file)
+        return data
+
+    with open(csum_file) as F:
+        data = yaml.load(F)
+
+    data = pd.DataFrame(data)
+    data.fillna('n.a.', inplace=True)
+
+    data.to_pickle(pickle_file)
+    return data
+
+@leip.arg("-s", "--select", nargs=2, action='append')
+@leip.arg("group", nargs='+')
+@leip.subcommand(mongo, "csum_group")
+def mongo_csum_report(app, args):
+
+    print(args)
+    import pandas as pd
+    pd.set_option('display.max_rows', None)
+
+    data = get_latest_csum(app, args)
+
+    if not args.select is None:
+        for selkey, selval in args.select:
+            data = data[data[selkey] == selval]
+
+    grod = data.groupby(args.group)[['sum', 'count']].sum()
+    grod.sort('sum', inplace=True, ascending=False)
+    grod['sum'] = grod['sum'].apply(humansize)
+    print(grod)
+
+
+
+@leip.arg("-s", "--select", nargs=2, action='append')
+@leip.arg('values', nargs='*', default='sum')
+@leip.arg("columns")
+@leip.arg("index")
+@leip.subcommand(mongo, "csum_pivot")
+def mongo_csum_pivot(app, args):
+
+    print(args)
+    import pandas as pd
+    pd.set_option('display.max_rows', None)
+
+    data = get_latest_csum(app, args)
+    print(data.head())
+
+    if not args.select is None:
+        for selkey, selval in args.select:
+            data = data[data[selkey] == selval]
+
+    piv = data.pivot_table(index=args.index, columns=args.columns,
+                     values=args.values)
+    piv = piv.applymap(humansize)
+    piv.fillna("", inplace=True)
+    print(piv)
+#    grod = data.groupby(args.group)[['sum', 'count']].sum()
+#    grod.sort('sum', inplace=True, ascending=False)
+#
+#    print(grod)
+
 @leip.flag('--remove-from-core', help='also remove from the core db')
 @leip.arg('file', nargs="*")
 @leip.command
@@ -579,11 +677,18 @@ def flush_dir(app, args):
 
         if os.path.exists(r['fullpath']):
             if args.echo:
-                print("+ " + r['fullpath'])
+                try:
+                    print("+ " + r['fullpath'])
+                except UnicodeEncodeError:
+                    print("+ " + r['fullpath'].encode('utf8'))
+
             if not args.forget_all:
                 continue
         else:
-            print("- " + r['fullpath'])
+            try:
+                print("- " + r['fullpath'])
+            except UnicodeEncodeError:
+                print("- " + r['fullpath'].encode('utf8'))
 
         ids_to_remove.append(r['_id'])
 
