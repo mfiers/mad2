@@ -256,6 +256,9 @@ def get_all_mad_files(app, args, use_stdin=True, warn_on_errors=True):
 
 
 def humansize(nbytes):
+    import numpy as np
+    if np.isnan(nbytes):
+        return float("nan")
     suffixes = [' b', 'kb', 'Mb', 'Gb', 'Tt', 'Pb']
     if nbytes == 0:
         return '0 b'
