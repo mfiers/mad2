@@ -258,7 +258,7 @@ def volume_alias(app, args):
     lid = 'path_' + re.sub('\W+', '_', args.path_fragment).strip("_")
     rex = '.*' + re.escape(args.path_fragment) + '.*'
     thes[lid]['find.fullpath'] = rex
-    thes[lid]['replace.volume'] = args.hostname
+    thes[lid]['replace.volume'] = args.volume_name
     print(loco.pretty())
 
     leip.save_local_config_file(loco, 'mad2')
