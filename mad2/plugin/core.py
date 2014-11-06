@@ -62,11 +62,9 @@ def save(app, args):
         if args.progress and  pp > 0 and pp % 2500 == 0:
             lg.warning("mad save: saved {} files".format(pp))
 
-
         madfile.save()
         if args.echo:
             print madfile['inputfile']
-
 
 
 def _save_dumped_doc(app, doc):
