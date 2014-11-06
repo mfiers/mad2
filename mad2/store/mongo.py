@@ -59,7 +59,7 @@ class MongoStore():
         We do not really delete a file here - but - this needs to be
         calleable
         """
-        lg.warning("delete %s", madfile['inputfile'])
+        lg.debug("madfile delete %s", madfile['inputfile'])
 
     def save(self, madfile):
         """Save data to the mongo database"""
