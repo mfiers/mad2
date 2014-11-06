@@ -79,19 +79,31 @@ def inotify_watch(app, args):
 
         def process_default(self, event):
 
-            if os.path.getsize(event.pathname) < args.minsize:
-                return False
-                    
-
             pn = event.pathname
-            if not must_be_saved(pn):
+
+            try:
+                if os.path.exists(pn) and \
+                   os.path.getsize(pn) < args.minsize:
+
+                return
+                
+                if not must_be_saved(pn):
+                    return 
+
+            except Exception as e:
+                lg.error("problem processing %s", pn)
+                lg.error(" - %s", str(e))
                 return
 
-            lg.debug("saving: %s", event.pathname)
-            maf = mad2.util.get_mad_file(app, event.pathname)
-            maf.save()
-            maf.flush()
-
+            try:
+                lg.debug("saving: %s", event.pathname)
+                maf = mad2.util.get_mad_file(app, event.pathname)
+                maf.save()
+                maf.flush()
+            except Exception as e:
+                lg.error("problem mad saving %s", pn)
+                lg.error(" - %s", str(e))
+                
 
     mask = pyinotify.IN_DELETE \
         | pyinotify.IN_MOVED_FROM \
