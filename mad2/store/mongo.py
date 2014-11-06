@@ -104,6 +104,7 @@ class MongoStore():
 
         bulk = self.db_core.initialize_unordered_bulk_op()
         for i, r in self.save_cache:
+            print(i,r)
             bulk.find({'_id': i}).upsert().replace_one(r)
         res = bulk.execute()
         #print(res)
