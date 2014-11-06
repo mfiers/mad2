@@ -101,6 +101,7 @@ def mongo_prep_mad(mf):
 MONGO_SAVE_CACHE = []
 MONGO_REMOVE_CACHE = []
 
+@leip.hook("flush") #can call this function as a hook!
 def mongo_flush(app):
 
     global MONGO_REMOVE_CACHE
@@ -206,17 +207,15 @@ def mongo_get(app, args):
     """
     get a mongodb record based on id
     """
-    MONGO_D = get_mongo_db(app)
-
-    mongo_id = args.mongo_id
-
-    rec = MONGO_D.find_one({'_id': mongo_id})
 
     if args.core:
          MONGO_C = get_mongo_core_db(app)
          core_id = rec['sha1sum'][:24]
          rec = MONGO_C.find_one({'_id': core_id})
-
+    else:
+        MONGO_D = get_mongo_db(app)
+        mongo_id = args.mongo_id
+        rec = MONGO_D.find_one({'_id': mongo_id})
 
     if not rec:
         return
@@ -237,6 +236,14 @@ def mongo_del(app, args):
 
     mongo_id = args.mongo_id
     MONGO.remove({'_id': mongo_id})
+
+
+@leip.hook("madfile_delete")
+def dump_delete(app, madfile):
+    dump_id = madfile.get('_id_dump')
+    MONGO = get_mongo_db(app)
+    lg.debug("Deleting %s (%s)", madfile['inputfile'], dump_id)
+    MONGO.remove({'_id': dump_id})
 
 
 @leip.subcommand(mongo, "count")
@@ -420,7 +427,6 @@ def mongo_sum2(app, args):
     gl1 = gl2 = len("Total")
 
     for r in res['result']:
-        #print(r)
         g1 = str(r['_id'].get('group1'))
         g2 = str(r['_id'].get('group2'))
         gl1 = max(gl1, len(g1))
@@ -548,8 +554,8 @@ def get_latest_csum(app, args):
 @leip.subcommand(mongo, "csum_group")
 def mongo_csum_report(app, args):
 
-    print(args)
     import pandas as pd
+
     pd.set_option('display.max_rows', None)
 
     data = get_latest_csum(app, args)
@@ -572,7 +578,6 @@ def mongo_csum_report(app, args):
 @leip.subcommand(mongo, "csum_pivot")
 def mongo_csum_pivot(app, args):
 
-    print(args)
     import pandas as pd
     pd.set_option('display.max_rows', None)
 
@@ -588,10 +593,7 @@ def mongo_csum_pivot(app, args):
     piv = piv.applymap(humansize)
     piv.fillna("", inplace=True)
     print(piv)
-#    grod = data.groupby(args.group)[['sum', 'count']].sum()
-#    grod.sort('sum', inplace=True, ascending=False)
-#
-#    print(grod)
+
 
 @leip.flag('--remove-from-core', help='also remove from the core db')
 @leip.arg('file', nargs="*")
@@ -717,7 +719,6 @@ def flush_dir(app, args):
             MONGO_mad.remove( {'_id' : { '$in' : ids_to_remove } } )
         else:
             lg.warning("setting %d records to orphaned", len(ids_to_remove))
-            print(ids_to_remove)
             MONGO_mad.update(
                 {'_id' : { '$in' : ids_to_remove } },
                 {'$set': {'orphan': True}}
@@ -727,6 +728,8 @@ def flush_dir(app, args):
             lg.warning("removing %d records from core",
                        len(core_to_remove))
             MONGO_core.remove( {'_id' : { '$in' : core_to_remove } } )
+
+
 
 @leip.flag('-f', '--force')
 @leip.subcommand(mongo, "drop")

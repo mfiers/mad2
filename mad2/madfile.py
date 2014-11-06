@@ -98,6 +98,24 @@ class MadFile(fantail.Fanstack):
         #call when the file has been is deleted
         pass
 
+    def flush(self):
+        """
+        Flush stores
+        """
+        self.hook_method('flush')
+        for s in self.stores:
+            store = self.stores[s]
+            store.flush()
+
+    def delete(self):
+        """
+        """
+        self.hook_method('madfile_delete', self)
+        for s in self.stores:
+            store = self.stores[s]
+            store.delete(self)
+
+
     def load(self, sha1sum=None):
         """
         load the record from the database, possibly with an
@@ -108,7 +126,10 @@ class MadFile(fantail.Fanstack):
             if os.path.exists(self.all['inputfile']) \
             else True
 
-        self.hook_method('madfile_pre_load', self)
+        if sha1sum is None:
+            # if a sha1sum is specified - do not call hooks
+            # just get the data from the storage
+            self.hook_method('madfile_pre_load', self)
 
         fis = self.get('filesize', -1)
         if fis < 1:
@@ -118,8 +139,9 @@ class MadFile(fantail.Fanstack):
                 store = self.stores[s]
                 store.load(self, sha1sum=sha1sum)
 
-        self.hook_method('madfile_load', self)
-        self.hook_method('madfile_post_load', self)
+        if sha1sum is None:
+            self.hook_method('madfile_load', self)
+            self.hook_method('madfile_post_load', self)
 
     def save(self):
         self.hook_method('madfile_save', self)
