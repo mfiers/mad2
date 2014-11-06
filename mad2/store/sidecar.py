@@ -17,6 +17,9 @@ class SidecarStore():
     def changed(self, madfile):
         pass
 
+    def delete(self, madfile):
+        lg.warning("delete: %s", madfile['inputfile'])
+
     def prepare(self, madfile):
 
         inputfile = madfile['inputfile']
