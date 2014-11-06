@@ -84,8 +84,7 @@ def inotify_watch(app, args):
             try:
                 if os.path.exists(pn) and \
                    os.path.getsize(pn) < args.minsize:
-
-                return
+                    return
                 
                 if not must_be_saved(pn):
                     return 
