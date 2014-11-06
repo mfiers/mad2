@@ -54,6 +54,13 @@ class MongoStore():
     def changed(self, madfile):
         pass
 
+    def delete(self, madfile):
+        """
+        We do not really delete a file here - but - this needs to be
+        calleable
+        """
+        lg.warning("delete %s", madfile['inputfile'])
+
     def save(self, madfile):
         """Save data to the mongo database"""
 
