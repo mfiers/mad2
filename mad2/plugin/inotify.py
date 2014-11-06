@@ -33,9 +33,6 @@ def inotify_watch(app, args):
         if os.path.isdir(path):
             return False
 
-        if os.path.getsize(path) < args.minsize:
-            return False
-
         base = os.path.basename(path)
         for pattern in app.conf['ignore.filename']:
             if fnmatch.fnmatch(base, pattern):
@@ -81,6 +78,11 @@ def inotify_watch(app, args):
             return self.process_IN_DELETE(event)
 
         def process_default(self, event):
+
+            if os.path.getsize(event.pathname) < args.minsize:
+                return False
+                    
+
             pn = event.pathname
             if not must_be_saved(pn):
                 return
