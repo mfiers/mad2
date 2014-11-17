@@ -896,8 +896,12 @@ WASTE_PIPELINE = [
                 "waste": {"$sum": "$waste" }}}]
 
 
-@leip.flag('-e', '--echo')
+@leip.arg('-v', '--volume')
+@leip.arg('-p', '--path_fragment')
+@leip.flag('-e', '--echo', help='echo files for which at least one file is found '
+          + '(taking -v & -p into account)')
 @leip.arg('file', nargs="*")
+@leip.flag('-r', '--raw_output')
 @leip.command
 def repl(app, args):
     """
@@ -911,41 +915,59 @@ def repl(app, args):
         if app.conf['host'][host]['backup']:
             backup_hosts.add(host)
 
-
     check_shasums = False
-    if args.file > 0:
+    if len(args.file) > 0:
         for f in args.file:
             if os.path.exists(f): break
             if len(f) != 40: break
         else: check_shasums = True
 
-    def _process_query(query):
+    def _process_query(query, madfile_in):
         res = MONGO_mad.find(query)
         for r in res:
+
+            if args.volume and \
+               r['volume'] != args.volume:
+                continue
+
+            if args.path_fragment and \
+               not args.path_fragment in r['fullpath']:
+                continue
+
+            if args.echo:
+                print(madfile_in['inputfile'])
+                break
+
             days = (arrow.now() - arrow.get(r['save_time'])).days
             symlink = r.get('is_symlink', False)
             if symlink:
                 stag = 'S'
             else:
                 stag = '.'
-            cprint('%1d%s' % (r['nlink'], stag), 'yellow', end=" ")
-            cprint('%3d' % days, 'green', end="d ")
-            cprint('%6s' % humansize(r['filesize']), 'white', end=" ")
-            if r['host'] in backup_hosts:
-                cprint(r['host'], 'green', attrs=['bold'], end=':')
+            if args.raw_output:
+                print("\t".join(map(str, [
+                    r['nlink'], stag, (arrow.now() - arrow.get(r['save_time'])),
+                    r['filesize'], r['host'], r['fullpath']
+                ])))
             else:
-                cprint(r['host'], 'cyan', end=':')
-            cprint(r['fullpath'])
-
+                cprint('%1d%s' % (r['nlink'], stag), 'yellow', end=" ")
+                cprint('%3d' % days, 'green', end="d ")
+                cprint('%6s' % humansize(r['filesize']), 'white', end=" ")
+                if r['host'] in backup_hosts:
+                    cprint(r['host'], 'green', attrs=['bold'], end=':')
+                else:
+                    cprint(r['host'], 'cyan', end=':')
+                cprint(r['fullpath'])
+                
     if check_shasums:
         for sha1sum in args.file:
             query = {'sha1sum' : sha1sum}
-            _process_query(query)
+            _process_query(query, None)
     else:
         for madfile in get_all_mad_files(app, args):
-            #print(madfile['sha1sum'])
             query = {'sha1sum': madfile['sha1sum']}
-            _process_query(query)
+            _process_query(query, madfile)
+
 
 
 
