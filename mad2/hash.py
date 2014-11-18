@@ -62,7 +62,13 @@ def get_sha1sum_mad(madfile):
     if os.path.exists(metafile):
         with open(metafile) as F:
             for line in F:
-                meta_time, meta_size, meta_file = line.strip().split(None, 2)
+                ls = line.strip().split(None, 2)
+                if len(ls) == 3:
+                    meta_time, meta_size, meta_file = line.strip().split(None, 2)
+                else:
+                    lg.warning("invalid line in the SHA1SUMS.META: %s", metafile)
+                    continue
+
                 if meta_file == filename:
                     break
             else:
