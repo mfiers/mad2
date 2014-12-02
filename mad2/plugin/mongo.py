@@ -109,11 +109,12 @@ def mongo_flush(app):
 
     lg.debug("flush")
     if (len(MONGO_SAVE_CACHE) + len(MONGO_REMOVE_CACHE)) == 0:
+        lg.debug("nothing to flush")
         return
 
     collection = get_mongo_db(app)
 
-    if len(MONGO_SAVE_CACHE) == 0:
+    if len(MONGO_SAVE_CACHE) > 0:
         bulk = collection.initialize_unordered_bulk_op()
         for i, r in MONGO_SAVE_CACHE:
             #print('xx', i, r)
@@ -145,6 +146,7 @@ def save_to_mongo(app, madfile):
         lg.info("removing %s from dump db", madfile['inputfile'])
     else:
         #print(newrec['host'])
+        lg.debug("saving to mongodb with id %s", mongo_id)
         MONGO_SAVE_CACHE.append((mongo_id, newrec))
 
     lg.debug("prep for save: %s", madfile['inputfile'])
@@ -925,7 +927,6 @@ def repl(app, args):
     def _process_query(query, madfile_in):
         res = MONGO_mad.find(query)
         for r in res:
-
             if args.volume and \
                r['volume'] != args.volume:
                 continue
@@ -937,6 +938,7 @@ def repl(app, args):
             if args.echo:
                 print(madfile_in['inputfile'])
                 break
+                
 
             days = (arrow.now() - arrow.get(r['save_time'])).days
             symlink = r.get('is_symlink', False)
