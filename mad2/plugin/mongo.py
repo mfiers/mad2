@@ -142,7 +142,7 @@ def save_to_mongo(app, madfile):
 
     if madfile['orphan']:
         MONGO_REMOVE_CACHE.append(mongo_id)
-        lg.warning("removing %s from dump db", madfile['inputfile'])
+        lg.info("removing %s from dump db", madfile['inputfile'])
     else:
         #print(newrec['host'])
         MONGO_SAVE_CACHE.append((mongo_id, newrec))
@@ -699,10 +699,10 @@ def flush_dir(app, args):
 
         if args.run and len(ids_to_remove) >= 100:
             if args.remove_from_dump:
-                lg.warning("removing %d records", len(ids_to_remove))
+                lg.info("removing %d records", len(ids_to_remove))
                 MONGO_mad.remove( {'_id' : { '$in' : ids_to_remove } } )
             else:
-                lg.warning("setting %d records to orphaned", len(ids_to_remove))
+                lg.info("setting %d records to orphaned", len(ids_to_remove))
 
             ids_to_remove = []
 
@@ -715,10 +715,10 @@ def flush_dir(app, args):
 
     if args.run:
         if args.remove_from_dump:
-            lg.warning("removing %d records", len(ids_to_remove))
+            lg.info("removing %d records", len(ids_to_remove))
             MONGO_mad.remove( {'_id' : { '$in' : ids_to_remove } } )
         else:
-            lg.warning("setting %d records to orphaned", len(ids_to_remove))
+            lg.info("setting %d records to orphaned", len(ids_to_remove))
             MONGO_mad.update(
                 {'_id' : { '$in' : ids_to_remove } },
                 {'$set': {'orphan': True}}
