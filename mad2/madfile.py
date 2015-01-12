@@ -2,6 +2,7 @@ import logging
 import os
 
 import fantail
+import socket
 
 from mad2.exception import MadPermissionDenied
 from mad2.recrender import recrender
@@ -54,12 +55,15 @@ class MadFile(fantail.Fanstack):
         self.all['dirname'] = os.path.abspath(dirname)
         self.all['filename'] = filename
         self.all['fullpath'] = os.path.abspath(inputfile)
-
+        self.all['host'] = socket.gethostname()
         self.mad['sha1sum'] = ""
-        #self.all['sha1sum'] = ""
+        self.mad['sha256'] = ""
+
 
         if not os.path.exists(inputfile):
             self.all['orphan'] = True
+        
+        self.hook_method('madfile_init', self)
 
         for s in self.stores:
             store = self.stores[s]
