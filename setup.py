@@ -33,7 +33,9 @@ setup(name='mad2',
           'colorlog',
           'arrow',
           'termcolor',
-          'readline'
+          'readline',
+          'toMaKe',
+          'iso8601',
           ],
       classifiers=[
           'Development Status :: 4 - Beta',
