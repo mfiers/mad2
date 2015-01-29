@@ -18,10 +18,12 @@ def cleanup_stores(app):
     lg.debug("cleanup stores")
     mad2.util.cleanup_stores(app)
 
+
 @leip.command
 def version(app, args):
     import pkg_resources
     print pkg_resources.get_distribution("mad2").version
+
 
 @leip.arg('file', nargs='*')
 @leip.command

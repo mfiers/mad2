@@ -115,7 +115,7 @@ def cleanup_stores(app):
         store.finish()
 
 
-def get_mad_file(app, filename):
+def get_mad_file(app, filename, sha1sum=None):
     """
     Instantiate a mad file & add hooks
     """
@@ -126,6 +126,7 @@ def get_mad_file(app, filename):
     lg.debug("instantiating madfile for {0}".format(filename))
     return MadFile(filename,
                    stores=STORES,
+                   sha1sum=sha1sum,
                    base=app.conf['madfile'],
                    hook_method=app.run_hook)
 
@@ -340,4 +341,3 @@ class memoized(object):
     def __get__(self, obj, objtype):
         '''Support instance methods.'''
         return functools.partial(self.__call__, obj)
-

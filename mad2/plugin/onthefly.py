@@ -153,7 +153,7 @@ def recursive_dir_data(app, madfile):
         madfile.mad[k] = y[k]
 
 
-@leip.hook("madfile_pre_load")
+@leip.hook("madfile_init")
 def onthefly(app, madfile):
 
     lg.debug("running onthelfy")
@@ -172,9 +172,7 @@ def onthefly(app, madfile):
         # orphaned is file - little we can do
         return
 
-    #    if not os.path.exists(madfile['fullpath'])
     filestat = os.lstat(madfile['fullpath'])
-    # print(filestat)
 
     madfile.all['filesize'] = filestat.st_size
     madfile.all['nlink'] = filestat.st_nlink
@@ -190,11 +188,9 @@ def onthefly(app, madfile):
         madfile.all['userid'] = userinfo.pw_name
         madfile.all['username'] = userinfo.pw_gecos
 
-    # if not app.conf.get('username') is None:
-    #     madfile.all['username'] = app.conf['username']
-
     mtime = datetime.utcfromtimestamp(
                 filestat.st_mtime)
+
     atime = datetime.utcfromtimestamp(
         filestat.st_atime)
 
@@ -218,12 +214,6 @@ def onthefly(app, madfile):
         if f_field in madfile and re.match(f_pattern, madfile[f_field]):
             #match - now update the
             madfile.all.update(replace)
-
-    # last - but not least
-    # make sure the file has a SHA1SUM, and that it is up to date
-
-
-    madfile.check_sha1sum()
 
     lg.debug("finished onthefly")
 
