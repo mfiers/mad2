@@ -5,14 +5,17 @@ import logging
 from pymongo import MongoClient
 
 lg = logging.getLogger(__name__)
-#lg.setLevel(logging.DEBUG)
+# g.setLevel(logging.DEBUG)
+
 
 MONGO_SAVE_CACHE = []
 MONGO_SAVE_COUNT = 0
 MNG = None
 
-#These fields we do not want to see in the core database
+
+# hese fields we do not want to see in the core database
 FORBIDDEN = ['hash', 'uuid', '_id_dump', 'host', 'volume']
+
 
 def mongo_prep_mad(mf):
 
@@ -64,16 +67,12 @@ class MongoStore():
     def save(self, madfile):
         """Save data to the mongo database"""
 
-        if not 'sha1sum' in madfile:
-            lg.warning("cannot save to mongodb without a sha1sum")
-            return
-
-        if madfile['sha1sum'] is None:
+        if not madfile.get('sha1sum'):
             lg.warning("cannot save to mongodb without a sha1sum")
             return
 
         if madfile['orphan']:
-            lg.warning("Will not save non-existing files")
+            lg.warning("Will not save orphan file")
             return
 
         mongo_id = madfile['sha1sum'][:24]
@@ -81,20 +80,18 @@ class MongoStore():
         core = dict(madfile.mad)
         core['sha1sum'] = madfile['sha1sum']
 
-        if 'hash' in core:
-            del core['hash']
-        if 'uuid' in core:
-            del core['uuid']
-        if '_id_dump' in core:
-            del core['_id_dump']
+        core['_id'] = madfile['_id_core']
+        core['sha1sum'] = madfile['sha1sum']
 
-        core['_id'] = mongo_id
-        del core['_id']
+        for to_remove in ['core', '_id_transient', '_id_dump', 'uuid',
+                          '_id_core']:
+            if to_remove in core:
+                del core[to_remove]
 
         lg.debug("saving to id %s", mongo_id)
         self.save_cache.append((mongo_id, core))
 
-        if len(self.save_cache) > 20:
+        if len(self.save_cache) > 30:
             self.flush()
 
     def flush(self):
@@ -109,21 +106,20 @@ class MongoStore():
         lg.debug("Modified %d records", res['nModified'])
         self.save_cache = []
 
-
     def load(self, madfile, sha1sum):
         """
         Load the file from the databse,
         possibly with an alternative sha1sum
         """
 
-        if not sha1sum is None:
+        if sha1sum is not None:
             lg.warning("load from record with alternative cs %s", sha1sum)
             sha1 = sha1sum
         else:
 
-            sha1 = madfile.get('sha1sum')
+            sha1 = madfile.all['sha1sum']
 
-        if sha1 is None:
+        if not sha1:
             return
 
         mongo_id = sha1[:24]
@@ -132,7 +128,10 @@ class MongoStore():
         lg.debug(" - sha1: {}".format(sha1))
         lg.debug(" - mongo_id: {}".format(mongo_id))
         data = self.db_core.find_one({'_id': mongo_id})
+#        print('preload', madfile.mad)
+#        print('data', data)
         madfile.mad.update(data)
+#        print('postload', madfile.mad)
 
     def finish(self):
         lg.debug("cleaning up")
