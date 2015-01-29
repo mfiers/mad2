@@ -1,3 +1,4 @@
+from datetime import datetime
 import logging
 import os
 
@@ -27,6 +28,7 @@ class MadFile(fantail.Fanstack):
     def __init__(self,
                  inputfile,
                  stores=None,
+                 sha1sum=None,
                  base=fantail.Fantail(),
                  hook_method=dummy_hook_method):
 
@@ -47,6 +49,8 @@ class MadFile(fantail.Fanstack):
             dirname = os.path.dirname(inputfile)
             filename = os.path.basename(inputfile)
 
+        self.all['orphan'] = not os.path.exists(inputfile)
+
         lg.debug(
             "Instantiating a madfile for '{}' / '{}'".format(
                 dirname, filename))
@@ -55,20 +59,12 @@ class MadFile(fantail.Fanstack):
         self.all['dirname'] = os.path.abspath(dirname)
         self.all['filename'] = filename
         self.all['fullpath'] = os.path.abspath(inputfile)
-        self.all['host'] = socket.gethostname()
-        self.mad['sha1sum'] = ""
-        self.mad['sha256'] = ""
 
-
-        if not os.path.exists(inputfile):
-            self.all['orphan'] = True
-        
         self.hook_method('madfile_init', self)
 
         for s in self.stores:
             store = self.stores[s]
             store.prepare(self)
-
         self.load()
 
     def render(self, template, data):
@@ -90,16 +86,16 @@ class MadFile(fantail.Fanstack):
     def __str__(self):
         return '<mad2.madfile.MadFile {}>'.format(self['inputfile'])
 
-    def check_sha1sum(self):
-        import mad2.hash
-        mad2.hash.get_sha1sum_mad(self)
+#    def check_sha1sum(self):
+#        import mad2.hash
+#        mad2.hash.get_sha1sum_mad(self)
 
     def on_change(self):
-        #call when the file has been changed
+        # call when the file has been changed
         pass
 
     def on_delete(self):
-        #call when the file has been is deleted
+        # call when the file has been is deleted
         pass
 
     def flush(self):
@@ -118,7 +114,6 @@ class MadFile(fantail.Fanstack):
         for s in self.stores:
             store = self.stores[s]
             store.delete(self)
-
 
     def load(self, sha1sum=None):
         """
@@ -162,9 +157,9 @@ class MadFile(fantail.Fanstack):
         self.hook_method('madfile_post_save', self)
 
 
-
 class MadDummy(MadFile):
-     def __init__(self, data_core, data_all,
+
+    def __init__(self, data_core, data_all,
                  stores=None,
                  hook_method=dummy_hook_method):
 
