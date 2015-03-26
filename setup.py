@@ -14,7 +14,7 @@ entry_points = {
     ]}
 
 setup(name='mad2',
-      version='0.1.4',
+      version='0.1.27',
       description=DESCRIPTION,
       author='Mark Fiers',
       author_email='mark.fiers42@gmail.com',
@@ -24,12 +24,18 @@ setup(name='mad2',
       packages=find_packages(),
       install_requires=[
           'Leip',
-          'Yaco',
+          'Fantail',
           'xlrd',
           'Jinja2',
           'lockfile',
           'python-dateutil',
           'pymongo',
+          'colorlog',
+          'arrow',
+          'termcolor',
+          'readline',
+          'toMaKe',
+          'iso8601',
           ],
       classifiers=[
           'Development Status :: 4 - Beta',

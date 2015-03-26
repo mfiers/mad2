@@ -1,28 +1,31 @@
 import os
 import logging
+import subprocess
 import sys
+import tempfile
 import glob
 
 
-def message(txt):
+def message(txt, *args):
     """
     Message to the user (always on stderr)
     """
-    if not sys.stdout.isatty():
-        sys.stderr.write(txt.rstrip() + "\n")
+    if not sys.stderr.isatty():
+        sys.stderr.write('Mad: ' + txt.rstrip() % args + "\n")
         return
-    sys.stderr.write('\033[1;97;48;5;70mMad:\033[0m')
-    sys.stderr.write(txt.strip() + "\n")
 
-def error(txt):
+    sys.stderr.write('\033[1;97;48;5;70mMad\033[0m: ')
+    sys.stderr.write(txt.strip() % args + "\n")
+
+def error(txt, *args):
     """
     Message to the user (always on stderr)
     """
     if not sys.stdout.isatty():
-        sys.stderr.write("Error: " + txt.strip() + "\n")
+        sys.stderr.write("Error: " + txt.strip() % args + "\n")
         return
     sys.stderr.write('\033[1;97;48;5;124mError:\033[0m')
-    sys.stderr.write(txt.strip() + "\n")
+    sys.stderr.write(txt.strip() % args + "\n")
 
 def errorexit(txt, exit_code=1):
     error(txt)
@@ -178,6 +181,31 @@ def _check_history_duplicates(value):
                 lg.debug("removing duplicate %s" % value)
                 readline.remove_history_item(histlen-1)
                 break
+
+def askUserEditor(default):
+    editor = os.environ.get('EDITOR', 'vim')
+    tmp_file = tempfile.NamedTemporaryFile('wb', delete=False)
+
+    #write default value to the tmp file
+    if default:
+        tmp_file.write(default + "\n")
+    else:
+        tmp_file.write("\n")
+    tmp_file.close()
+
+    tty = open('/dev/tty')
+
+    subprocess.call('{} {}'.format(editor, tmp_file.name),
+        stdin=tty, shell=True)
+    sys.stdin = sys.__stdin__
+
+
+    #read value back in
+    with open(tmp_file.name, 'r') as F:
+        #removing trailing space
+        val = F.read().rstrip()
+    #remove tmp file
+    os.unlink(tmp_file.name)
 
 def askUser(parameter, appname='mad', default="", data = {},
             xtra_history=None, prompt=None):

@@ -14,6 +14,15 @@ class SidecarStore():
     def __init__(self, conf):
         self.conf = conf
 
+    def changed(self, madfile):
+        pass
+
+    def delete(self, madfile):
+        lg.warning("should delete: %s", madfile['inputfile'])
+
+    def flush(self):
+        pass
+
     def prepare(self, madfile):
 
         inputfile = madfile['inputfile']
@@ -67,7 +76,12 @@ class SidecarStore():
             else:
                 raise
 
-    def load(self, madfile):
+    def load(self, madfile, sha1sum=None):
+        """
+
+        sha1sum is never used for sidecars
+
+        """
 
         lg.debug("sidecar load: %s", madfile)
 
@@ -77,3 +91,9 @@ class SidecarStore():
             # note the mad file data is in stack[1] - 0 is transient
             madfile.mad.update(
                 fantail.yaml_file_loader(madfile['madname']))
+
+
+    def finish(self):
+        lg.debug("cleaning up")
+
+

@@ -61,34 +61,35 @@ def apply_file_format(app, madfile, filename=None):
         apply_file_format(app, madfile, base)
 
 
-
-@leip.hook("madfile_pre_load")
-def recursive_dir_data(app, madfile):
+def _get_recursive_dir_data(pth):
 
     global RECURSE_CACHE
+    lg.debug("start recursive data load for {}".format(pth))
 
-    lg.debug("start recursive data load for {}".format(madfile['inputfile']))
-    here = madfile['dirname'].rstrip('/')
+    pth = os.path.abspath(pth)
+
+    if os.path.exists(pth) and not os.path.isdir(pth):
+        here = os.path.dirname(pth)
+    else:
+        here = pth
+
+    here = here.rstrip('/')
     conf = []
 
     # find existing directory configuration from the perspective
     # of the madfile
     last = here
-    while True:
-        try:
-            assert(os.path.isdir(here))
-        except AssertionError:
-            print(last, here)
-            raise
-        except:
-            print(last, here)
-            raise
 
-        here_c = os.path.join(here, 'mad.config')
-        if os.path.exists(here_c):
-            conf.append(here_c)
+    while True:
+
+        if os.path.isdir(here):
+
+            here_c = os.path.join(here, 'mad.config')
+            if os.path.exists(here_c):
+                conf.append(here_c)
 
         parent = os.path.dirname(here)
+
         if parent == '/':  # no config in the root - that would be evil!
             break
         last = here
@@ -99,12 +100,8 @@ def recursive_dir_data(app, madfile):
     last = here
     cwdconf = []
     while True:
-        try:
-            assert(os.path.isdir(here))
-        except:
-            print(last, here)
-            print(madfile.pretty())
-            raise
+        assert(os.path.isdir(here))
+
         here_c = os.path.join(here, 'mad.config')
         if os.path.exists(here_c):
             if here_c in conf:
@@ -119,6 +116,8 @@ def recursive_dir_data(app, madfile):
 
     conf = cwdconf + conf
     # load (or get from cache)
+
+    rv = fantail.Fantail()
     for c in conf[::-1]:
         fullname = os.path.expanduser(os.path.abspath(c))
         if fullname in RECURSE_CACHE:
@@ -127,18 +126,35 @@ def recursive_dir_data(app, madfile):
             #print('start load dir', fullname)
             y = fantail.yaml_file_loader(fullname)
             RECURSE_CACHE[fullname] = y
+        rv.update(y)
+    return rv
 
-        # insert in the stack just after the mad file
-        madfile.all.update(y)
+@leip.arg("dir", nargs='?', default='.')
+@leip.command
+def project(app, args):
+    rdd = _get_recursive_dir_data(args.dir)
+    project = rdd.get('project', '')
+    if len(project) > 0:
+        print(project)
 
 
-@leip.hook("madfile_post_load")
+@leip.hook("madfile_pre_load")
+def recursive_dir_data(app, madfile):
+    y = _get_recursive_dir_data(madfile['fullpath'])
+    # insert in the stack just after the mad file
+    madfile.all.update(y)
+
+    keywords = app.conf['keywords']
+
+    #add all non transient keys to the core database
+    for k in y:
+        if keywords[k]['transient']:
+            continue
+        madfile.mad[k] = y[k]
+
+
+@leip.hook("madfile_init")
 def onthefly(app, madfile):
-
-    # if sorted(list(madfile.keys())) == ['hash']:
-    #     madfile.all['annotated'] = False
-    # else:
-    #     madfile.all['annotated'] = True
 
     lg.debug("running onthelfy")
 
@@ -147,6 +163,7 @@ def onthefly(app, madfile):
     madfile.all['host'] = host
     lg.debug('host: %s', host)
 
+    madfile.all['volume'] = host
 
     madfile.all['uri'] = "file://{}{}".format(
         madfile.all['host'], madfile['fullpath'])
@@ -155,12 +172,11 @@ def onthefly(app, madfile):
         # orphaned is file - little we can do
         return
 
-#    if not os.path.exists(madfile['fullpath'])
-    filestat = os.stat(madfile['fullpath'])
-    # print(filestat)
+    filestat = os.lstat(madfile['fullpath'])
 
     madfile.all['filesize'] = filestat.st_size
     madfile.all['nlink'] = filestat.st_nlink
+    madfile.all['is_symlink'] = os.path.islink(madfile['fullpath'])
 
     try:
         userinfo = getpwuid(filestat.st_uid)
@@ -172,19 +188,17 @@ def onthefly(app, madfile):
         madfile.all['userid'] = userinfo.pw_name
         madfile.all['username'] = userinfo.pw_gecos
 
-    # if not app.conf.get('username') is None:
-    #     madfile.all['username'] = app.conf['username']
-
     mtime = datetime.utcfromtimestamp(
-        filestat.st_mtime)
+                filestat.st_mtime)
+
     atime = datetime.utcfromtimestamp(
         filestat.st_atime)
 
     madfile.all['atime'] = atime
-    madfile.all['atime_simple'] = atime.strftime("%Y/%m/1")
+#    madfile.all['atime_simple'] = atime.strftime("%Y/%m/1")
 
     madfile.all['mtime'] = mtime
-    madfile.all['mtime_simple'] = mtime.strftime("%Y/%m/1")
+#    madfile.all['mtime_simple'] = mtime.strftime("%Y/%m/1")
     madfile.all['basename'] = madfile.all['filename']
 
     apply_file_format(app, madfile)
@@ -221,10 +235,11 @@ def user_alias(app, args):
     leip.save_local_config_file(loco, 'mad2')
     leip.get_config('mad2', rehash=True)
 
-@leip.arg('hostname')
+
+@leip.arg('volume_name')
 @leip.arg('path_fragment')
 @leip.command
-def host_alias(app, args):
+def volume_alias(app, args):
 
     loco = leip.get_local_config_file('mad2')
     thes = loco['thesaurus']
@@ -233,7 +248,7 @@ def host_alias(app, args):
     lid = 'path_' + re.sub('\W+', '_', args.path_fragment).strip("_")
     rex = '.*' + re.escape(args.path_fragment) + '.*'
     thes[lid]['find.fullpath'] = rex
-    thes[lid]['replace.host'] = args.hostname
+    thes[lid]['replace.volume'] = args.volume_name
     print(loco.pretty())
 
     leip.save_local_config_file(loco, 'mad2')
