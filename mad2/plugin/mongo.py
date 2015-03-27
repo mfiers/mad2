@@ -232,7 +232,7 @@ def madfile_init(app, madfile):
     if sha1sum is None or not(isinstance(sha1sum_time, datetime)):
         # no shasum - recreate
         _create_new_sha1(madfile)
-    elif mtime > sha1sum_time:
+    elif sha1sum_time is None or mtime is None or  mtime > sha1sum_time:
         # changed sha1sum?
         old_sha1sum = sha1sum
         new_sha1sum = _create_new_sha1(madfile)
