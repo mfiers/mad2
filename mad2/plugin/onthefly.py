@@ -1,4 +1,4 @@
-from __future__ import print_function, division
+
 
 from datetime import datetime
 import os
@@ -204,12 +204,12 @@ def onthefly(app, madfile):
     apply_file_format(app, madfile)
 
     thesaurus = app.conf['thesaurus']
-    for t in thesaurus.values():
+    for t in list(thesaurus.values()):
         if len(t['find']) != 1:
             lg.critical("cannot handle multiple search fields")
             exit(0)
-        f_field = t['find'].keys()[0]
-        f_pattern = t['find'].values()[0]
+        f_field = list(t['find'].keys())[0]
+        f_pattern = list(t['find'].values())[0]
         replace = t['replace']
         if f_field in madfile and re.match(f_pattern, madfile[f_field]):
             #match - now update the

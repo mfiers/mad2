@@ -92,7 +92,7 @@ def _getkeyval(app, key, val, force):
 
     if keytype == 'restricted':
         allowed = keyinfo['allowed']
-        if not val in allowed.keys():
+        if not val in list(allowed.keys()):
             errorexit("Value '{0}' not allowed for key '{1}'".format(val, key))
 
     return key, val, list_mode
@@ -113,7 +113,7 @@ def mset(app, args):
         all_kvs.append(_getkeyval(app, k, v, args.force))
 
     for madfile in get_all_mad_files(app, args):
-        print madfile
+        print(madfile)
         for key, val, list_mode in all_kvs:
             if list_mode:
                 if not key in madfile:
@@ -129,7 +129,7 @@ def mset(app, args):
                 madfile.mad[key] = val
 
         if args.echo:
-            print(madfile.filename)
+            print((madfile.filename))
         madfile.save()
 
 
@@ -141,7 +141,7 @@ def keywords(app, args):
     """
     maxkeylen = 0
 
-    for key, keyinfo in app.conf['keywords'].iteritems():
+    for key, keyinfo in app.conf['keywords'].items():
         if keyinfo['hide']:
             continue
         maxkeylen = max(maxkeylen, len(key))
@@ -162,7 +162,7 @@ def keywords(app, args):
         if transient:
             cprint(" (transient)", 'grey')
         else:
-            print
+            print()
         if keyinfo['type'] == 'restricted':
             for i, allowed in enumerate(keyinfo['allowed']):
                 ad = keyinfo['allowed'][allowed]
@@ -318,9 +318,9 @@ def madset(app, args):
 
         if args.echo:
             if args.dir:
-                print(madfile._mad_dir_name)
+                print((madfile._mad_dir_name))
             else:
-                print(madfile['filename'])
+                print((madfile['filename']))
 
         if args.dir:
             fantail.yaml_file_save(madfile, madfile._mad_file_name)

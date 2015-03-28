@@ -22,7 +22,7 @@ def cleanup_stores(app):
 @leip.command
 def version(app, args):
     import pkg_resources
-    print pkg_resources.get_distribution("mad2").version
+    print(pkg_resources.get_distribution("mad2").version)
 
 
 @leip.arg('file', nargs='*')
@@ -34,7 +34,7 @@ def echo(app, args):
     note - this ensures that the sha1sum is calculated
     """
     for madfile in get_all_mad_files(app, args):
-        print(madfile['inputfile'])
+        print((madfile['inputfile']))
 
 
 @leip.arg('-p', '--progress', action='store_true',
@@ -70,7 +70,7 @@ def save(app, args):
 
         madfile.save()
         if args.echo:
-            print madfile['inputfile']
+            print(madfile['inputfile'])
 
 
 def _save_dumped_doc(app, doc):

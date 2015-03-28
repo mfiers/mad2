@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 
 
 import logging
@@ -44,7 +44,7 @@ class SqlMadFile(Base):
     host = Column(String, index=True)
 
     def __init__(self, maf):
-        if maf.hash.has_key('sha_1'):
+        if 'sha_1' in maf.hash:
             self.sha1 = maf.hash.sha1
         else:
             self.sha1 = ""
@@ -93,7 +93,7 @@ def save_madfile(app, maf):
             .delete()
     session.commit()
 
-    for ky in maf.keys():
+    for ky in list(maf.keys()):
         vl = maf.get(ky, None)
         if vl is None:
             continue

@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 
 import collections
 import logging
@@ -91,7 +91,7 @@ def groupby(app, args):
         #print(gv, nm, data[tuple(gv)][0] / 1000.)
 
     for k in sorted(data.keys()):
-        rv = map(str, list(k))
-        rv.extend(map(str, data[k]))
+        rv = list(map(str, list(k)))
+        rv.extend(list(map(str, data[k])))
         print(args.sep.join(rv))
 

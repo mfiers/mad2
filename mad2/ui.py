@@ -40,7 +40,7 @@ sys.path = (
 
 # hack - otherwise readline outputs unwanted control
 # character
-if os.environ.has_key('TERM'):
+if 'TERM' in os.environ:
     if os.environ['TERM'] == 'xterm':
         os.environ['TERM'] = 'vt100'
 
@@ -58,7 +58,7 @@ lg =logging.getLogger(__name__)
 
 ## See if we can do intelligent things with job variables
 def untangle(txt):
-    print("untangle", txt)
+    print(("untangle", txt))
     return txt
     #return sysConf.job.conf.interpret(txt)
 
@@ -74,7 +74,7 @@ def fsCompleter(text, state):
     g("text   : ", text)
     g("state  :", state)
 
-    if _FSCOMPLETECACHE and text in _FSCOMPLETECACHE.keys():
+    if _FSCOMPLETECACHE and text in list(_FSCOMPLETECACHE.keys()):
         try:
             #rv = _FSCOMPLETECACHE[text]
             #g(str(rv))
@@ -249,7 +249,7 @@ def askUser(parameter, appname='mad', default="", data = {},
         prompt = '%s: ' % parameter
 
     try:
-        vl = raw_input(prompt)
+        vl = input(prompt)
     finally:
         readline.set_startup_hook()
 

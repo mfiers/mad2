@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 
 import logging
 import sys
@@ -102,7 +102,7 @@ def samplesheet(app, args):
         fid = file2id.get(madfile['filename'])
         if fid in id_values:
             rowid = id_values.index(fid) + 1
-            data = dict(zip(header, sheet.row_values(rowid)))
+            data = dict(list(zip(header, sheet.row_values(rowid))))
             madfile.mad.update(data)
             madfile.save()
 

@@ -28,9 +28,7 @@ from mad2.ui import message
 
 lg = logging.getLogger(__name__)
 
-
 COUNTER = collections.defaultdict(lambda: 0)
-
 MONGO_SAVE_CACHE = []
 MONGO_SAVE_COUNT = 0
 MONGO_REMOVE_COUNT = 0
@@ -85,8 +83,8 @@ def get_mongo_core_db(app):
 
 def get_mongo_transient_id(mf):
     hsh = hashlib.sha1()
-    hsh.update(mf['host'])
-    hsh.update(mf['fullpath'])
+    hsh.update(mf['host'].encode('UTF-8'))
+    hsh.update(mf['fullpath'].encode('UTF-8'))
     return hsh.hexdigest()[:24]
 
 
@@ -400,7 +398,7 @@ def update(app, args):
 
     mongo_flush(app)
 
-    for k, v in COUNTER.items():
+    for k, v in list(COUNTER.items()):
         lg.warning("%10s: %d", k, v)
 
 
@@ -601,7 +599,7 @@ def mongo_sum(app, args):
     """
 
     res = _single_sum(app, group_by=args.group_by, force=args.force)
-    total_size = long(0)
+    total_size = int(0)
     total_count = 0
 
     mgn = len("Total")
@@ -616,7 +614,7 @@ def mongo_sum(app, args):
     for reshost in res:
         total = reshost['total']
         count = reshost['count']
-        total_size += long(total)
+        total_size += int(total)
         total_count += count
         if args.human:
             total_human = humansize(total)
@@ -870,89 +868,6 @@ def forget(app, args):
     go(MONGO_CORE, to_remove_core)
 
 
-@leip.flag('-r', '--remove-from-transient', help='remove from transient db')
-@leip.flag('--remove-from-core', help='also remove from the core db')
-@leip.flag('--run', help='actually run - otherwise it\'s a dry run showing ' +
-           'what would be deleted')
-@leip.arg('dir', nargs="?", default='.')
-@leip.flag('-e', '--echo', help='echo all files')
-@leip.command
-def forget_dir(app, args):
-    args.forget_all = True
-    flush_dir(app, args)
-
-
-@leip.flag('--remove-from-core', help='also remove from the core db')
-@leip.flag('--dry_run', help='dry run - show what would be deleted ')
-@leip.flag('-e', '--echo', help='echo changed files')
-@leip.flag('-E', '--echo_all', help='echo all files')
-@leip.arg('dir', nargs='?', default='.')
-@leip.command
-def flush_dir(app, args):
-    """
-    Recursively flush deleted files from the transient db
-    """
-
-    MONGO_mad = get_mongo_transient_db(app)
-    MONGO_core = get_mongo_core_db(app)
-
-    host = socket.gethostname()
-    wd = os.path.abspath(os.getcwd())
-
-    rex = re.compile("^" + wd)
-
-    query = {
-        'host': host,
-        'dirname': rex,
-        'orphan': False}
-
-    ids_to_remove = []
-    core_to_remove = []
-
-    res = MONGO_mad.find(query)
-    for r in res:
-
-        if os.path.exists(r['fullpath']):
-            if args.echo_all:
-                try:
-                    print("+ " + r['fullpath'])
-                except UnicodeEncodeError:
-                    print("+ " + r['fullpath'].encode('utf8'))
-        else:
-            if args.echo:
-                try:
-                    print("- " + r['fullpath'])
-                except UnicodeEncodeError:
-                    print("- " + r['fullpath'].encode('utf8'))
-
-        ids_to_remove.append(r['_id'])
-
-        if args.remove_from_core:
-            core_to_remove.append(r['sha1sum'][:24])
-
-        if not args.dry_run:
-            if len(ids_to_remove) >= 100:
-                lg.info("removing %d records", len(ids_to_remove))
-                MONGO_mad.remove({'_id': {'$in': ids_to_remove}})
-                ids_to_remove = []
-            if args.remove_from_core and len(core_to_remove) >= 200:
-                lg.warning("removing %d records from core",
-                           len(core_to_remove))
-                MONGO_core.remove({'_id': {'$in': core_to_remove}})
-                core_to_remove = []
-
-    if args.dry_run:
-        return
-
-    lg.info("removing %d records", len(ids_to_remove))
-    MONGO_mad.remove({'_id': {'$in': ids_to_remove}})
-
-    if args.remove_from_core:
-        lg.warning("removing %d records from core",
-                   len(core_to_remove))
-        MONGO_core.remove({'_id': {'$in': core_to_remove}})
-
-
 @leip.flag('-f', '--force')
 @leip.subcommand(mongo, "drop")
 def mongo_drop(app, args):
@@ -992,18 +907,9 @@ def mongo_index(app, args):
     core_index =app.conf['plugin.mongo.indici.core']
     trans_index =app.conf['plugin.mongo.indici.transient']
     for db, flds in [(MONGO_trans, trans_index), (MONGO_core, core_index)]:
-        for k, v in flds.items():
+        for k, v in list(flds.items()):
             assert v==1
             db.ensure_index(k)
-
-#        print db, flds
-#    print(core_index)
-#    print(trans_index)
-#    for f in app.conf['plugin.mongo.indici']:
-#        print(f)
-#        print("create index on: {}".format(f))
-#        MONGO_mad.ensure_index(f)
-#        MONGO_core.ensure_index(f)
 
 
 @persistent_cache(leip.get_cache_dir('mad2', 'mongo', 'keys'),

@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 
 import collections
 import logging
@@ -206,7 +206,7 @@ def x(app, args):
         groups = collections.defaultdict(list)
         for f in get_all_mad_files(app, args):
             groups[f[group_on]].append(f)
-        files = groups.values()
+        files = list(groups.values())
     else:
         files = [[x] for x in get_all_mad_files(app, args)]
 
