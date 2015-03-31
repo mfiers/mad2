@@ -26,7 +26,7 @@ setup(name='mad2',
       install_requires=[
           'Leip',
           'Fantail',
-          'xlrd',
+          'humanize',
           'Jinja2',
           'lockfile',
           'python-dateutil',
