@@ -12,6 +12,7 @@ import sys
 import time
 
 from termcolor import cprint
+from pymongo import MongoClient
 
 from mad2.exception import MadPermissionDenied, MadNotAFile
 from mad2.madfile import MadFile, MadDummy
@@ -28,6 +29,56 @@ lg = logging.getLogger(__name__)
 #
 
 STORES = None
+MONGO = None
+MONGOCORE = None
+
+
+#
+# Mongodb utils
+#
+def get_mongo_core_db(app):
+    """
+    Get the core collection object
+    """
+    global MONGOCORE
+
+    if MONGOCORE is not None:
+        return MONGOCORE
+
+    info = app.conf['store.mongo']
+    host = info.get('host', 'localhost')
+    port = info.get('port', 27017)
+    dbname = info.get('db', 'mad2')
+    coll = info.get('collection', 'core')
+    lg.debug("connect mongodb %s:%s/%s/%s", host, port, dbname, coll)
+    client = MongoClient(host, port)
+
+    MONGOCORE = client[dbname][coll]
+
+    return MONGOCORE
+
+def get_mongo_transient_db(app):
+    """
+    Get the collection object
+    """
+    global MONGO
+
+    if MONGO is not None:
+        return MONGO
+
+    mongo_info = app.conf['store.mongo']
+    host = mongo_info.get('host', 'localhost')
+    port = mongo_info.get('port', 27017)
+    dbname = mongo_info.get('db', 'mad2')
+    coll = mongo_info.get('transient_collection', 'transient')
+
+    lg.debug("connect mongodb {}:{}".format(host, port))
+    client = MongoClient(host, port)
+
+    MONGO = client[dbname][coll]
+
+    return MONGO
+
 
 
 

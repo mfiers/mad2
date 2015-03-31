@@ -14,7 +14,6 @@ import socket
 import hashlib
 
 import arrow
-from pymongo import MongoClient
 import pymongo
 from termcolor import cprint
 import yaml
@@ -23,6 +22,7 @@ import leip
 
 import mad2.hash
 from mad2.util import get_all_mad_files, humansize, persistent_cache
+from mad2.util import get_mongo_transient_db, get_mongo_core_db
 from mad2.ui import message
 
 
@@ -32,54 +32,6 @@ COUNTER = collections.defaultdict(lambda: 0)
 MONGO_SAVE_CACHE = []
 MONGO_SAVE_COUNT = 0
 MONGO_REMOVE_COUNT = 0
-MONGO = None
-MONGOCORE = None
-
-
-def get_mongo_transient_db(app):
-    """
-    Get the collection object
-    """
-    global MONGO
-
-    if MONGO is not None:
-        return MONGO
-
-    mongo_info = app.conf['store.mongo']
-    host = mongo_info.get('host', 'localhost')
-    port = mongo_info.get('port', 27017)
-    dbname = mongo_info.get('db', 'mad2')
-    coll = mongo_info.get('transient_collection', 'transient')
-
-    lg.debug("connect mongodb {}:{}".format(host, port))
-    client = MongoClient(host, port)
-
-    MONGO = client[dbname][coll]
-
-    return MONGO
-
-
-def get_mongo_core_db(app):
-    """
-    Get the core collection object
-    """
-    global MONGOCORE
-
-    if MONGOCORE is not None:
-        return MONGOCORE
-
-    info = app.conf['store.mongo']
-    host = info.get('host', 'localhost')
-    port = info.get('port', 27017)
-    dbname = info.get('db', 'mad2')
-    coll = info.get('collection', 'core')
-    lg.debug("connect mongodb %s:%s/%s/%s", host, port, dbname, coll)
-    client = MongoClient(host, port)
-
-    MONGOCORE = client[dbname][coll]
-
-    return MONGOCORE
-
 
 def get_mongo_transient_id(mf):
     hsh = hashlib.sha1()
@@ -177,7 +129,6 @@ def madfile_init(app, madfile):
 
     trans_id = get_mongo_transient_id(madfile)
     rec = trans_db.find_one({'_id': trans_id})
-
     nowtime = datetime.utcnow()
     mtime = madfile.get('mtime')
     sha1sum = None
@@ -618,8 +569,11 @@ def mongo_sum(app, args):
         total_count += count
         if args.human:
             total_human = humansize(total)
+            categ = reshost['_id']
+            if categ is None:
+                categ = "<undefined>"
             print(fms.format(
-                reshost['_id'], total_human, count))
+                categ, total_human, count))
         else:
             print("{}\t{}\t{}".format(
                 reshost['_id'], total, count))
