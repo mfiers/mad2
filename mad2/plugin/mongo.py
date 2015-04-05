@@ -8,7 +8,7 @@ import glob
 import logging
 import os
 import re
-
+import time
 import socket
 
 import hashlib
@@ -233,6 +233,7 @@ def update(app, args):
     global MONGO_SAVE_CACHE
     global COUNTER
 
+
     transient_db = get_mongo_transient_db(app)
     ignore_dirs = ['.*', '.git', 'tmp']
     ignore_files = ['*.log', '*~', '*#', 'SHA1SUMS*', 'mad.config']
@@ -250,6 +251,19 @@ def update(app, args):
     dirs_to_delete = copy.copy(trans_dirs)
     lg.info("%d dirs with data in the transient db", len(trans_dirs))
 
+
+    def screen_update(cnt, lud = 0):
+        if (time.time() > lud) < 1:
+            return lud
+
+        print(" ".join(['{}:{}'.format(a,b)
+                        for a,b in cnt.items()]), end="\r")
+        return time.time()
+
+    start = time.time()
+    last_screen_update = screen_update(COUNTER)
+
+
     def _name_match(fn, ignore_list):
         for i in ignore_list:
             if fnmatch(fn, i):
@@ -257,6 +271,7 @@ def update(app, args):
         return False
 
     for root, dirs, files in os.walk(basedir):
+        last_screen_update = screen_update(COUNTER, last_screen_update)
 
         root = root.rstrip('/')
         COUNTER['dir'] += 1
@@ -285,6 +300,7 @@ def update(app, args):
         trec_files = []
 
         for trec in trans_records:
+            last_screen_update = screen_update(COUNTER, last_screen_update)
 
             if not trec['filename'] in files:
                 COUNTER['rm'] += 1
@@ -322,6 +338,8 @@ def update(app, args):
 
         # save new files
         for filename in must_save_files:
+            last_screen_update = screen_update(COUNTER, last_screen_update)
+
             filename = os.path.join(root, filename)
             remove_dir = False # again - stuff here - do not remove
             filestat = os.lstat(filename)
