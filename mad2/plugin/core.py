@@ -56,9 +56,9 @@ def save(app, args):
     for madfile in get_all_mad_files(app, args):
         lg.debug("processing %s", madfile['fullpath'])
 
-        if madfile['orphan']:
-            lg.warning("removing %s", madfile['inputfile'])
-            lg.warning("sha1sum is/was: %s", madfile['sha1sum'])
+        #if madfile['orphan']:
+        #    lg.warning("removing %s", madfile['inputfile'])
+        #    lg.warning("sha1sum is/was: %s", madfile['sha1sum'])
 
         counter += 1
 
@@ -83,6 +83,7 @@ def load_dump(app, args):
     with open(args.dump_file) as F:
         for doc in yaml.load_all(F):
             _save_dumped_doc(app, doc)
+
 
 @leip.arg('-o', '--output_file', help='outputf file to dump to',
           default='dump.yaml')

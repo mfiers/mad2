@@ -102,7 +102,7 @@ def save_to_mongo(app, madfile):
 
     mongo_id, newrec = mongo_prep_mad(madfile)
 
-    if madfile['orphan']:
+    if madfile.get('orphan'):
         MONGO_REMOVE_CACHE.append(mongo_id)
         lg.info("removing %s from transient db", madfile['inputfile'])
     else:
@@ -634,7 +634,7 @@ def mongo_sum2(app, args):
         sort_field = 'total'
         sort_order = -1
 
-    res = MONGO_mad.aggregate([
+    query = [
         {"$match": {"orphan": False}},
         {'$group': {
             "_id": {
@@ -644,21 +644,23 @@ def mongo_sum2(app, args):
             "count": {"$sum": 1}}},
         {"$sort": {
             "sort_field": sort_order
-        }}
-    ])
+        }}]
+
+    res = list(MONGO_mad.aggregate(query))
     total_size = 0
     total_count = 0
 
+
     gl1 = gl2 = len("Total")
 
-    for r in res['result']:
+    for r in res:
         g1 = str(r['_id'].get('group1'))
         g2 = str(r['_id'].get('group2'))
         gl1 = max(gl1, len(g1))
         gl2 = max(gl2, len(g2))
 
     fms = "{:" + str(gl1) + "}  {:" + str(gl2) + "}  {:>10}  {:>9}"
-    for r in res['result']:
+    for r in res:
         g1 = str(r['_id'].get('group1', '-'))
         g2 = str(r['_id'].get('group2', '-'))
         total = r['total']

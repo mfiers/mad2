@@ -168,15 +168,18 @@ def onthefly(app, madfile):
     madfile.all['uri'] = "file://{}{}".format(
         madfile.all['host'], madfile['fullpath'])
 
-    if madfile.get('orphan', False):
-        # orphaned is file - little we can do
-        return
+    #if madfile.get('orphan', False):
+     #   # TODO: does that mean again???
+    #    return
 
     filestat = os.lstat(madfile['fullpath'])
 
     madfile.all['filesize'] = filestat.st_size
     madfile.all['nlink'] = filestat.st_nlink
-    madfile.all['is_symlink'] = os.path.islink(madfile['fullpath'])
+    if os.path.islink(madfile['fullpath']):
+        madfile.all['is_symlink'] = True
+        if not os.path.exists(os.readlink(madfile['fullpath'])):
+            madfile.all['is_broken_symlink'] = True
 
     try:
         userinfo = getpwuid(filestat.st_uid)

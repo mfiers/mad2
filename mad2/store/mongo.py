@@ -42,7 +42,7 @@ class MongoStore():
         self.client = MongoClient(self.host, self.port)
         self.db_name = self.conf.get('db', 'mad2')
         self.corename = self.conf.get('collection', 'core')
-        
+
         self.dumpname = self.conf.get('dump_collection', 'dump')
 
         self.db_core = self.client[self.db_name][self.corename]
@@ -66,13 +66,14 @@ class MongoStore():
     def save(self, madfile):
         """Save data to the mongo database"""
 
+        if madfile['orphan']:
+            lg.debug("Will not save orphan file")
+            return
+
         if not madfile.get('sha1sum'):
             lg.warning("cannot save to mongodb without a sha1sum")
             return
 
-        if madfile['orphan']:
-            lg.warning("Will not save orphan file")
-            return
 
         mongo_id = madfile['sha1sum'][:24]
 
