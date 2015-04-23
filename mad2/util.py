@@ -80,8 +80,6 @@ def get_mongo_transient_db(app):
     return MONGO
 
 
-
-
 def persistent_cache(path, cache_on, duration):
     """
     Disk persistent cache that reruns a function once every
@@ -121,8 +119,12 @@ def persistent_cache(path, cache_on, duration):
                 #load from cache
                 lg.debug("loading from cache: %s", full_cache_name)
                 with open(full_cache_name, 'rb') as F:
-                    res = pickle.load(F)
-                    return res
+                    try:
+                        res = pickle.load(F)
+                        return res
+                    except EOFError:
+                        lg.warning("problem loading cached object")
+                        os.unlink(full_cache_name)
 
 
             #no cache - create
