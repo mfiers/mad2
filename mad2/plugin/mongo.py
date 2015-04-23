@@ -27,7 +27,7 @@ from mad2.ui import message
 
 
 lg = logging.getLogger(__name__)
-
+#lg.setLevel(logging.DEBUG)
 COUNTER = collections.defaultdict(lambda: 0)
 MONGO_SAVE_CACHE = []
 MONGO_SAVE_COUNT = 0
@@ -78,6 +78,7 @@ def mongo_flush(app):
         for i, r in MONGO_SAVE_CACHE:
             COUNTER['saved'] += 1
             bulk.find({'_id': i}).upsert().replace_one(r)
+
         res = bulk.execute()
         lg.debug("Saved %d records", res['nModified'])
 
@@ -233,7 +234,6 @@ def update(app, args):
     global MONGO_SAVE_CACHE
     global COUNTER
 
-
     transient_db = get_mongo_transient_db(app)
     ignore_dirs = ['.*', '.git', 'tmp']
     ignore_files = ['*.log', '*~', '*#', 'SHA1SUMS*', 'mad.config']
@@ -281,6 +281,12 @@ def update(app, args):
 
         must_save_files = [x for x in files if not _name_match(x, ignore_files)]
 
+        def check_access(fn):
+            acc = os.access(fn, os.R_OK)
+            if not acc: COUNTER['no_access'] += 1
+            return acc
+        must_save_files = [x for x in must_save_files if check_access(x)]
+
         remove_dir = True
 
         if len(must_save_files) > 0:
@@ -300,6 +306,7 @@ def update(app, args):
         trec_files = []
 
         for trec in trans_records:
+
             last_screen_update = screen_update(COUNTER, last_screen_update)
 
             if not trec['filename'] in files:
@@ -368,7 +375,7 @@ def update(app, args):
     mongo_flush(app)
 
     for k, v in list(COUNTER.items()):
-        lg.warning("%10s: %d", k, v)
+        lg.warning("%10s: %d        ", k, v)
 
 
 
