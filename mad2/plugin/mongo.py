@@ -281,11 +281,16 @@ def update(app, args):
 
         must_save_files = [x for x in files if not _name_match(x, ignore_files)]
 
-        def check_access(fn):
-            acc = os.access(fn, os.R_OK)
-            if not acc: COUNTER['no_access'] += 1
+        def check_access(_root, _fn):
+            _path = os.path.join(_root, _fn)
+            acc = os.access(_path, os.R_OK)
+            if not acc:
+                COUNTER['no_access'] += 1
+                if COUNTER['no_access'] < 10:
+                    lg.info("no access to: %s", _path)
             return acc
-        must_save_files = [x for x in must_save_files if check_access(x)]
+
+        must_save_files = [x for x in must_save_files if check_access(root, x)]
 
         remove_dir = True
 
@@ -363,14 +368,14 @@ def update(app, args):
 
     if len(dirs_to_delete) > 0:
         lg.info("lastly: removing records from %d dirs", len(dirs_to_delete))
+
     for dirname in dirs_to_delete:
-        trans_records = transient_db.find(
+        #hmm - skipping the flush step - directly removing here...
+        COUNTER['dir_rm'] += 1
+        transient_db.remove(
             { "dirname": dirname,
-              "host": socket.gethostname(), },
-            { "_id_transient": 1 })
-        for record in trans_records:
-            MONGO_REMOVE_CACHE.append(record['_id_transient'])
-        mongo_flush(app)
+              "host": socket.gethostname(), })
+
 
     mongo_flush(app)
 
@@ -561,7 +566,7 @@ def _single_sum(app, group_by=None, force=False):
         {"$sort": {"total": -1
                    }}])
 
-    return res['result']
+    return list(res)
 
 
 @leip.flag('-f', '--force', help='force query (otherwise use cache, and'
@@ -693,7 +698,8 @@ def _complex_sum(app, name, fields=['username', 'host'],
         "total": {"$sum": "$filesize"},
         "count": {"$sum": 1}}}]
     res = MONGO_mad.aggregate(aggp)
-    return res['result']
+    return list(res)
+
 
 
 @leip.flag('-f', '--force', help='force query (otherwise use cache, and'
@@ -739,6 +745,13 @@ def complex_sum(app, args):
         precords.append(prec)
 
     out = args.output_file.format(stamp=stamp)
+
+
+    #HACK: for whatever reason yaml does not want to output bson/int64's
+    #so - now I make sure they're all int :(
+    for r in precords:
+        r['sum'] = int(r['sum'])
+
     with open(out, 'w') as F:
         F.write(yaml.safe_dump(precords, default_flow_style=False))
 
