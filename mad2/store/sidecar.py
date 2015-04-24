@@ -69,7 +69,7 @@ class SidecarStore():
             # note the mad file data is in stack[1] - 0 is transient
             # print(self.mad)
             fantail.yaml_file_save(madfile.mad, madfile['madname'])
-        except IOError, e:
+        except IOError as e:
             if e.errno == 36:
                 lg.error("Can't save - filename too long: {}"
                          .format(self.fullpath))

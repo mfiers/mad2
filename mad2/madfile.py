@@ -49,7 +49,8 @@ class MadFile(fantail.Fanstack):
             dirname = os.path.dirname(inputfile)
             filename = os.path.basename(inputfile)
 
-        self.all['orphan'] = not os.path.exists(inputfile)
+        if os.path.islink(inputfile):
+            self.all['orphan'] = not os.path.exists(inputfile)
 
         lg.debug(
             "Instantiating a madfile for '{}' / '{}'".format(

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import sys
 from setuptools import setup, find_packages
 
 DESCRIPTION = """
@@ -14,7 +15,7 @@ entry_points = {
     ]}
 
 setup(name='mad2',
-      version='0.1.27',
+      version='0.2.0',
       description=DESCRIPTION,
       author='Mark Fiers',
       author_email='mark.fiers42@gmail.com',
@@ -25,7 +26,7 @@ setup(name='mad2',
       install_requires=[
           'Leip',
           'Fantail',
-          'xlrd',
+          'humanize',
           'Jinja2',
           'lockfile',
           'python-dateutil',
@@ -43,7 +44,7 @@ setup(name='mad2',
           'Intended Audience :: Developers',
           'Operating System :: OS Independent',
           'Programming Language :: Python',
-          'Programming Language :: Python :: 2',
-          'Programming Language :: Python :: 2.7',
-          ]
+          'Programming Language :: Python :: 3',
+          'Programming Language :: Python :: 3.4',
+      ]
       )

@@ -114,7 +114,7 @@ def scan(app, args):
 
             try:
                 filestat = os.stat(ffn)
-            except OSError, e:
+            except OSError as e:
                 lg.debug(" --- cannot stat: %s (%d)", f, e.errno)
                 if e.errno == errno.ENOENT:
                     #path does not exists - or is a broken symlink

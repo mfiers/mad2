@@ -3,7 +3,7 @@
 import collections
 import functools
 
-import cPickle
+import pickle
 import errno
 import logging
 import os
@@ -12,6 +12,7 @@ import sys
 import time
 
 from termcolor import cprint
+from pymongo import MongoClient
 
 from mad2.exception import MadPermissionDenied, MadNotAFile
 from mad2.madfile import MadFile, MadDummy
@@ -28,7 +29,55 @@ lg = logging.getLogger(__name__)
 #
 
 STORES = None
+MONGO = None
+MONGOCORE = None
 
+
+#
+# Mongodb utils
+#
+def get_mongo_core_db(app):
+    """
+    Get the core collection object
+    """
+    global MONGOCORE
+
+    if MONGOCORE is not None:
+        return MONGOCORE
+
+    info = app.conf['store.mongo']
+    host = info.get('host', 'localhost')
+    port = info.get('port', 27017)
+    dbname = info.get('db', 'mad2')
+    coll = info.get('collection', 'core')
+    lg.debug("connect mongodb %s:%s/%s/%s", host, port, dbname, coll)
+    client = MongoClient(host, port)
+
+    MONGOCORE = client[dbname][coll]
+
+    return MONGOCORE
+
+def get_mongo_transient_db(app):
+    """
+    Get the collection object
+    """
+    global MONGO
+
+    if MONGO is not None:
+        return MONGO
+
+    mongo_info = app.conf['store.mongo']
+    host = mongo_info.get('host', 'localhost')
+    port = mongo_info.get('port', 27017)
+    dbname = mongo_info.get('db', 'mad2')
+    coll = mongo_info.get('transient_collection', 'transient')
+
+    lg.debug("connect mongodb {}:{}".format(host, port))
+    client = MongoClient(host, port)
+
+    MONGO = client[dbname][coll]
+
+    return MONGO
 
 
 def persistent_cache(path, cache_on, duration):
@@ -69,9 +118,13 @@ def persistent_cache(path, cache_on, duration):
             if not run:
                 #load from cache
                 lg.debug("loading from cache: %s", full_cache_name)
-                with open(full_cache_name) as F:
-                    res = cPickle.load(F)
-                    return res
+                with open(full_cache_name, 'rb') as F:
+                    try:
+                        res = pickle.load(F)
+                        return res
+                    except EOFError:
+                        lg.warning("problem loading cached object")
+                        os.unlink(full_cache_name)
 
 
             #no cache - create
@@ -81,8 +134,8 @@ def persistent_cache(path, cache_on, duration):
 
             if not os.path.exists(path):
                 os.makedirs(path)
-            with open(full_cache_name, 'wb') as F:
-                cPickle.dump(rv, F)
+            with open(full_cache_name, 'wb', pickle.HIGHEST_PROTOCOL) as F:
+                pickle.dump(rv, F)
 
             return rv
 
@@ -149,7 +202,7 @@ def get_mad_dummy(app, data):
     data_all = fantail.Fantail(data)
     data_core = fantail.Fantail()
 
-    for kw in data_all.keys():
+    for kw in list(data_all.keys()):
         tra = app.conf['keywords'][kw].get('transient', False)
         if not tra:
             data_core[kw] = data_all[kw]
@@ -201,7 +254,7 @@ def get_filenames(args, use_stdin=True, allow_dirs=False):
 
             try:
                 os.stat(f)
-            except OSError, e:
+            except OSError as e:
                 lg.warning("Problem getting stats from %s", f)
                 if e.errno == errno.ENOENT:
                     # path does not exists - or is a broken symlink
@@ -245,7 +298,7 @@ def get_all_mad_files(app, args, use_stdin=True, warn_on_errors=True):
         except MadPermissionDenied:
             lg.warning("Permission denied: {}".format(
                 filename))
-        except Exception, e:
+        except Exception as e:
             if warn_on_errors:
                 lg.warning("Error instantiating %s", filename)
                 lg.warning("Error: %s", str(e))
@@ -293,7 +346,7 @@ def message(cat, message, *args):
     cprint('Kea', 'cyan', end="/")
     cprint(cat, color)
     for line in textwrap.wrap(message):
-        print "  " + line
+        print("  " + line)
 
 
 def render(txt, data):

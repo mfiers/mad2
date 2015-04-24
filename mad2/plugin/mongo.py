@@ -9,13 +9,13 @@ import logging
 import os
 import re
 import sys
+import time
 
 import socket
 
 import hashlib
 
 import arrow
-from pymongo import MongoClient
 import pymongo
 from termcolor import cprint
 import yaml
@@ -24,70 +24,21 @@ import leip
 
 import mad2.hash
 from mad2.util import get_all_mad_files, humansize, persistent_cache
+from mad2.util import get_mongo_transient_db, get_mongo_core_db
 from mad2.ui import message
 
 
 lg = logging.getLogger(__name__)
-
-
+#lg.setLevel(logging.DEBUG)
 COUNTER = collections.defaultdict(lambda: 0)
-
 MONGO_SAVE_CACHE = []
 MONGO_SAVE_COUNT = 0
 MONGO_REMOVE_COUNT = 0
-MONGO = None
-MONGOCORE = None
-
-
-def get_mongo_transient_db(app):
-    """
-    Get the collection object
-    """
-    global MONGO
-
-    if MONGO is not None:
-        return MONGO
-
-    mongo_info = app.conf['store.mongo']
-    host = mongo_info.get('host', 'localhost')
-    port = mongo_info.get('port', 27017)
-    dbname = mongo_info.get('db', 'mad2')
-    coll = mongo_info.get('transient_collection', 'transient')
-
-    lg.debug("connect mongodb {}:{}".format(host, port))
-    client = MongoClient(host, port)
-
-    MONGO = client[dbname][coll]
-
-    return MONGO
-
-
-def get_mongo_core_db(app):
-    """
-    Get the core collection object
-    """
-    global MONGOCORE
-
-    if MONGOCORE is not None:
-        return MONGOCORE
-
-    info = app.conf['store.mongo']
-    host = info.get('host', 'localhost')
-    port = info.get('port', 27017)
-    dbname = info.get('db', 'mad2')
-    coll = info.get('collection', 'core')
-    lg.debug("connect mongodb %s:%s/%s/%s", host, port, dbname, coll)
-    client = MongoClient(host, port)
-
-    MONGOCORE = client[dbname][coll]
-
-    return MONGOCORE
-
 
 def get_mongo_transient_id(mf):
     hsh = hashlib.sha1()
-    hsh.update(mf['host'])
-    hsh.update(mf['fullpath'])
+    hsh.update(mf['host'].encode('UTF-8'))
+    hsh.update(mf['fullpath'].encode('UTF-8'))
     return hsh.hexdigest()[:24]
 
 
@@ -129,6 +80,7 @@ def mongo_flush(app):
         for i, r in MONGO_SAVE_CACHE:
             COUNTER['saved'] += 1
             bulk.find({'_id': i}).upsert().replace_one(r)
+
         res = bulk.execute()
         lg.debug("Saved %d records", res['nModified'])
 
@@ -152,7 +104,7 @@ def save_to_mongo(app, madfile):
 
     mongo_id, newrec = mongo_prep_mad(madfile)
 
-    if madfile['orphan']:
+    if madfile.get('orphan'):
         MONGO_REMOVE_CACHE.append(mongo_id)
         lg.info("removing %s from transient db", madfile['inputfile'])
     else:
@@ -180,7 +132,6 @@ def madfile_init(app, madfile):
 
     trans_id = get_mongo_transient_id(madfile)
     rec = trans_db.find_one({'_id': trans_id})
-
     nowtime = datetime.utcnow()
     mtime = madfile.get('mtime')
     sha1sum = None
@@ -233,7 +184,7 @@ def madfile_init(app, madfile):
     if sha1sum is None or not(isinstance(sha1sum_time, datetime)):
         # no shasum - recreate
         _create_new_sha1(madfile)
-    elif mtime > sha1sum_time:
+    elif sha1sum_time is None or mtime is None or  mtime > sha1sum_time:
         # changed sha1sum?
         old_sha1sum = sha1sum
         new_sha1sum = _create_new_sha1(madfile)
@@ -306,6 +257,19 @@ def update(app, args):
     dirs_to_delete = copy.copy(trans_dirs)
     lg.info("%d dirs with data in the transient db", len(trans_dirs))
 
+
+    def screen_update(cnt, lud = 0):
+        if (time.time() > lud) < 1:
+            return lud
+
+        print(" ".join(['{}:{}'.format(a,b)
+                        for a,b in cnt.items()]), end="\r")
+        return time.time()
+
+    start = time.time()
+    last_screen_update = screen_update(COUNTER)
+
+
     def _name_match(fn, ignore_list):
         for i in ignore_list:
             if fnmatch(fn, i):
@@ -313,6 +277,7 @@ def update(app, args):
         return False
 
     for root, dirs, files in os.walk(basedir):
+        last_screen_update = screen_update(COUNTER, last_screen_update)
 
         root = root.rstrip('/')
         COUNTER['dir'] += 1
@@ -326,6 +291,17 @@ def update(app, args):
 
             must_save_files = [x for x in files if not _name_match(x, ignore_files)]
 
+
+        def check_access(_root, _fn):
+            _path = os.path.join(_root, _fn)
+            acc = os.access(_path, os.R_OK)
+            if not acc:
+                COUNTER['no_access'] += 1
+                if COUNTER['no_access'] < 10:
+                    lg.info("no access to: %s", _path)
+            return acc
+
+        must_save_files = [x for x in must_save_files if check_access(root, x)]
 
         remove_dir = True
 
@@ -355,6 +331,8 @@ def update(app, args):
         trec_files = []
 
         for trec in trans_records:
+
+            last_screen_update = screen_update(COUNTER, last_screen_update)
 
             if not trec['filename'] in files:
                 COUNTER['rm'] += 1
@@ -393,6 +371,8 @@ def update(app, args):
 
         # save new files
         for filename in must_save_files:
+            last_screen_update = screen_update(COUNTER, last_screen_update)
+
             filename = os.path.join(root, filename)
             remove_dir = False # again - stuff here - do not remove
             filestat = os.lstat(filename)
@@ -411,14 +391,14 @@ def update(app, args):
 
     if len(dirs_to_delete) > 0:
         lg.info("lastly: removing records from %d dirs", len(dirs_to_delete))
+
     for dirname in dirs_to_delete:
-        trans_records = transient_db.find(
+        #hmm - skipping the flush step - directly removing here...
+        COUNTER['dir_rm'] += 1
+        transient_db.remove(
             { "dirname": dirname,
-              "host": socket.gethostname(), },
-            { "_id_transient": 1 })
-        for record in trans_records:
-            MONGO_REMOVE_CACHE.append(record['_id_transient'])
-        mongo_flush(app)
+              "host": socket.gethostname(), })
+
 
     mongo_flush(app)
 
@@ -432,8 +412,6 @@ def update(app, args):
         lg.warning("New files: (last 5)")
         for mf in newfiles:
             lg.warning(" - %s", mf)
-
-
 
 @leip.hook("finish")
 def save_to_mongo_finish(app):
@@ -617,7 +595,7 @@ def _single_sum(app, group_by=None, force=False):
         {"$sort": {"total": -1
                    }}])
 
-    return res['result']
+    return list(res)
 
 
 @leip.flag('-f', '--force', help='force query (otherwise use cache, and'
@@ -631,7 +609,7 @@ def mongo_sum(app, args):
     """
 
     res = _single_sum(app, group_by=args.group_by, force=args.force)
-    total_size = long(0)
+    total_size = int(0)
     total_count = 0
 
     mgn = len("Total")
@@ -646,12 +624,15 @@ def mongo_sum(app, args):
     for reshost in res:
         total = reshost['total']
         count = reshost['count']
-        total_size += long(total)
+        total_size += int(total)
         total_count += count
         if args.human:
             total_human = humansize(total)
+            categ = reshost['_id']
+            if categ is None:
+                categ = "<undefined>"
             print(fms.format(
-                reshost['_id'], total_human, count))
+                categ, total_human, count))
         else:
             print("{}\t{}\t{}".format(
                 reshost['_id'], total, count))
@@ -687,7 +668,7 @@ def mongo_sum2(app, args):
         sort_field = 'total'
         sort_order = -1
 
-    res = MONGO_mad.aggregate([
+    query = [
         {"$match": {"orphan": False}},
         {'$group': {
             "_id": {
@@ -697,21 +678,23 @@ def mongo_sum2(app, args):
             "count": {"$sum": 1}}},
         {"$sort": {
             "sort_field": sort_order
-        }}
-    ])
+        }}]
+
+    res = list(MONGO_mad.aggregate(query))
     total_size = 0
     total_count = 0
 
+
     gl1 = gl2 = len("Total")
 
-    for r in res['result']:
+    for r in res:
         g1 = str(r['_id'].get('group1'))
         g2 = str(r['_id'].get('group2'))
         gl1 = max(gl1, len(g1))
         gl2 = max(gl2, len(g2))
 
     fms = "{:" + str(gl1) + "}  {:" + str(gl2) + "}  {:>10}  {:>9}"
-    for r in res['result']:
+    for r in res:
         g1 = str(r['_id'].get('group1', '-'))
         g2 = str(r['_id'].get('group2', '-'))
         total = r['total']
@@ -744,7 +727,8 @@ def _complex_sum(app, name, fields=['username', 'host'],
         "total": {"$sum": "$filesize"},
         "count": {"$sum": 1}}}]
     res = MONGO_mad.aggregate(aggp)
-    return res['result']
+    return list(res)
+
 
 
 @leip.flag('-f', '--force', help='force query (otherwise use cache, and'
@@ -790,6 +774,13 @@ def complex_sum(app, args):
         precords.append(prec)
 
     out = args.output_file.format(stamp=stamp)
+
+
+    #HACK: for whatever reason yaml does not want to output bson/int64's
+    #so - now I make sure they're all int :(
+    for r in precords:
+        r['sum'] = int(r['sum'])
+
     with open(out, 'w') as F:
         F.write(yaml.safe_dump(precords, default_flow_style=False))
 
@@ -900,89 +891,6 @@ def forget(app, args):
     go(MONGO_CORE, to_remove_core)
 
 
-@leip.flag('-r', '--remove-from-transient', help='remove from transient db')
-@leip.flag('--remove-from-core', help='also remove from the core db')
-@leip.flag('--run', help='actually run - otherwise it\'s a dry run showing ' +
-           'what would be deleted')
-@leip.arg('dir', nargs="?", default='.')
-@leip.flag('-e', '--echo', help='echo all files')
-@leip.command
-def forget_dir(app, args):
-    args.forget_all = True
-    flush_dir(app, args)
-
-
-@leip.flag('--remove-from-core', help='also remove from the core db')
-@leip.flag('--dry_run', help='dry run - show what would be deleted ')
-@leip.flag('-e', '--echo', help='echo changed files')
-@leip.flag('-E', '--echo_all', help='echo all files')
-@leip.arg('dir', nargs='?', default='.')
-@leip.command
-def flush_dir(app, args):
-    """
-    Recursively flush deleted files from the transient db
-    """
-
-    MONGO_mad = get_mongo_transient_db(app)
-    MONGO_core = get_mongo_core_db(app)
-
-    host = socket.gethostname()
-    wd = os.path.abspath(os.getcwd())
-
-    rex = re.compile("^" + wd)
-
-    query = {
-        'host': host,
-        'dirname': rex,
-        'orphan': False}
-
-    ids_to_remove = []
-    core_to_remove = []
-
-    res = MONGO_mad.find(query)
-    for r in res:
-
-        if os.path.exists(r['fullpath']):
-            if args.echo_all:
-                try:
-                    print("+ " + r['fullpath'])
-                except UnicodeEncodeError:
-                    print("+ " + r['fullpath'].encode('utf8'))
-        else:
-            if args.echo:
-                try:
-                    print("- " + r['fullpath'])
-                except UnicodeEncodeError:
-                    print("- " + r['fullpath'].encode('utf8'))
-
-        ids_to_remove.append(r['_id'])
-
-        if args.remove_from_core:
-            core_to_remove.append(r['sha1sum'][:24])
-
-        if not args.dry_run:
-            if len(ids_to_remove) >= 100:
-                lg.info("removing %d records", len(ids_to_remove))
-                MONGO_mad.remove({'_id': {'$in': ids_to_remove}})
-                ids_to_remove = []
-            if args.remove_from_core and len(core_to_remove) >= 200:
-                lg.warning("removing %d records from core",
-                           len(core_to_remove))
-                MONGO_core.remove({'_id': {'$in': core_to_remove}})
-                core_to_remove = []
-
-    if args.dry_run:
-        return
-
-    lg.info("removing %d records", len(ids_to_remove))
-    MONGO_mad.remove({'_id': {'$in': ids_to_remove}})
-
-    if args.remove_from_core:
-        lg.warning("removing %d records from core",
-                   len(core_to_remove))
-        MONGO_core.remove({'_id': {'$in': core_to_remove}})
-
-
 @leip.flag('-f', '--force')
 @leip.subcommand(mongo, "drop")
 def mongo_drop(app, args):
@@ -1022,18 +930,9 @@ def mongo_index(app, args):
     core_index =app.conf['plugin.mongo.indici.core']
     trans_index =app.conf['plugin.mongo.indici.transient']
     for db, flds in [(MONGO_trans, trans_index), (MONGO_core, core_index)]:
-        for k, v in flds.items():
+        for k, v in list(flds.items()):
             assert v==1
             db.ensure_index(k)
-
-#        print db, flds
-#    print(core_index)
-#    print(trans_index)
-#    for f in app.conf['plugin.mongo.indici']:
-#        print(f)
-#        print("create index on: {}".format(f))
-#        MONGO_mad.ensure_index(f)
-#        MONGO_core.ensure_index(f)
 
 
 @persistent_cache(leip.get_cache_dir('mad2', 'mongo', 'keys'),

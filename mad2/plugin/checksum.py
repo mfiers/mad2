@@ -31,7 +31,7 @@ def calc_madfile_sum(madfile, force=False, echo=False,
     if not (madfile.get('qdhash_changed') or force):
         #probably not changed - ignore
         if echo:
-            print(madfile['inputfile'])
+            print((madfile['inputfile']))
             return
 
     dirname = madfile['dirname']
@@ -49,7 +49,7 @@ def calc_madfile_sum(madfile, force=False, echo=False,
     mad2.hash.append_hashfile(qdhashfile, filename, qd)
 
     if echo or echo_changed:
-        print madfile['inputfile']
+        print(madfile['inputfile'])
 
 
 # @leip.flag('-f', '--force', help='force recalculation')

@@ -22,7 +22,7 @@ def cleanup_stores(app):
 @leip.command
 def version(app, args):
     import pkg_resources
-    print pkg_resources.get_distribution("mad2").version
+    print(pkg_resources.get_distribution("mad2").version)
 
 
 @leip.arg('file', nargs='*')
@@ -34,7 +34,7 @@ def echo(app, args):
     note - this ensures that the sha1sum is calculated
     """
     for madfile in get_all_mad_files(app, args):
-        print(madfile['inputfile'])
+        print((madfile['inputfile']))
 
 
 @leip.arg('-p', '--progress', action='store_true',
@@ -56,9 +56,9 @@ def save(app, args):
     for madfile in get_all_mad_files(app, args):
         lg.debug("processing %s", madfile['fullpath'])
 
-        if madfile['orphan']:
-            lg.warning("removing %s", madfile['inputfile'])
-            lg.warning("sha1sum is/was: %s", madfile['sha1sum'])
+        #if madfile['orphan']:
+        #    lg.warning("removing %s", madfile['inputfile'])
+        #    lg.warning("sha1sum is/was: %s", madfile['sha1sum'])
 
         counter += 1
 
@@ -70,7 +70,7 @@ def save(app, args):
 
         madfile.save()
         if args.echo:
-            print madfile['inputfile']
+            print(madfile['inputfile'])
 
 
 def _save_dumped_doc(app, doc):
@@ -83,6 +83,7 @@ def load_dump(app, args):
     with open(args.dump_file) as F:
         for doc in yaml.load_all(F):
             _save_dumped_doc(app, doc)
+
 
 @leip.arg('-o', '--output_file', help='outputf file to dump to',
           default='dump.yaml')

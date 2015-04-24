@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 
 import logging
 
@@ -15,6 +15,6 @@ def backup(app, args):
     Shortcut to mark a file for backup
     """
     for madfile in get_all_mad_files(app, args):
-    	madfile.mad.backup = True
+        madfile.mad.backup = True
         madfile.save()
 

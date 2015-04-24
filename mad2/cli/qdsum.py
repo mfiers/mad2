@@ -13,14 +13,14 @@ def dispatch():
                 qd, fn = line.strip().split(None, 1)
                 fn = fn.strip()
                 if not os.path.exists(fn):
-                    print "{}: FAILED no such file".format(fn)
+                    print("{}: FAILED no such file".format(fn))
                     continue
 
                 qdnew = hash.get_qdhash(fn)
                 if qd == qdnew:
-                    print "{}: OK".format(fn)
+                    print("{}: OK".format(fn))
                 else:
-                    print "{}: FAILED".format(fn)
+                    print("{}: FAILED".format(fn))
         exit(0)
 
     for fn in sys.argv[1:]:
@@ -32,5 +32,5 @@ def dispatch():
             continue
 
         qd = hash.get_qdhash(fn)
-        print "{}  {}".format(qd, fn)
+        print("{}  {}".format(qd, fn))
 

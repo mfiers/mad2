@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function,  unicode_literals
+
 
 import logging
 from datetime import datetime
@@ -104,7 +104,7 @@ def print_nicely(app, madfile):
     implicit = []
     explicit = []
     max_key_len = 0
-    for k in madfile.keys():
+    for k in list(madfile.keys()):
         max_key_len = max(len(k), max_key_len)
         v = _format_value(madfile[k])
         if k in madfile.mad:
