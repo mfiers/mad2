@@ -3,21 +3,21 @@
 import sys
 from setuptools import setup, find_packages
 
-DESCRIPTION = """
-file metadata tagger
-"""
+
+DESCRIPTION = "create & track file metadata"
 
 entry_points = {
     'console_scripts': [
         'mad = mad2.cli.main:dispatch',
-        'sha1p = mad2.cli.sha1p:dispatch',
-        'qdsum = mad2.cli.qdsum:dispatch'
+#        'sha1p = mad2.cli.sha1p:dispatch',
+#        'qdsum = mad2.cli.qdsum:dispatch'
     ]}
 
 setup(name='mad2',
-      version='0.2.0',
+      version='0.3.0',
       description=DESCRIPTION,
       author='Mark Fiers',
+      zip_safe=False,
       author_email='mark.fiers42@gmail.com',
       entry_points=entry_points,
       include_package_data=True,
@@ -45,6 +45,8 @@ setup(name='mad2',
           'Operating System :: OS Independent',
           'Programming Language :: Python',
           'Programming Language :: Python :: 3',
+          'Programming Language :: Python :: 3.2',
+          'Programming Language :: Python :: 3.3',
           'Programming Language :: Python :: 3.4',
       ]
       )

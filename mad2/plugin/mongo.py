@@ -530,6 +530,7 @@ def mongo_last(app, args):
 @leip.flag('--delete')
 @leip.arg('-u', '--username')
 @leip.arg('-b', '--backup')
+@leip.arg('-D', '--dirname')
 @leip.arg('-B', '--ignore_backup_volumes')
 @leip.arg('-v', '--volume')
 @leip.arg('-p', '--project')
@@ -551,7 +552,7 @@ def search(app, args):
 
     query = {}
 
-    for f in ['username', 'backup', 'volume', 'host',
+    for f in ['username', 'backup', 'volume', 'host', 'dirname',
               'sha1sum', 'project', 'project', 'pi']:
         if f not in args:
             continue
@@ -975,8 +976,8 @@ def mongo_keys(app, args):
     utc = arrow.now()
     stamp = utc.format('YYYY-MM-DD')
 
-    print(('%-' + str(max_key_len) + 's: %12s %12s') % (
-        '# ey', 'transient', 'core'))
+    #print(('%-' + str(max_key_len) + 's: %12s %12s') % (
+    #    '# ey', 'transient', 'core'))
 
     records = []
 
@@ -986,12 +987,12 @@ def mongo_keys(app, args):
             'transient': transient.get(k),
             'core': core.get(k)})
 
-        print(('%-' + str(max_key_len) + 's: %12s %12s') % (
-            k, transient.get(k, ''), core.get(k, '')))
+        #print(('%-' + str(max_key_len) + 's: %12s %12s') % (
+        #    k, transient.get(k, ''), core.get(k, '')))
 
     out = args.output_file.format(stamp=stamp)
     with open(out, 'w') as F:
-        F.write(yaml.safe_transient(records, default_flow_style=False))
+        F.write(yaml.safe_dump(records, default_flow_style=False))
 
 
 @leip.arg('keyname', metavar='key')

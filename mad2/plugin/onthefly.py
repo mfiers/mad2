@@ -214,9 +214,10 @@ def onthefly(app, madfile):
         f_field = list(t['find'].keys())[0]
         f_pattern = list(t['find'].values())[0]
         replace = t['replace']
-        if f_field in madfile and re.match(f_pattern, madfile[f_field]):
-            #match - now update the
-            madfile.all.update(replace)
+        if f_field in madfile.keys():
+            if re.match(f_pattern, madfile[f_field]):
+                #match - now update the
+                madfile.all.update(replace)
 
     lg.debug("finished onthefly")
 
