@@ -8,6 +8,7 @@ import glob
 import logging
 import os
 import re
+import sys
 
 import socket
 
@@ -207,7 +208,7 @@ def madfile_init(app, madfile):
 
         if sha1 is not None and arrow.get(mtime).to('local') <= sha1_time:
             COUNTER['shafile'] += 1
-            lg.info("recoved sha1 from the SHA1SUM file")
+            lg.debug("recoved sha1 from the SHA1SUM file")
         else:
             #also not in the sha1sum file - recalculate
             lg.debug("recreate shasum for %s", _madfile['inputfile'])
@@ -219,7 +220,7 @@ def madfile_init(app, madfile):
             #still not?? maybe the file does not exist? Link is broken?? Will not save this
             return False
 
-        lg.info("shasum for %s (%s) is %s", _madfile['inputfile'], trans_id, sha1)
+        lg.debug("shasum for %s (%s) is %s", _madfile['inputfile'], trans_id, sha1)
 
         trans_db.update({'_id': trans_id},
                         {"$set": {'sha1sum': sha1,
@@ -272,6 +273,7 @@ def madfile_init(app, madfile):
         _prep_madfile(madfile, sha1sum, sha1sum_time)
 
 
+@leip.arg('-w', '--watch', action='store_true')
 @leip.arg('-s', '--min_file_size', type=int, default=100,
           help='minimal file size to consider')
 @leip.command
@@ -284,9 +286,12 @@ def update(app, args):
     global MONGO_SAVE_CACHE
     global COUNTER
 
+    modfiles = collections.deque([], 5)
+    newfiles = collections.deque([], 5)
+
     transient_db = get_mongo_transient_db(app)
     ignore_dirs = ['.*', '.git', 'tmp']
-    ignore_files = ['*.log', '*~', '*#', 'SHA1SUMS*', 'mad.config']
+    ignore_files = ['.*', '*.log', '*~', '*#', 'SHA1SUMS*', 'mad.config']
     basedir = os.getcwd()
 
     find_dir_regex = '{}.*'.format(basedir)
@@ -312,10 +317,15 @@ def update(app, args):
         root = root.rstrip('/')
         COUNTER['dir'] += 1
 
-        dirs[:] = [x for x in dirs if not _name_match(x, ignore_dirs)]
-        dirs[:] = [x for x in dirs if not os.path.exists(os.path.join(x, 'mad.ignore'))]
+        if os.path.exists(os.path.join(basedir, 'mad.ignore')):
+            dirs[:] = []
+            must_save_files = []
+        else:
+            dirs[:] = [x for x in dirs if not _name_match(x, ignore_dirs)]
+            dirs[:] = [x for x in dirs if not os.path.exists(os.path.join(x, 'mad.ignore'))]
 
-        must_save_files = [x for x in files if not _name_match(x, ignore_files)]
+            must_save_files = [x for x in files if not _name_match(x, ignore_files)]
+
 
         remove_dir = True
 
@@ -323,7 +333,16 @@ def update(app, args):
             lg.debug('files to be saved in %s', root)
             remove_dir = False
 
-        lg.info('%s: %s', root[-40:], str(dict(COUNTER)))
+        if args.watch:
+            sys.stdout.write(chr(27) + "[2J" + chr(27) + "[1;1f")
+            print(datetime.now())
+            print()
+            print("dir: {}".format(root))
+            for k in sorted(COUNTER.keys()):
+                print("  {:<20}:{:<10d}".format(k, COUNTER[k]))
+
+        else:
+            lg.info('%s: %s', root[-40:], str(dict(COUNTER)))
 
         trans_records = transient_db.find(
             { "dirname": root,
@@ -361,6 +380,7 @@ def update(app, args):
                 # might be modified - create a madfile object which will check
                 # more thoroughly
                 COUNTER['mod?'] += 1
+                modfiles.append(fullpath)
                 madfile = mad2.util.get_mad_file(app, fullpath)
                 save_to_mongo(app, madfile)
             else:
@@ -379,12 +399,14 @@ def update(app, args):
             if filestat.st_size < args.min_file_size:
                 continue
             COUNTER['new'] += 1
+            newfiles.append(filename)
             madfile = mad2.util.get_mad_file(app, filename)
             save_to_mongo(app, madfile)
 
         if not remove_dir:
             if root in dirs_to_delete:
                 dirs_to_delete.remove(root)
+
         mongo_flush(app)
 
     if len(dirs_to_delete) > 0:
@@ -402,6 +424,14 @@ def update(app, args):
 
     for k, v in COUNTER.items():
         lg.warning("%10s: %d", k, v)
+    if len(modfiles) > 0:
+        lg.warning("Modified files: (last 5)")
+        for mf in modfiles:
+            lg.warning(" - %s", mf)
+    if len(newfiles) > 0:
+        lg.warning("New files: (last 5)")
+        for mf in newfiles:
+            lg.warning(" - %s", mf)
 
 
 

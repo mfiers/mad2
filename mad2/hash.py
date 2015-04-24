@@ -64,6 +64,7 @@ def check_sha1sum_file(fullpath):
             SHA1_CACHE[ssf_fullpath] = ssf_sha1
             if ls[1] == basename:
                 sha1 = ssf_sha1
+
     if not sha1:
         return None, None
 
