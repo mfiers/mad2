@@ -1,0 +1,157 @@
+
+from datetime import datetime
+from hashlib import sha1
+import os
+import random
+import itertools
+import shlex
+import socket
+import subprocess as sp
+from uuid import uuid4
+    
+from bson.objectid import ObjectId
+import yaml
+import logging
+
+
+lg = logging.getLogger(__name__)
+
+import leip
+from mad2.util import get_mad_file, get_mongo_transact_db
+
+    
+@leip.subparser
+def ta(app, args):
+    """
+    Transcation management
+    """
+    pass
+
+@leip.arg('sha1sum')
+@leip.subcommand(ta, "sha1sum")
+def ta_sha1sum(app, args):
+    """Show transactions associated with a sha1sum"""
+    db_t, db_s2t = get_mongo_transact_db(app)
+    sha1sum = args.sha1sum
+    for s2t in db_s2t.find(dict(sha1sum=sha1sum)):
+        tra = db_t.find_one(dict(_id=s2t['transcation_id']))
+        for io in tra['io']:
+            if io['sha1sum'] == sha1sum:
+                ncl = " ".join(shlex.split(tra['cl']))
+                if len(ncl) > 50:
+                    ncl = ncl[:47] + '...'
+                print('%s (%s) %s' % (tra['_id'], io['category'], ncl))
+                      
+#        print(s2t)
+ #       print(tra)
+ #       print('-' * 80)
+    
+@leip.arg('transaction_id')
+@leip.subcommand(ta, "show")
+def ta_show(app, args):
+    """Show transaction"""
+    db_t, db_s2t = get_mongo_transact_db(app)
+    rec = db_t.find_one({"_id": args.transaction_id})
+    ids2hash = [rec['salt'], rec['uname'], rec['time'],
+                rec['host'], rec['cl']]
+    for fo in rec['io']:
+        ids2hash.append(fo['sha1sum'])
+    tcheck = sha1()
+    for i, _ in enumerate(sorted(ids2hash)):
+        #print(i, _)
+        tcheck.update(_.encode('UTF-8'))
+
+    tcheck = tcheck.hexdigest()
+    if not tcheck == rec['_id']:
+        lg.warning("transcation checksum mismatch")
+    print(yaml.safe_dump(rec, default_flow_style=False))
+
+    
+@leip.arg('--input', action='append', help='add an "input" file')
+@leip.arg('--output', action='append', help='add an "output" file')
+@leip.arg('--db', action='append', help='add an "db" file')
+@leip.arg('--executable', action='append', help='add an "executable" file')
+@leip.arg('--misc', action='append', help='add an "miscellaneous" file')
+@leip.arg('--cl', help='file containing the executed command line')
+@leip.arg('--time', help='transcation generation time')
+@leip.subcommand(ta, "add")
+def ta_add(app, args):
+    """Record a new transaction
+
+    All files are put in a group, by default, this group has the same 
+    name as the category, but when more group names are required, they 
+    can be specified using a colon (e.g. fq_input:filename.fq)
+
+    """
+    salt = str(uuid4())
+    uname = sp.getoutput(['uname -a'])
+    host = socket.gethostname()
+
+    items_to_hash = [salt, uname, host]
+    
+    transact = dict(io=[],
+                    salt=salt,
+                    host=host,
+                    uname=uname)
+
+    if args.time:
+        time = args.time
+    else:
+        time = str(datetime.utcnow().isoformat())
+        
+    items_to_hash.append(time)
+    transact['time'] = time
+    
+    if not args.cl is None and os.path.exists(args.cl):
+        with open(args.cl) as F:
+            cl = F.read()
+        transact['cl'] = cl
+        items_to_hash.append(cl)
+
+    db_t, db_s2t = get_mongo_transact_db(app)
+
+    all_file_shasums = []
+    
+    for cat in 'input output db executable misc'.split():
+        filenames = getattr(args, cat)
+        if filenames is None:
+            continue
+        
+        for filename in filenames:
+            if not os.path.exists(filename):
+                lg.critical("all files of transcation must exist")
+                lg.critical("cannot find %s", filename)
+                exit(-1)
+                
+            group, filename = filename.split(':', 1) \
+              if ':' in filename \
+              else cat, filename
+                  
+            madfile = get_mad_file(app, filename)
+            items_to_hash.append(madfile.mad['sha1sum'])
+            all_file_shasums.append(madfile.mad['sha1sum'])
+            
+            transact['io'].append(
+                dict(filename=filename,
+                     category=cat,
+                     group=group,
+                     sha1sum=madfile.mad['sha1sum']))
+
+    thash = sha1()
+    items_to_hash.sort()
+    for i, _ in enumerate(items_to_hash):
+        #print(i, _)
+        thash.update(_.encode('UTF-8'))
+
+    thash = thash.hexdigest()
+    lg.debug("transaction hash: %s", thash)
+    transact['_id'] = thash
+
+    # store transaction
+    insert_id = db_t.insert_one(transact)
+    # store sha1sum to transaction links
+    db_s2t.insert_many([dict(transcation_id=thash, sha1sum=x)
+                        for x in set(all_file_shasums)])
+    print(thash)
+    
+    

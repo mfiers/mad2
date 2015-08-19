@@ -25,6 +25,7 @@ import leip
 import mad2.hash
 from mad2.util import get_all_mad_files, humansize, persistent_cache
 from mad2.util import get_mongo_transient_db, get_mongo_core_db
+from mad2.util import get_mongo_transact_db
 from mad2.ui import message
 
 
@@ -925,13 +926,21 @@ def mongo_index(app, args):
     """
     Ensure indexes on the relevant fields
     """
-    MONGO_trans = get_mongo_transient_db(app)
+    MONGO_transient = get_mongo_transient_db(app)
     MONGO_core = get_mongo_core_db(app)
-
+    MONGO_transact, MONGO_sha1sum2transact = get_mongo_transact_db(app)
+    
     core_index =app.conf['plugin.mongo.indici.core']
-    trans_index =app.conf['plugin.mongo.indici.transient']
-    for db, flds in [(MONGO_trans, trans_index), (MONGO_core, core_index)]:
+    transient_index =app.conf['plugin.mongo.indici.transient']
+    transact_index =app.conf['plugin.mongo.indici.transact']
+    sha2tra_index =app.conf['plugin.mongo.indici.sha1sum2transact']
+    
+    for db, flds in [(MONGO_transient, transient_index),
+                     (MONGO_core, core_index),
+                     (MONGO_transact, transact_index),
+                     (MONGO_sha1sum2transact, sha2tra_index)]:
         for k, v in list(flds.items()):
+            print(db, k, v)
             assert v==1
             db.ensure_index(k)
 
