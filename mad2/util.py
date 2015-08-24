@@ -29,6 +29,7 @@ lg = logging.getLogger(__name__)
 #
 
 STORES = None
+MONGODB = None
 MONGO = None
 MONGOCORE = None
 MONGOTRANS = None
@@ -37,6 +38,28 @@ MONGOTRANS = None
 #
 # Mongodb utils
 #
+
+def get_mongo_db(app):
+    """
+    Get the mongo database (no collection)
+    """
+    global MONGODB
+
+    if MONGODB is not None:
+        return MONGODB
+
+    info = app.conf['store.mongo']
+    host = info.get('host', 'localhost')
+    port = info.get('port', 27017)
+    dbname = info.get('db', 'mad2')
+
+    lg.debug("connect mongodb %s:%s/%s", host, port, dbname)
+    client = MongoClient(host, port)
+
+    MONGODB = client[dbname]
+    return MONGODB
+
+
 def get_mongo_transact_db(app):
     """
     Get the core collection object
@@ -46,16 +69,12 @@ def get_mongo_transact_db(app):
     if MONGOTRANS is not None:
         return MONGOTRANS
 
+    db = get_mongo_db(app)
+
     info = app.conf['store.mongo']
-    host = info.get('host', 'localhost')
-    port = info.get('port', 27017)
-    dbname = info.get('db', 'mad2')
     coll_t = info.get('transact_collection', 'transaction')
     coll_s2t = info.get('shasum2transact_collection', 'shasum2transaction')
-    lg.debug("connect mongodb %s:%s/%s: %s & %s", host, port, dbname, coll_t, coll_s2t )
-    client = MongoClient(host, port)
-
-    MONGOTRANS = (client[dbname][coll_t], client[dbname][coll_s2t])
+    MONGOTRANS = (db[coll_t], db[coll_s2t])
     return MONGOTRANS
 
 
