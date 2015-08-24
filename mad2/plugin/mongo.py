@@ -929,12 +929,12 @@ def mongo_index(app, args):
     MONGO_transient = get_mongo_transient_db(app)
     MONGO_core = get_mongo_core_db(app)
     MONGO_transact, MONGO_sha1sum2transact = get_mongo_transact_db(app)
-    
+
     core_index =app.conf['plugin.mongo.indici.core']
     transient_index =app.conf['plugin.mongo.indici.transient']
     transact_index =app.conf['plugin.mongo.indici.transact']
     sha2tra_index =app.conf['plugin.mongo.indici.sha1sum2transact']
-    
+
     for db, flds in [(MONGO_transient, transient_index),
                      (MONGO_core, core_index),
                      (MONGO_transact, transact_index),
