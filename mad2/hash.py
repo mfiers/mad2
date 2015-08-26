@@ -69,16 +69,20 @@ def check_sha1sum_file(fullpath):
         return None, None
 
     lg.debug("SHA1SUM file sha1: %s", sha1)
-    with open(sha1metafile) as F:
-        for line in F:
-            ls = line.strip().split(None, 2)
-            smf_fullpath = os.path.join(dirname, ls[2])
-            smf_time = iso8601.parse_date(ls[0])
-            smf_time = arrow.get(smf_time).to('local')
-            #smf_time = pytz.utc.localize(smf_time)
-            SHA1_TIME_CACHE[smf_fullpath] = smf_time
-            if ls[2] == basename:
-                sha1_time = smf_time.datetime
+    try:
+        with open(sha1metafile) as F:
+            for line in F:
+                ls = line.strip().split(None, 2)
+                smf_fullpath = os.path.join(dirname, ls[2])
+                smf_time = iso8601.parse_date(ls[0])
+                smf_time = arrow.get(smf_time).to('local')
+                #smf_time = pytz.utc.localize(smf_time)
+                SHA1_TIME_CACHE[smf_fullpath] = smf_time
+                if ls[2] == basename:
+                    sha1_time = smf_time.datetime
+    except:
+        #if anything goes wrong - simple ignore this sha1sum - recalculate
+        return None, None
 
     if sha1_time is None:
         return None, None
