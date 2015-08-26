@@ -2,7 +2,6 @@ from __future__ import print_function
 
 import collections
 import copy
-from datetime import datetime
 from fnmatch import fnmatch
 import glob
 import logging
@@ -16,7 +15,10 @@ import socket
 import hashlib
 
 import arrow
+import datetime
+import pytimeparse
 import pymongo
+import pandas as pd
 from termcolor import cprint
 import yaml
 
@@ -24,8 +26,9 @@ import leip
 
 import mad2.hash
 from mad2.util import get_all_mad_files, humansize, persistent_cache
+import mad2.util
 from mad2.util import get_mongo_transient_db, get_mongo_core_db
-from mad2.util import get_mongo_transact_db
+from mad2.util import get_mongo_transact_db, get_mongo_db
 from mad2.ui import message
 
 
@@ -53,7 +56,7 @@ def mongo_prep_mad(mf):
         del d['uuid']
     if 'hash' in d:
         del d['hash']
-    d['save_time'] = datetime.utcnow()
+    d['save_time'] = datetime.datetime.utcnow()
 
     return mongo_id, d
 
@@ -133,7 +136,7 @@ def madfile_init(app, madfile):
 
     trans_id = get_mongo_transient_id(madfile)
     rec = trans_db.find_one({'_id': trans_id})
-    nowtime = datetime.utcnow()
+    nowtime = datetime.datetime.utcnow()
     mtime = madfile.get('mtime')
     sha1sum = None
     sha1sum_time = None
@@ -166,7 +169,7 @@ def madfile_init(app, madfile):
             lg.debug("recreate shasum for %s", _madfile['inputfile'])
             COUNTER['calc'] += 1
             sha1 = mad2.hash.get_sha1(_madfile['fullpath'])
-            sha1_time = datetime.utcnow()
+            sha1_time = datetime.datetime.utcnow()
 
         if sha1 is None:
             #still not?? maybe the file does not exist? Link is broken?? Will not save this
@@ -182,7 +185,7 @@ def madfile_init(app, madfile):
         return sha1
 
 
-    if sha1sum is None or not(isinstance(sha1sum_time, datetime)):
+    if sha1sum is None or not(isinstance(sha1sum_time, datetime.datetime)):
         # no shasum - recreate
         _create_new_sha1(madfile)
     elif sha1sum_time is None or mtime is None or  mtime > sha1sum_time:
@@ -312,7 +315,7 @@ def update(app, args):
 
         if args.watch:
             sys.stdout.write(chr(27) + "[2J" + chr(27) + "[1;1f")
-            print(datetime.now())
+            print(datetime.datetime.now())
             print()
             print("dir: {}".format(root))
             for k in sorted(COUNTER.keys()):
@@ -345,7 +348,7 @@ def update(app, args):
             remove_dir = False  # stuff in this folder - do not delete!
             fullpath = os.path.join(root, trec['filename'])
             fstat = os.lstat(fullpath)
-            mtime = datetime.utcfromtimestamp(fstat.st_mtime)
+            mtime = datetime.datetime.utcfromtimestamp(fstat.st_mtime)
 
             if 'sha1sum_time' in trec:
                 timediff =  (mtime - trec['sha1sum_time']).total_seconds()
@@ -534,15 +537,21 @@ def mongo_last(app, args):
 @leip.arg('-D', '--dirname')
 @leip.arg('-B', '--ignore_backup_volumes')
 @leip.arg('-v', '--volume')
+@leip.arg('-c', '--category')
 @leip.arg('-p', '--project')
 @leip.arg('-P', '--pi')
 @leip.arg('-e', '--experiment')
 @leip.arg('-H', '--host')
 @leip.arg('-s', '--sha1sum')
+@leip.arg('-z', '--min_filesize')
+@leip.arg('-Z', '--max_filesize')
+@leip.arg('-o', '--atime_older_than')
 @leip.arg('-S', '--sort', help='sort on this field')
 @leip.arg('-R', '--reverse_sort', help='reverse sort on this field')
 @leip.arg('-l', '--limit', default=-1, type=int)
 @leip.arg('-f', '--format', help='output format', default='{fullpath}')
+@leip.arg('--tsv', help='tab delimited output, --format is now interpreted '
+          'as a comma separated list of fields to export', action='store_true')
 @leip.command
 def search(app, args):
     """
@@ -554,20 +563,36 @@ def search(app, args):
     query = {}
 
     for f in ['username', 'backup', 'volume', 'host', 'dirname',
-              'sha1sum', 'project', 'project', 'pi']:
-        if f not in args:
-            continue
+              'sha1sum', 'project', 'project', 'pi', 'category']:
 
         v = getattr(args, f)
         if v is None:
             continue
-        query[f] = v
+        elif v == '(none)':
+            query[f] = { "$exists": False }
+        else:
+            query[f] = v
+
+    if args.min_filesize:
+        query['filesize'] = {"$gt": mad2.util.interpret_humansize(args.min_filesize)}
+
+    if args.max_filesize:
+        nq = query.get('filesize', {})
+        nq["$lt"] = mad2.util.interpret_humansize(args.max_filesize)
+        query['filesize'] = nq
+
+    if args.atime_older_than:
+        delta = datetime.timedelta(seconds=pytimeparse.parse(args.atime_older_than))
+        cutoffdate = datetime.datetime.utcnow() - delta
+        query['atime'] = {"$lte": cutoffdate}
+
 
     if args.delete:
         MONGO_mad.remove(query)
         return
 
     res = MONGO_mad.find(query)
+
 
     if args.sort:
         res = res.sort(args.sort, pymongo.ASCENDING)
@@ -577,9 +602,20 @@ def search(app, args):
     if args.limit > 0:
         res = res.limit(args.limit)
 
-    for r in res:
+    if args.tsv:
+        if args.format == '{fullpath}':
+            fields = 'host fullpath filesize category'.split()
+        else:
+            fields = args.format.split(',')
+        for r in res:
+            vals = [r.get(x, 'n.a.') for x in fields]
+            print("\t".join(map(str, vals)))
+    else:
+        #ensure tab characters
+        format = args.format.replace(r'\t', '\t')
 
-        print(args.format.format(**r))  # 'fullpath'])
+        for r in res:
+            print(format.format(**r))  # 'fullpath'])
 
 
 @persistent_cache(leip.get_cache_dir('mad2', 'mongo', 'sum'),
@@ -777,7 +813,6 @@ def complex_sum(app, args):
 
     out = args.output_file.format(stamp=stamp)
 
-
     #HACK: for whatever reason yaml does not want to output bson/int64's
     #so - now I make sure they're all int :(
     for r in precords:
@@ -785,6 +820,15 @@ def complex_sum(app, args):
 
     with open(out, 'w') as F:
         F.write(yaml.safe_dump(precords, default_flow_style=False))
+
+    #store in mongodb
+    dbrec = dict(data=precords,
+                 time = datetime.datetime.utcnow())
+
+    db = get_mongo_db(app)
+    csum_coll = db['csum']
+    csum_coll.insert_one(dbrec)
+#    d =
 
 
 def get_latest_csum(app, args):
@@ -1169,10 +1213,11 @@ def _run_waste_command(app, name, force=False):
     """
     MONGO_mad = get_mongo_transient_db(app)
     res = MONGO_mad.aggregate(FIND_WASTER_PIPELINE, allowDiskUse=True)
-    return res
+    return list(res)
 
 
 @leip.flag('-N', '--no-color', help='no ansi coloring of output')
+@leip.flag('--todb', help='save to mongo')
 @leip.arg('-n', '--no-records', default=20, type=int)
 @leip.flag('-f', '--force')
 @leip.command
@@ -1181,8 +1226,25 @@ def waste(app, args):
     db = get_mongo_transient_db(app)
 
     res = _run_waste_command(app, 'waste_pipeline',
-                             force=args.force)['result']
+                             force=args.force)
 
+
+    if args.todb:
+        dbrec = {'time': datetime.datetime.utcnow(),
+                 'data': res}
+        db = mad2.util.get_mongo_db(app)
+        db.waste.insert_one(dbrec)
+        return
+
+    def cprint_nocolor(*args, **kwargs):
+        if 'color' in kwargs:
+            del kwargs['color']
+        if len(args) > 1:
+            args = args[:1]
+        print(*args, **kwargs)
+
+    if args.no_color:
+        cprint = cprint_nocolor
     for i, r in enumerate(res):
         if i >= args.no_records:
             break
@@ -1213,6 +1275,7 @@ def waste(app, args):
 
         cprint(" ", end="")
         cprint(", ".join(owners), 'red')
+
 
 
 @leip.arg('-S', '--subject')

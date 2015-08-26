@@ -177,8 +177,12 @@ def persistent_cache(path, cache_on, duration):
 
             if not os.path.exists(path):
                 os.makedirs(path)
-            with open(full_cache_name, 'wb', pickle.HIGHEST_PROTOCOL) as F:
-                pickle.dump(rv, F)
+            try:
+                with open(full_cache_name, 'wb', pickle.HIGHEST_PROTOCOL) as F:
+                    pickle.dump(rv, F)
+            except:
+                print(rv)
+                raise
 
             return rv
 
@@ -350,6 +354,19 @@ def get_all_mad_files(app, args, use_stdin=True, warn_on_errors=True):
                 raise
 
 # Thanks: http://tinyurl.com/kq5hxtr
+
+def interpret_humansize(s):
+    s = s.strip().lower()
+    if s.endswith('mb'):
+        return int(s[:-2]) * ( 1024 ** 2)
+    elif s.endswith('gb'):
+        return int(s[:-2]) * ( 1024 ** 3)
+    elif s.endswith('kb'):
+        return int(s[:-2]) * ( 1024)
+    elif s.endswith('tb'):
+        return int(s[:-2]) * ( 1024 ** 4)
+    else:
+        return int(s)
 
 
 def humansize(nbytes):
