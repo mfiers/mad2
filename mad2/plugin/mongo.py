@@ -346,7 +346,7 @@ def update(app, args):
 
             # this file is in both the db & on disk - check mtime
             remove_dir = False  # stuff in this folder - do not delete!
-            fullpath = os.path.abspath(os.path.join(root, trec['filename']))
+            fullpath = os.path.abspath(os.path.realpath(os.path.join(root, trec['filename'])))
             fstat = os.lstat(fullpath)
             mtime = datetime.datetime.utcfromtimestamp(fstat.st_mtime)
 
