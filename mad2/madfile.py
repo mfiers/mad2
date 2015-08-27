@@ -59,7 +59,7 @@ class MadFile(fantail.Fanstack):
         self.all['inputfile'] = inputfile
         self.all['dirname'] = os.path.abspath(dirname)
         self.all['filename'] = filename
-        self.all['fullpath'] = os.path.abspath(inputfile)
+        self.all['fullpath'] = os.path.abspath(os.path.expanduser(inputfile))
 
         self.hook_method('madfile_init', self)
 
