@@ -346,7 +346,7 @@ def update(app, args):
 
             # this file is in both the db & on disk - check mtime
             remove_dir = False  # stuff in this folder - do not delete!
-            fullpath = os.path.join(root, trec['filename'])
+            fullpath = os.path.abspath(os.path.join(root, trec['filename']))
             fstat = os.lstat(fullpath)
             mtime = datetime.datetime.utcfromtimestamp(fstat.st_mtime)
 
@@ -550,8 +550,9 @@ def mongo_last(app, args):
 @leip.arg('-R', '--reverse_sort', help='reverse sort on this field')
 @leip.arg('-l', '--limit', default=-1, type=int)
 @leip.arg('-f', '--format', help='output format', default='{fullpath}')
-@leip.arg('--tsv', help='tab delimited output, --format is now interpreted '
-          'as a comma separated list of fields to export', action='store_true')
+@leip.flag('-r', '--raw', help='output raw YAML')
+@leip.flag('--tsv', help='tab delimited output, --format is now interpreted '
+          'as a comma separated list of fields to export')
 @leip.command
 def search(app, args):
     """
@@ -610,12 +611,19 @@ def search(app, args):
         for r in res:
             vals = [r.get(x, 'n.a.') for x in fields]
             print("\t".join(map(str, vals)))
+    elif args.raw:
+        print(yaml.safe_dump(list(res), default_flow_style=False))
     else:
         #ensure tab characters
         format = args.format.replace(r'\t', '\t')
-
         for r in res:
-            print(format.format(**r))  # 'fullpath'])
+            while True:
+                try:
+                    print(format.format(**r))  # 'fullpath'])
+                except KeyError as e:
+                    r[e.args[0]] = '(no value)'
+                    continue
+                break
 
 
 @persistent_cache(leip.get_cache_dir('mad2', 'mongo', 'sum'),
