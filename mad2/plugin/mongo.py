@@ -265,9 +265,10 @@ def update(app, args):
     def screen_update(cnt, lud = 0):
         if (time.time() > lud) < 1:
             return lud
-
-        print(" ".join(['{}:{}'.format(a,b)
-                        for a,b in cnt.items()]), end="\r")
+        def _add_sep(b):
+            return re.sub(r'([0-9][0-9][0-9])', r'\1,', str(b)[::-1])[::-1].strip(',')
+        print(" ".join(['{}:{}'.format(a, _add_sep(b))
+                        for a, b in cnt.items()]), end="\r")
         return time.time()
 
     start = time.time()
@@ -355,9 +356,10 @@ def update(app, args):
             else:
                 timediff = 1e12 #force recalculation
 
-            # allow for at least half a second of leeway - at times the
-            # modification time and when the system has taken the sha1sum is
-            # too small
+            # allow for at least half a second of leeway - at times
+            # the difference between modification time and when the
+            # system has taken the sha1sum does not have enough
+            # resolution
             if timediff > 0.5:
                 # might be modified - create a madfile object which will check
                 # more thoroughly
@@ -541,6 +543,7 @@ def mongo_last(app, args):
 @leip.arg('-p', '--project')
 @leip.arg('-P', '--pi')
 @leip.arg('-e', '--experiment')
+@leip.arg('-f', '--filename')
 @leip.arg('-H', '--host')
 @leip.arg('-s', '--sha1sum')
 @leip.arg('-z', '--min_filesize')
@@ -549,7 +552,7 @@ def mongo_last(app, args):
 @leip.arg('-S', '--sort', help='sort on this field')
 @leip.arg('-R', '--reverse_sort', help='reverse sort on this field')
 @leip.arg('-l', '--limit', default=-1, type=int)
-@leip.arg('-f', '--format', help='output format', default='{fullpath}')
+@leip.arg('-F', '--format', help='output format', default='{fullpath}')
 @leip.flag('-r', '--raw', help='output raw YAML')
 @leip.flag('--tsv', help='tab delimited output, --format is now interpreted '
           'as a comma separated list of fields to export')
@@ -564,13 +567,17 @@ def search(app, args):
     query = {}
 
     for f in ['username', 'backup', 'volume', 'host', 'dirname',
-              'sha1sum', 'project', 'project', 'pi', 'category']:
+              'sha1sum', 'project', 'project', 'pi', 'category',
+              'filename']:
 
         v = getattr(args, f)
         if v is None:
             continue
         elif v == '(none)':
             query[f] = { "$exists": False }
+        elif v.startswith('/') and v.endswith('/'):
+            rrr = re.compile(v[1:-1])
+            query[f] = rrr
         else:
             query[f] = v
 
