@@ -3,7 +3,6 @@
 import sys
 from setuptools import setup, find_packages
 
-
 DESCRIPTION = "create & track file metadata"
 
 entry_points = {
@@ -14,7 +13,7 @@ entry_points = {
     ]}
 
 setup(name='mad2',
-      version='0.3.3',
+      version='0.3.5',
       description=DESCRIPTION,
       author='Mark Fiers',
       zip_safe=False,
