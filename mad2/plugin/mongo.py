@@ -2,11 +2,13 @@ from __future__ import print_function
 
 import collections
 import copy
+
 from fnmatch import fnmatch
 import glob
 import logging
 import os
 import re
+import shutil
 import sys
 import time
 
@@ -89,7 +91,7 @@ def mongo_flush(app):
         lg.debug("Saved %d records", res['nModified'])
 
     for i, r in enumerate(MONGO_REMOVE_CACHE):
-        # hould try to do this in bulk, but uncertain how...
+        # should try to do this in bulk, but uncertain how...
         COUNTER['removed'] += 1
         lg.info("removing id: %s", r)
         collection.remove({'_id': r})
@@ -262,17 +264,36 @@ def update(app, args):
     lg.info("%d dirs with data in the transient db", len(trans_dirs))
 
 
-    def screen_update(cnt, lud = 0):
+    def screen_update(cnt, lud = 0, msg=""):
+        ts = shutil.get_terminal_size().columns - 1
+
         if (time.time() > lud) < 1:
             return lud
+
         def _add_sep(b):
             return re.sub(r'([0-9][0-9][0-9])', r'\1,', str(b)[::-1])[::-1].strip(',')
-        print(" ".join(['{}:{}'.format(a, _add_sep(b))
-                        for a, b in cnt.items()]), end="\r")
+
+        if len(cnt) == 0:
+            return time.time()
+
+        out = " ".join(['{}:{}'.format(a, _add_sep(b))
+                        for a, b in cnt.items()])
+
+        rest = ts - (len(out) + 1)
+
+        if rest > 5 and isinstance(msg, str):
+            out += ':' + msg[:int(rest)-1]
+
+        rest = ts - (len(out) + 1)
+        out += ' ' * rest
+
+        print(out, end='\r')
+
         return time.time()
 
     start = time.time()
-    last_screen_update = screen_update(COUNTER)
+
+    last_screen_update = screen_update(COUNTER, msg='init')
 
 
     def _name_match(fn, ignore_list):
@@ -282,7 +303,7 @@ def update(app, args):
         return False
 
     for root, dirs, files in os.walk(basedir):
-        last_screen_update = screen_update(COUNTER, last_screen_update)
+        last_screen_update = screen_update(COUNTER, lud=last_screen_update, msg=root)
 
         root = root.rstrip('/')
         COUNTER['dir'] += 1
@@ -337,7 +358,7 @@ def update(app, args):
 
         for trec in trans_records:
 
-            last_screen_update = screen_update(COUNTER, last_screen_update)
+            last_screen_update = screen_update(COUNTER, lud=last_screen_update, msg=root)
 
             if not trec['filename'] in files:
                 COUNTER['rm'] += 1
@@ -377,7 +398,8 @@ def update(app, args):
 
         # save new files
         for filename in must_save_files:
-            last_screen_update = screen_update(COUNTER, last_screen_update)
+            last_screen_update = screen_update(COUNTER, last_screen_update, 'new - ' + root)
+
 
             filename = os.path.join(root, filename)
             remove_dir = False # again - stuff here - do not remove
