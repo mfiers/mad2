@@ -1,16 +1,18 @@
 
 from datetime import datetime
+import functools
 from hashlib import sha1
+import itertools
+import logging
 import os
 import random
-import logging
-import itertools
 import shlex
 import socket
 import subprocess as sp
 from uuid import uuid4
 
 from bson.objectid import ObjectId
+import sh
 import humanize
 from termcolor import cprint
 import yaml
@@ -77,6 +79,20 @@ def ta_show(app, args):
     print(yaml.safe_dump(rec, default_flow_style=False))
 
 
+@functools.lru_cache(128)
+def exec_expander(exefile):
+    """
+    determine full path executable
+    """
+    if os.path.exists(exefile):
+        return newfile
+    fp = sh.which(exefile).strip().split("\n")
+    if len(fp) > 0:
+        return fp[0]
+    else:
+        return exefile
+
+
 
 
 @leip.arg('--input', action='append', help='add an "input" file')
@@ -106,7 +122,6 @@ def ta_add(app, args):
                     host=host,
                     uname=uname)
 
-
     if args.time:
         import dateutil.parser
         time = dateutil.parser.parse(args.time)
@@ -131,11 +146,15 @@ def ta_add(app, args):
         if filenames is None:
             continue
 
+
         for filename in filenames:
 
             group = cat
             if ':' in filename:
                 group, filename = filename.split(':', 1)
+
+            if cat == 'executable':
+                filename = exec_expander(filename)
 
             if not os.path.exists(filename):
                 lg.critical("all files of transaction must exist")
