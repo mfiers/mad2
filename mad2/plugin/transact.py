@@ -100,7 +100,7 @@ def exec_expander(exefile):
 @leip.arg('--db', action='append', help='add an "db" file')
 @leip.arg('--executable', action='append', help='add an "executable" file')
 @leip.arg('--misc', action='append', help='add an "miscellaneous" file')
-@leip.arg('--cl', help='file containing the executed command line')
+@leip.arg('--script', help='file containing the executed command line')
 @leip.arg('--time', help='transaction generation time')
 @leip.subcommand(ta, "add")
 def ta_add(app, args):
@@ -131,8 +131,8 @@ def ta_add(app, args):
     items_to_hash.append(time.isoformat())
     transact['time'] = time
 
-    if not args.cl is None and os.path.exists(args.cl):
-        with open(args.cl) as F:
+    if not args.script is None and os.path.exists(args.script):
+        with open(args.script) as F:
             cl = F.read()
         transact['cl'] = cl
         items_to_hash.append(cl)
@@ -162,6 +162,7 @@ def ta_add(app, args):
                 exit(-1)
 
             madfile = get_mad_file(app, filename)
+            madfile.save()
             items_to_hash.append(madfile.mad['sha1sum'])
             all_file_shasums.append(madfile.mad['sha1sum'])
 
