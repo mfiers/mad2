@@ -3,8 +3,12 @@
 import sys
 from setuptools import setup, find_packages
 
-DESCRIPTION = "create & track file metadata"
+description = "create & track file metadata"
 
+with open("VERSION") as F:
+    version = F.read().strip()
+
+    
 entry_points = {
     'console_scripts': [
         'mad = mad2.cli.main:dispatch',
@@ -13,8 +17,8 @@ entry_points = {
     ]}
 
 setup(name='mad2',
-      version='0.3.6',
-      description=DESCRIPTION,
+      version=version,
+      description=description,
       author='Mark Fiers',
       zip_safe=False,
       author_email='mark.fiers42@gmail.com',
@@ -32,6 +36,7 @@ setup(name='mad2',
           'python-dateutil',
           'pymongo',
           'colorlog',
+          'pytimeparse',
           'arrow',
           'termcolor',
           'readline',
