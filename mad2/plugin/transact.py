@@ -1,16 +1,18 @@
 
 from datetime import datetime
+import functools
 from hashlib import sha1
+import itertools
+import logging
 import os
 import random
-import logging
-import itertools
 import shlex
 import socket
 import subprocess as sp
 from uuid import uuid4
 
 from bson.objectid import ObjectId
+import sh
 import humanize
 from termcolor import cprint
 import yaml
@@ -77,6 +79,20 @@ def ta_show(app, args):
     print(yaml.safe_dump(rec, default_flow_style=False))
 
 
+@functools.lru_cache(128)
+def exec_expander(exefile):
+    """
+    determine full path executable
+    """
+    if os.path.exists(exefile):
+        return newfile
+    fp = sh.which(exefile).strip().split("\n")
+    if len(fp) > 0:
+        return fp[0]
+    else:
+        return exefile
+
+
 
 
 @leip.arg('--input', action='append', help='add an "input" file')
@@ -84,7 +100,7 @@ def ta_show(app, args):
 @leip.arg('--db', action='append', help='add an "db" file')
 @leip.arg('--executable', action='append', help='add an "executable" file')
 @leip.arg('--misc', action='append', help='add an "miscellaneous" file')
-@leip.arg('--cl', help='file containing the executed command line')
+@leip.arg('--script', help='file containing the executed command line')
 @leip.arg('--time', help='transaction generation time')
 @leip.subcommand(ta, "add")
 def ta_add(app, args):
@@ -106,7 +122,6 @@ def ta_add(app, args):
                     host=host,
                     uname=uname)
 
-
     if args.time:
         import dateutil.parser
         time = dateutil.parser.parse(args.time)
@@ -116,8 +131,8 @@ def ta_add(app, args):
     items_to_hash.append(time.isoformat())
     transact['time'] = time
 
-    if not args.cl is None and os.path.exists(args.cl):
-        with open(args.cl) as F:
+    if not args.script is None and os.path.exists(args.script):
+        with open(args.script) as F:
             cl = F.read()
         transact['cl'] = cl
         items_to_hash.append(cl)
@@ -131,11 +146,15 @@ def ta_add(app, args):
         if filenames is None:
             continue
 
+
         for filename in filenames:
 
             group = cat
             if ':' in filename:
                 group, filename = filename.split(':', 1)
+
+            if cat == 'executable':
+                filename = exec_expander(filename)
 
             if not os.path.exists(filename):
                 lg.critical("all files of transaction must exist")
@@ -143,6 +162,7 @@ def ta_add(app, args):
                 exit(-1)
 
             madfile = get_mad_file(app, filename)
+            madfile.save()
             items_to_hash.append(madfile.mad['sha1sum'])
             all_file_shasums.append(madfile.mad['sha1sum'])
 

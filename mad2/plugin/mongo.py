@@ -251,12 +251,14 @@ def update(app, args):
     ignore_files = ['.*', '*.log', '*~', '*#', 'SHA1SUMS*', 'mad.config']
     basedir = os.getcwd()
 
-    find_dir_regex = '{}.*'.format(basedir)
+    find_dir_regex = '^{}'.format(basedir)
     lg.debug("searching for dirs with regex: %s", find_dir_regex)
     tradirs = []
     query = {'host': socket.gethostname(),
              'dirname': { "$regex": find_dir_regex }}
+
     trans_dirs = list(transient_db.find(query).distinct('dirname'))
+    lg.warning("found %d files below this directory in transient db", len(trans_dirs))
 
     #to be safe - strip trailing slashes
     trans_dirs = [x.rstrip('/') for x in trans_dirs]
