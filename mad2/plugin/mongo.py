@@ -44,7 +44,7 @@ MONGO_REMOVE_COUNT = 0
 
 def get_mongo_transient_id(mf):
     hsh = hashlib.sha1()
-    hsh.update(mf['host'].encode('UTF-8'))
+    hsh.update(mf['volume'].encode('UTF-8'))
     hsh.update(mf['fullpath'].encode('UTF-8'))
     return hsh.hexdigest()[:24]
 
