@@ -35,11 +35,12 @@ from mad2.ui import message
 
 
 lg = logging.getLogger(__name__)
-#lg.setLevel(logging.DEBUG)
+# lg.setLevel(logging.DEBUG)
 COUNTER = collections.defaultdict(lambda: 0)
 MONGO_SAVE_CACHE = []
 MONGO_SAVE_COUNT = 0
 MONGO_REMOVE_COUNT = 0
+
 
 def get_mongo_transient_id(mf):
     hsh = hashlib.sha1()
