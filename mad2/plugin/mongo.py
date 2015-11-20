@@ -180,10 +180,10 @@ def madfile_init(app, madfile):
 
         lg.debug("shasum for %s (%s) is %s", _madfile['inputfile'], trans_id, sha1)
 
-        trans_db.update({'_id': trans_id},
-                        {"$set": {'sha1sum': sha1,
-                                  'sha1sum_time': nowtime}},
-                        upsert=True)
+#        trans_db.update({'_id': trans_id},
+#                        {"$set": {'sha1sum': sha1,
+#                                  'sha1sum_time': nowtime}},
+#                        upsert=True)
         _prep_madfile(madfile, sha1, sha1_time)
         return sha1
 
