@@ -9,6 +9,7 @@ import logging
 import os
 import re
 import sys
+import textwrap
 import time
 
 from termcolor import cprint
@@ -258,6 +259,7 @@ def get_mad_dummy(app, data):
     return MadDummy(data_all=data_all, data_core=data_core, stores=STORES,
                     hook_method=app.run_hook )
 
+
 def to_mad(fn):
     if '/' in fn:
         a, b = fn.rsplit('/')
@@ -409,18 +411,18 @@ def message(cat, message, *args):
         print("  " + line)
 
 
-def render(txt, data):
+# def render(txt, data):
 
-    env = moa.moajinja.getStrictEnv()
-    renconf = self.render()
-    templ = env.from_string(value)
-    try:
-        rv = templ.render(renconf)
-        return rv
-    except jinja2.exceptions.UndefinedError:
-        return value
-    except jinja2.exceptions.TemplateSyntaxError:
-        return value
+#     env = moa.moajinja.getStrictEnv()
+#     renconf = self.render()
+#     templ = env.from_string(value)
+#     try:
+#         rv = templ.render(renconf)
+#         return rv
+#     except jinja2.exceptions.UndefinedError:
+#         return value
+#     except jinja2.exceptions.TemplateSyntaxError:
+#         return value
 
 
 # Borrowed from: http://tinyurl.com/majcr53
