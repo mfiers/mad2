@@ -159,20 +159,11 @@ def madfile_init(app, madfile):
 
     def _create_new_sha1(_madfile):
 
-        # TODO: temporary hack - see if we can get the data from the
-        # SHA1SUM files.
-
-        sha1, sha1_time = mad2.hash.check_sha1sum_file(_madfile['fullpath'])
-
-        if sha1 is not None and arrow.get(mtime).to('local') <= sha1_time:
-            COUNTER['shafile'] += 1
-            lg.debug("recoved sha1 from the SHA1SUM file")
-        else:
-            #also not in the sha1sum file - recalculate
-            lg.debug("recreate shasum for %s", _madfile['inputfile'])
-            COUNTER['calc'] += 1
-            sha1 = mad2.hash.get_sha1(_madfile['fullpath'])
-            sha1_time = datetime.datetime.utcnow()
+        #also not in the sha1sum file - recalculate
+        lg.debug("recreate shasum for %s", _madfile['inputfile'])
+        COUNTER['calc'] += 1
+        sha1 = mad2.hash.get_sha1(_madfile['fullpath'])
+        sha1_time = datetime.datetime.utcnow()
 
         if sha1 is None:
             #still not?? maybe the file does not exist? Link is broken?? Will not save this
@@ -560,6 +551,7 @@ def mongo_last(app, args):
 
 @leip.flag('--delete')
 @leip.arg('-u', '--username')
+@leip.arg('-U', '--userid')
 @leip.arg('-b', '--backup')
 @leip.arg('-D', '--dirname')
 @leip.arg('-B', '--ignore_backup_volumes')
@@ -593,7 +585,7 @@ def search(app, args):
 
     for f in ['username', 'backup', 'volume', 'host', 'dirname',
               'sha1sum', 'project', 'project', 'pi', 'category',
-              'filename']:
+              'filename', 'userid']:
 
         v = getattr(args, f)
         if v is None:
@@ -1161,7 +1153,7 @@ WASTE_PIPELINE = [
 @leip.command
 def repl(app, args):
     """
-    Save to mongodb
+    ??
     """
 
     MONGO_mad = get_mongo_transient_db(app)
