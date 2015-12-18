@@ -10,6 +10,7 @@ import mad2.hash
 
 lg = logging.getLogger(__name__)
 
+
 # make sure stores are cleaned up.
 # note that initialization takes place in mad2.util - and only
 # when a record is actually saved.
@@ -17,6 +18,52 @@ lg = logging.getLogger(__name__)
 def cleanup_stores(app):
     lg.debug("cleanup stores")
     mad2.util.cleanup_stores(app)
+
+    
+@leip.flag('-s', '--substring', help='first column is only a part of the filename')
+@leip.arg('file', nargs='*')
+@leip.arg('key')
+@leip.arg('table')
+@leip.command
+def apply_from_table(app, args):
+    """apply key/values from a tsv file' 
+    
+    expect two columns in the [table] input file - first identifying
+    the file, second is the value to be assigned to [key]
+
+    """
+    tbl = {}
+    with open(args.table) as F:
+        for line in F:
+            line = line.strip()
+            if not line:
+                continue
+            if line[0] == '#':
+                continue
+            k, v = line.split('\t', 1)
+            tbl[k] = v
+    for madfile in get_all_mad_files(app, args):
+        filename = madfile['filename']
+
+        v_to_use = set()
+        for k, v in tbl.items():
+            if args.substring and k in filename:
+                v_to_use.add(v)
+            elif k == filename:
+                v_to_use.add(v)
+
+        if len(v_to_use) == 0:
+            lg.warning("no '%s' found for '%s'", args.key, filename)
+            continue
+        elif len(v_to_use) > 1:
+            lg.error("no '%s' found for '%s'", args.key, filename)
+            exit(-1)
+
+        v = list(v_to_use)[0]
+        lg.warning("assigning '%s' = '%s' for '%s'", args.key, v, filename)
+        madfile[args.key] = v
+        madfile.save()
+
 
 
 @leip.command
