@@ -157,7 +157,7 @@ def onthefly(app, madfile):
 
     lg.debug("running onthelfy")
 
-    lg.debug("get fqdn")
+    # lg.debug("get fqdn")
     host = socket.gethostname()
     madfile.all['host'] = host
     lg.debug('host: %s', host)
@@ -214,7 +214,7 @@ def onthefly(app, madfile):
                 #match - now update the
                 madfile.all.update(replace)
 
-    lg.debug("finished onthefly")
+    # lg.debug("finished onthefly")
 
 @leip.arg('alias')
 @leip.arg('userid')
