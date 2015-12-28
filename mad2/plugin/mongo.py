@@ -251,15 +251,19 @@ def update(app, args):
     ignore_files = ['.*', '*.log', '*~', '*#', 'SHA1SUMS*', 'mad.config']
     basedir = os.getcwd()
 
-    find_dir_regex = '^{}'.format(basedir)
+    find_dir_regex = re.compile('^{}'.format(basedir))
+    find_dir_regex = '^{}'.format(basedir)#.replace('/', '\/')
     lg.debug("searching for dirs with regex: %s", find_dir_regex)
     tradirs = []
     query = {'host': socket.gethostname(),
              'dirname': { "$regex": find_dir_regex }}
+#    query = {'host': socket.gethostname(),
+#             'dirname': find_dir_regex}
 
+#    expl = transient_db.find(query).explain()
+#    print(yaml.dump(expl, default_flow_style=False))
     trans_dirs = list(transient_db.find(query).distinct('dirname'))
     lg.warning("found %d files below this directory in transient db", len(trans_dirs))
-
     #to be safe - strip trailing slashes
     trans_dirs = [x.rstrip('/') for x in trans_dirs]
     dirs_to_delete = copy.copy(trans_dirs)
@@ -1129,28 +1133,6 @@ def _run_mongo_command(app, name, collection, query, kwargs={}, force=False):
     res = MONGO_mad.database.command(query, collection, **kwargs)
     return res
 
-
-WASTE_PIPELINE = [
-    {"$match": {"orphan": False}},
-    {"$sort": {"sha1sum": 1}},
-    {"$project": {"filesize": 1,
-                  "sha1sum": 1,
-                  "usage": {"$divide": ["$filesize", "$nlink"]}}},
-    {"$group": {"_id": "$sha1sum",
-                "no_records": {"$sum": 1},
-                "mean_usage": {"$avg": "$usage"},
-                "total_usage": {"$sum": "$usage"},
-                "filesize": {"$max": "$filesize"}}},
-    {"$project": {"filesize": 1,
-                  "sha1sum": 1,
-                  "total_usage": 1,
-                  "waste": {"$subtract": ["$total_usage", "$filesize"]}}},
-    {"$match": {"waste": {"$gt": 500}}},
-    {"$group": {"_id": None,
-                "no_files": {"$sum": 1},
-                "waste": {"$sum": "$waste"}}}]
-
-
 @leip.arg('-v', '--volume')
 @leip.arg('-p', '--path_fragment')
 @leip.flag('-e', '--echo', help='echo files for which >1 file is found'
@@ -1228,21 +1210,23 @@ def repl(app, args):
 
 
 FIND_WASTER_PIPELINE = [
-    {"$match": {"orphan": False}},
     {"$project": {"filesize": 1,
                   "sha1sum": 1,
+                  "username": 1,
                   "usage": {"$divide": ["$filesize", "$nlink"]}}},
     {"$group": {"_id": "$sha1sum",
+                "user": {"$addToSet":  "$username"},
                 "no_records": {"$sum": 1},
                 "mean_usage": {"$avg": "$usage"},
                 "total_usage": {"$sum": "$usage"},
                 "filesize": {"$max": "$filesize"}}},
     {"$project": {"filesize": 1,
                   "total_usage": 1,
+                  "user": 1,
                   "waste": {"$subtract": ["$total_usage", "$filesize"]}}},
     {"$match": {"waste": {"$gt": 500}}},
     {"$sort": {"waste": -1}},
-    {"$limit": 100}]
+    {"$limit": 1000}]
 
 
 @persistent_cache(leip.get_cache_dir('mad2', 'mongo', 'waste'), 1,  24*60*60)
@@ -1267,7 +1251,6 @@ def waste(app, args):
     res = _run_waste_command(app, 'waste_pipeline',
                              force=args.force)
 
-
     if args.todb:
         dbrec = {'time': datetime.datetime.utcnow(),
                  'data': res}
@@ -1282,8 +1265,9 @@ def waste(app, args):
             args = args[:1]
         print(*args, **kwargs)
 
-    if args.no_color:
-        cprint = cprint_nocolor
+    # if args.no_color:
+    #     cprint = cprint_nocolor
+
     for i, r in enumerate(res):
         if i >= args.no_records:
             break
@@ -1292,12 +1276,11 @@ def waste(app, args):
         if not sha1sum.strip():
             continue
 
-        cprint(sha1sum, 'grey', end='')
+        cprint(sha1sum, 'yellow', end='')
         cprint(" sz ", "grey", end="")
         cprint("{:>9}".format(humansize(r['waste'])), end='')
         cprint(" w ", "grey", end="")
         cprint("{:>9}".format(humansize(r['filesize'])), end='')
-
         hostcount = collections.defaultdict(lambda: 0)
         hostsize = collections.defaultdict(lambda: 0)
         owners = set()
