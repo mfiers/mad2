@@ -11,6 +11,7 @@ import fantail
 from pwd import getpwuid
 
 lg = logging.getLogger(__name__)
+#lg.setLevel(logging.DEBUG)
 
 EXTENSION_DATA = None
 RECURSE_CACHE = {}
@@ -94,6 +95,7 @@ def _get_recursive_dir_data(pth):
         last = here
         here = parent
 
+        
     # now again from the current directory
     here = os.getcwd().rstrip('/')
     last = here
