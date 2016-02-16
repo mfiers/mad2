@@ -250,8 +250,8 @@ def ta_add(app, args):
                 filename = exec_expander(filename)
 
             if not os.path.exists(filename):
-                lg.critical("all files of transaction must exist")
-                lg.critical("cannot find %s", filename)
+                lg.info("all files of transaction must exist")
+                lg.info("cannot find %s", filename)
                 exit(-1)
 
             madfile = get_mad_file(app, filename)
