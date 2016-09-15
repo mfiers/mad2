@@ -159,7 +159,7 @@ def onthefly(app, madfile):
 
     lg.debug("running onthelfy")
 
-    lg.debug("get fqdn")
+    # lg.debug("get fqdn")
     host = socket.gethostname()
     madfile.all['host'] = host
     lg.debug('host: %s', host)
@@ -205,18 +205,24 @@ def onthefly(app, madfile):
 
     thesaurus = app.conf['thesaurus']
     for t in list(thesaurus.values()):
-        if len(t['find']) != 1:
-            lg.critical("cannot handle multiple search fields")
-            exit(0)
-        f_field = list(t['find'].keys())[0]
-        f_pattern = list(t['find'].values())[0]
-        replace = t['replace']
-        if f_field in madfile.keys():
-            if re.match(f_pattern, madfile[f_field]):
-                #match - now update the
-                madfile.all.update(replace)
+        # if len(t['find']) != 1:
+        #     lg.critical("cannot handle multiple search fields")
+        #     exit(0)
+        f_fields = list(t['find'].keys())
+        f_patterns = [t['find'][k] for k in f_fields]
+        f_replace = t['replace']
 
-    lg.debug("finished onthefly")
+        MATCH = False
+        for i, f in enumerate(f_fields):
+            if not f in madfile.keys():
+                # field does not exists - try the next thesaurus entry
+                break
+            if not re.match(f_patterns[i], madfile[f]):
+                # not a match - try the next thesaurus entry
+                break
+        else:
+            madfile.all.update(f_replace)
+
 
 @leip.arg('alias')
 @leip.arg('userid')

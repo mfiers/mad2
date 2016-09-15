@@ -346,6 +346,9 @@ def madset(app, args):
 
     # process key & val
     key, val, list_mode = _getkeyval(app, key, val, args.force)
+    lg.info('set %s to %s', key, val)
+    if list_mode:
+        lg.info("List modus")
 
     # Now process madfiles
     lg.debug("processing %d files" % len(madfiles))
