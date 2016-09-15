@@ -20,6 +20,7 @@ def cleanup_stores(app):
     mad2.util.cleanup_stores(app)
 
 
+@leip.arg('-p', '--prefix', help='prefix keys with this value')
 @leip.arg('file', nargs='*')
 @leip.arg('table')
 @leip.command
@@ -29,15 +30,39 @@ def apply_from_table(app, args):
     expects a tsv table. First column is the full file name, each column
     contains metadata (key == column header)
     """
+
     import pandas as pd
-    tbl = pd.read_csv(args.table, sep="\t", index_col=0)
+    import numpy as np
+    import sys
+
+    if args.table == '-':
+        tbl = pd.read_csv(sys.stdin, sep="\t",
+                          header=None)
+    else:
+        tbl = pd.read_csv(args.table, sep="\t")
+
+    if args.prefix:
+        tbl[0] = args.prefix + tbl[0]
+
+    tbl.set_index(0, inplace=True)
+
+    outdict = {}
+
+    for k, v in dict(tbl[1]).items():
+        if v == 0:
+            outdict[k] = 0
+        elif isinstance(v, int):
+            outdict[k] = int(v)
+        elif isinstance(v, np.int64):
+            outdict[k] = int(v)
+        elif isinstance(v, float):
+            outdict[k] = float(v)
+        else:
+            outdict[k] = v
 
     for madfile in get_all_mad_files(app, args):
-        filename = madfile['filename']
-        metadata = dict(tbl.loc[filename])
-        madfile.update(metadata)
+        madfile.update(outdict)
         madfile.save()
-
 
 @leip.command
 def version(app, args):
@@ -76,16 +101,15 @@ def save(app, args):
     for madfile in get_all_mad_files(app, args):
         lg.debug("processing %s", madfile['fullpath'])
 
-        #if madfile['orphan']:
+        # if madfile['orphan']:
         #    lg.warning("removing %s", madfile['inputfile'])
         #    lg.warning("sha1sum is/was: %s", madfile['sha1sum'])
 
         counter += 1
 
-
-        app.trans['progress.save'] +=1
+        app.trans['progress.save'] += 1
         pp = app.trans['progress.save']
-        if args.progress and  pp > 0 and pp % 2500 == 0:
+        if args.progress and pp > 0 and pp % 2500 == 0:
             lg.warning("mad save: saved {} files".format(pp))
 
         madfile.save()
@@ -96,6 +120,7 @@ def save(app, args):
 def _save_dumped_doc(app, doc):
     dm = get_mad_dummy(app, doc)
     dm.save()
+
 
 @leip.arg('dump_file', help='yaml dump file to load')
 @leip.command

@@ -1,6 +1,7 @@
 
 import logging
 import os
+import re
 import sys
 import tempfile
 import subprocess
@@ -10,7 +11,7 @@ import leip
 import fantail
 from termcolor import cprint
 
-from mad2.util import  get_mad_file, get_all_mad_files, get_filenames
+from mad2.util import get_mad_file, get_all_mad_files, get_filenames
 from mad2.ui import message, error, errorexit
 import mad2.ui
 
@@ -18,29 +19,48 @@ lg = logging.getLogger(__name__)
 
 
 ##
-## define unset
+# define unset
 ##
 @leip.arg('file', nargs="+")
-@leip.arg('key')
+@leip.arg('key', help='key to unset, /pattern/ will be used as a regex')
 @leip.arg('-e', '--echo', help='echo ')
 @leip.command
 def unset(app, args):
     """
     Remove a key/value from a file
     """
-    lg.debug("unsetting: %s".format(args.key))
+#    lg.setLevel(logging.DEBUG)
+
+    lg.debug("unsetting: {}".format(args.key))
     key = args.key
+    regex = False
+    if key.startswith('/') and key.endswith('/'):
+        rekey = re.compile(key.strip('/'))
+        regex = True
+
     keyinfo = app.conf['keywords.{}'.format(key)]
     if keyinfo.get('cardinality', '1') == '+':
         errorexit("Not implemented - unsetting keys with cardinality > 1")
 
     for madfile in get_all_mad_files(app, args):
-        #print(madfile)
-        #print(madfile.mad.pretty())
-        if args.key in madfile.mad:
-            del(madfile.mad[args.key])
 
+        if regex:
+            to_delete = []
+            # first scan....
+            for key in madfile.mad:
+                if rekey.match(key):
+                    to_delete.append(key)
+            # ... then delete
+            for key in to_delete:
+                lg.debug("removing key: %s", key)
+                del madfile.mad[key]
+        else:
+            if args.key in madfile.mad:
+                del(madfile.mad[args.key])
+
+        lg.debug("save madfile: %s" % madfile)
         madfile.save()
+
 
 def _getkeyval(app, key, val, force):
 
@@ -97,10 +117,47 @@ def _getkeyval(app, key, val, force):
 
     return key, val, list_mode
 
+
+@leip.arg('file', nargs='*')
+@leip.arg('-f', '--force', action='store_true', help='apply force')
+@leip.arg('regex')
+@leip.arg('key')
+@leip.command
+def apply_using_filename_regex(app, args):
+
+    import re
+    key = args.key
+
+    lg.warning("key   : %s", key)
+    lg.warning("regex : %s", args.regex)
+    regex = re.compile(args.regex)
+
+    for madfile in get_all_mad_files(app, args):
+        filename = madfile['filename']
+        exval = regex.search(filename).groups()[0]
+        _, val, list_mode = _getkeyval(app, args.key, exval, args.force)
+
+        print("%s\t%s\t%s" % (filename, args.key, exval))
+#        print("Assigning %s='%s' for %s" % (args.key, exval, filename))
+        if list_mode:
+            if key not in madfile:
+                oldval = []
+            else:
+                oldval = madfile[key]
+                if not isinstance(oldval, list):
+                    oldval = [oldval]
+            madfile.mad[key] = oldval + [val]
+        else:
+            # not listmode
+            madfile.mad[key] = val
+        madfile.save()
+
+
 @leip.arg('file', nargs='*')
 @leip.arg('-k', '--kv', help='key & value to set', metavar=('key', 'val'),
-                nargs=2, action='append')
-@leip.usage("usage: mad mset [-h] [-f] [-e] -k key val [[-k key val] ...] [file [file ...]]")
+          nargs=2, action='append')
+@leip.usage("usage: mad mset [-h] [-f] [-e] -k key val [[-k key val] ...] " +
+            "[file [file ...]]")
 @leip.arg('-f', '--force', action='store_true', help='apply force')
 @leip.arg('-e', '--echo', action='store_true', help='echo filename')
 @leip.command
@@ -116,7 +173,7 @@ def mset(app, args):
         print(madfile)
         for key, val, list_mode in all_kvs:
             if list_mode:
-                if not key in madfile:
+                if key not in madfile:
                     oldval = []
                 else:
                     oldval = madfile[key]
@@ -174,7 +231,6 @@ def keywords(app, args):
                 cprint(ad)
 
 
-
 @leip.arg('-d', '--editor', action='store_true', help='open an editor')
 @leip.arg('-f', '--force', action='store_true', help='apply force')
 @leip.arg('-p', '--prompt', action='store_true', help='show a prompt')
@@ -219,7 +275,6 @@ def madset(app, args):
     key = args.key
     val = args.value
 
-
     if args.prompt or args.editor:
         if not args.value is None:
             # when asking for a prompt - the next item on sys.argv
@@ -229,7 +284,7 @@ def madset(app, args):
 
     madfiles = []
 
-    #gather all madfiles for later parsing
+    # gather all madfiles for later parsing
     use_stdin = not (args.prompt or args.editor)
     if args.dir:
         for m in get_filenames(args, use_stdin, allow_dirs=True):
@@ -247,7 +302,7 @@ def madset(app, args):
         for m in get_all_mad_files(app, args, use_stdin):
             madfiles.append(m)
 
-    #check if mad needs to show a prompt or editor
+    # check if mad needs to show a prompt or editor
     if val is None and not (args.prompt or args.editor):
         args.prompt = True
 
@@ -256,7 +311,7 @@ def madset(app, args):
         # get a value from the user
 
         default = ''
-        #Show a prompt asking for a value
+        # Show a prompt asking for a value
         data = madfiles[0]
         default = madfiles[0].get(key, "")
 
@@ -266,10 +321,10 @@ def madset(app, args):
             sys.stdin = sys.__stdin__
 
         elif args.editor:
-            editor = os.environ.get('EDITOR','vim')
+            editor = os.environ.get('EDITOR', 'vim')
             tmp_file = tempfile.NamedTemporaryFile('wb', delete=False)
 
-            #write default value to the tmp file
+            # write default value to the tmp file
             if default:
                 tmp_file.write(default + "\n")
             else:
@@ -279,23 +334,24 @@ def madset(app, args):
             tty = open('/dev/tty')
 
             subprocess.call('{} {}'.format(editor, tmp_file.name),
-                stdin=tty, shell=True)
+                            stdin=tty, shell=True)
             sys.stdin = sys.__stdin__
 
-
-            #read value back in
+            # read value back in
             with open(tmp_file.name, 'r') as F:
-                #removing trailing space
+                # removing trailing space
                 val = F.read().rstrip()
-            #remove tmp file
+            # remove tmp file
             os.unlink(tmp_file.name)
 
-    #process key & val
+    # process key & val
     key, val, list_mode = _getkeyval(app, key, val, args.force)
+    lg.info('set %s to %s', key, val)
+    if list_mode:
+        lg.info("List modus")
 
     # Now process madfiles
     lg.debug("processing %d files" % len(madfiles))
-
 
     for madfile in madfiles:
         if list_mode:

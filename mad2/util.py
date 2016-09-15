@@ -224,7 +224,7 @@ def get_mad_file(app, filename, sha1sum=None):
     if STORES is None:
         initialize_stores(app)
 
-    lg.debug("instantiating madfile for {0}".format(filename))
+    # lg.warning("instantiating madfile for {0}".format(filename))
     return MadFile(filename,
                    stores=STORES,
                    sha1sum=sha1sum,
