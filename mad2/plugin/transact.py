@@ -43,7 +43,7 @@ def ta_tree(app, args):
     db_t, db_s2t = get_mongo_transact_db(app)
     trans_db = get_mongo_transient_db(app)
 
-    
+
     if len(args.object) == 40 and not os.path.exists(args.object):
         sha1sum = args.object
     else:
@@ -58,11 +58,11 @@ def ta_tree(app, args):
                 if field in rec:
                     rv[field].add(rec[field])
         return {k: ';'.join(map(str, v)) for (k, v) in rv.items()}
-            
+
     def _add_node(G, sha1sum):
         if sha1sum in G:
             return
-        
+
         G.add_node(sha1sum)
         sdata = _get_trarec(sha1sum)
         G.node[sha1sum].update(sdata)
@@ -70,13 +70,13 @@ def ta_tree(app, args):
     _add_node(G, sha1sum)
 
     sha1sum_processed = set()
-    
+
     def _find_relations_shasum(G, sha1sum):
         if sha1sum in sha1sum_processed:
             return
-        
+
         sha1sum_processed.add(sha1sum)
-        
+
         for s2t in db_s2t.find(dict(sha1sum=sha1sum)):
             tra = db_t.find_one(dict(_id=s2t['transaction_id']))
             io = tra['io']
@@ -99,7 +99,7 @@ def ta_tree(app, args):
 
                 _find_relations_shasum(G, fas)
                 _find_relations_shasum(G, fbs)
-                
+
 
     _find_relations_shasum(G, sha1sum)
     nx.write_graphml(G, 'test.graphml')
@@ -140,7 +140,7 @@ def ta_show(app, args):
     obj = args.object
     if os.path.exists(obj):
         return ta_sha1sum(app, args)
-    
+
     rec = db_t.find_one({"_id": args.object})
     if rec is None:
         print("No transaction found")
@@ -152,12 +152,12 @@ def ta_show(app, args):
         rec['time'].isoformat(),
         rec['host'],
         rec['cl']]
-    
+
     for fo in rec['io']:
         ids2hash.append(fo['sha1sum'])
-        
+
     tcheck = sha1()
-    
+
     for i, _ in enumerate(sorted(ids2hash)):
         tcheck.update(_.encode('UTF-8'))
 
@@ -217,12 +217,15 @@ def ta_add(app, args):
         time = datetime.utcnow()
 
     time = time.replace(microsecond=0)
-    
+
     items_to_hash.append(time.isoformat())
     transact['time'] = time
 
-    if args.script is not None and os.path.exists(args.script):
-        
+    if args.cl:
+        transact['cl'] = args.cl.strip()
+        items_to_hash.append(transact['cl'])
+
+    elif args.script is not None and os.path.exists(args.script):
         with open(args.script) as F:
             cl = F.read()
         transact['cl'] = cl
@@ -234,7 +237,7 @@ def ta_add(app, args):
 
     to_propagate = {}
     do_not_propagate = set()
-    
+
     for cat in 'input output db executable misc'.split():
         filenames = getattr(args, cat)
         if filenames is None:
@@ -280,9 +283,9 @@ def ta_add(app, args):
                         lg.warning("propagating %s='%s' for %s", k, v, filename)
                         madfile.mad[k] = v
                 madfile.mad.update(to_propagate)
-                
+
             madfile.save()
-            
+
             items_to_hash.append(madfile.mad['sha1sum'])
             all_file_shasums.append(madfile.mad['sha1sum'])
 
@@ -302,7 +305,7 @@ def ta_add(app, args):
 
     # store transaction
     db_t.insert_one(transact)
-    
+
     # store sha1sum to transaction links
     db_s2t.insert_many([dict(transaction_id=thash, sha1sum=x)
                         for x in set(all_file_shasums)])
