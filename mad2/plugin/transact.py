@@ -11,18 +11,19 @@ import socket
 import subprocess as sp
 from uuid import uuid4
 
-from bson.objectid import ObjectId
+# from bson.objectid import ObjectId
 import sh
 import humanize
 from termcolor import cprint
 import yaml
 
+import leip
+from mad2.util import get_mad_file, get_mongo_transact_db
+from mad2.util import get_mongo_transient_db  # , get_mongo_core_db
+
 
 lg = logging.getLogger(__name__)
 
-import leip
-from mad2.util import get_mad_file, get_mongo_transact_db
-from mad2.util import get_mongo_transient_db, get_mongo_core_db
 
 @leip.subparser
 def ta(app, args):
@@ -100,10 +101,8 @@ def ta_tree(app, args):
                 _find_relations_shasum(G, fas)
                 _find_relations_shasum(G, fbs)
 
-
     _find_relations_shasum(G, sha1sum)
     nx.write_graphml(G, 'test.graphml')
-
 
 
 @leip.arg('object', help='show info on either a sha1sum or a file')
@@ -190,6 +189,7 @@ def exec_expander(exefile):
 @leip.arg('--executable', action='append', help='add an "executable" file')
 @leip.arg('--misc', action='append', help='add an "miscellaneous" file')
 @leip.arg('--script', help='file containing the executed command line')
+@leip.arg('--cl', help='the executed command line')
 @leip.arg('--time', help='transaction generation time')
 @leip.subcommand(ta, "add")
 def ta_add(app, args):
@@ -222,9 +222,9 @@ def ta_add(app, args):
     transact['time'] = time
 
     if args.cl:
-        transact['cl'] = args.cl.strip()
-        items_to_hash.append(transact['cl'])
-
+        cl = args.cl.strip()
+        transact['cl'] = cl
+        items_to_hash.append(cl)
     elif args.script is not None and os.path.exists(args.script):
         with open(args.script) as F:
             cl = F.read()
@@ -252,10 +252,12 @@ def ta_add(app, args):
             if cat == 'executable':
                 filename = exec_expander(filename)
 
-            if not os.path.exists(filename):
-                lg.critical("all files of transaction must exist")
-                lg.critical("cannot find %s", filename)
+            if not os.path.isfile(filename):
+                lg.info("all files of transaction must exist")
+                lg.info("cannot find %s", filename)
                 exit(-1)
+
+            # print("get mad file", filename)
 
             madfile = get_mad_file(app, filename)
 
@@ -280,7 +282,8 @@ def ta_add(app, args):
             if cat == 'output' and to_propagate:
                 for k, v in to_propagate.items():
                     if k not in madfile.mad:
-                        lg.warning("propagating %s='%s' for %s", k, v, filename)
+                        lg.warning(
+                            "propagating %s='%s' for %s", k, v, filename)
                         madfile.mad[k] = v
                 madfile.mad.update(to_propagate)
 

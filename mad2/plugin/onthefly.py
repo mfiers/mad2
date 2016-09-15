@@ -11,6 +11,7 @@ import fantail
 from pwd import getpwuid
 
 lg = logging.getLogger(__name__)
+#lg.setLevel(logging.DEBUG)
 
 EXTENSION_DATA = None
 RECURSE_CACHE = {}
@@ -94,30 +95,9 @@ def _get_recursive_dir_data(pth):
         last = here
         here = parent
 
-    # now again from the current directory
-    here = os.getcwd().rstrip('/')
-    last = here
-    cwdconf = []
-    while True:
-        assert(os.path.isdir(here))
-
-        here_c = os.path.join(here, 'mad.config')
-        if os.path.exists(here_c):
-            if here_c in conf:
-                break  # overlap with tree from the madfile's location
-            else:
-                cwdconf.append(here_c)
-        parent = os.path.dirname(here)
-        if parent == '/':  # no config in the root - that would be evil!
-            break
-        last = here
-        here = parent
-
-    conf = cwdconf + conf
-    # load (or get from cache)
-
     rv = fantail.Fantail()
     for c in conf[::-1]:
+        lg.debug("read .config file: %s", c)
         fullname = os.path.expanduser(os.path.abspath(c))
         if fullname in RECURSE_CACHE:
             y = RECURSE_CACHE[fullname]
@@ -126,6 +106,7 @@ def _get_recursive_dir_data(pth):
             y = fantail.yaml_file_loader(fullname)
             RECURSE_CACHE[fullname] = y
         rv.update(y)
+    lg.debug(rv.pretty())
     return rv
 
 @leip.arg("dir", nargs='?', default='.')
