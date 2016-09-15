@@ -19,51 +19,50 @@ def cleanup_stores(app):
     lg.debug("cleanup stores")
     mad2.util.cleanup_stores(app)
 
-    
-@leip.flag('-s', '--substring', help='first column is only a part of the filename')
+
+@leip.arg('-p', '--prefix', help='prefix keys with this value')
 @leip.arg('file', nargs='*')
-@leip.arg('key')
 @leip.arg('table')
 @leip.command
 def apply_from_table(app, args):
-    """apply key/values from a tsv file' 
-    
-    expect two columns in the [table] input file - first identifying
-    the file, second is the value to be assigned to [key]
+    """apply key/values from a tsv file'
 
+    expects a tsv table. First column is the full file name, each column
+    contains metadata (key == column header)
     """
-    tbl = {}
-    with open(args.table) as F:
-        for line in F:
-            line = line.strip()
-            if not line:
-                continue
-            if line[0] == '#':
-                continue
-            k, v = line.split('\t', 1)
-            tbl[k] = v
+
+    import pandas as pd
+    import numpy as np
+    import sys
+
+    if args.table == '-':
+        tbl = pd.read_csv(sys.stdin, sep="\t",
+                          header=None)
+    else:
+        tbl = pd.read_csv(args.table, sep="\t")
+
+    if args.prefix:
+        tbl[0] = args.prefix + tbl[0]
+
+    tbl.set_index(0, inplace=True)
+
+    outdict = {}
+
+    for k, v in dict(tbl[1]).items():
+        if v == 0:
+            outdict[k] = 0
+        elif isinstance(v, int):
+            outdict[k] = int(v)
+        elif isinstance(v, np.int64):
+            outdict[k] = int(v)
+        elif isinstance(v, float):
+            outdict[k] = float(v)
+        else:
+            outdict[k] = v
+
     for madfile in get_all_mad_files(app, args):
-        filename = madfile['filename']
-
-        v_to_use = set()
-        for k, v in tbl.items():
-            if args.substring and k in filename:
-                v_to_use.add(v)
-            elif k == filename:
-                v_to_use.add(v)
-
-        if len(v_to_use) == 0:
-            lg.warning("no '%s' found for '%s'", args.key, filename)
-            continue
-        elif len(v_to_use) > 1:
-            lg.error("no '%s' found for '%s'", args.key, filename)
-            exit(-1)
-
-        v = list(v_to_use)[0]
-        lg.warning("assigning '%s' = '%s' for '%s'", args.key, v, filename)
-        madfile[args.key] = v
+        madfile.update(outdict)
         madfile.save()
-
 
 
 @leip.command
@@ -103,16 +102,15 @@ def save(app, args):
     for madfile in get_all_mad_files(app, args):
         lg.debug("processing %s", madfile['fullpath'])
 
-        #if madfile['orphan']:
+        # if madfile['orphan']:
         #    lg.warning("removing %s", madfile['inputfile'])
         #    lg.warning("sha1sum is/was: %s", madfile['sha1sum'])
 
         counter += 1
 
-
-        app.trans['progress.save'] +=1
+        app.trans['progress.save'] += 1
         pp = app.trans['progress.save']
-        if args.progress and  pp > 0 and pp % 2500 == 0:
+        if args.progress and pp > 0 and pp % 2500 == 0:
             lg.warning("mad save: saved {} files".format(pp))
 
         madfile.save()
@@ -123,6 +121,7 @@ def save(app, args):
 def _save_dumped_doc(app, doc):
     dm = get_mad_dummy(app, doc)
     dm.save()
+
 
 @leip.arg('dump_file', help='yaml dump file to load')
 @leip.command

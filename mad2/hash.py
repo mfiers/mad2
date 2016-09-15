@@ -30,6 +30,7 @@ def get_sha1(filename):
         return h.hexdigest()
     except IOError:
         #something went wrong reading the file (no permissions?? ignore)
+        lg.warning("Cannot generate sha1sum :( for %s", filename)
         return None
 
 
