@@ -11,7 +11,7 @@ import fantail
 from pwd import getpwuid
 
 lg = logging.getLogger(__name__)
-lg.setLevel(logging.DEBUG)
+#lg.setLevel(logging.DEBUG)
 
 EXTENSION_DATA = None
 RECURSE_CACHE = {}
@@ -119,6 +119,7 @@ def _get_recursive_dir_data(pth):
 
     rv = fantail.Fantail()
     for c in conf[::-1]:
+        lg.debug("read .config file: %s", c)
         fullname = os.path.expanduser(os.path.abspath(c))
         if fullname in RECURSE_CACHE:
             y = RECURSE_CACHE[fullname]
@@ -127,6 +128,7 @@ def _get_recursive_dir_data(pth):
             y = fantail.yaml_file_loader(fullname)
             RECURSE_CACHE[fullname] = y
         rv.update(y)
+    lg.debug(rv.pretty())
     return rv
 
 @leip.arg("dir", nargs='?', default='.')

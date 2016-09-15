@@ -46,7 +46,9 @@ def get_mongo_transient_id(mf):
     hsh = hashlib.sha1()
     hsh.update(mf['volume'].encode('UTF-8'))
     hsh.update(mf['fullpath'].encode('UTF-8'))
-    return hsh.hexdigest()[:24]
+    tid = hsh.hexdigest()[:24]
+    lg.info('mongo transient id: %s', tid)
+    return tid
 
 
 def mongo_prep_mad(mf):
@@ -139,6 +141,7 @@ def madfile_init(app, madfile):
 
     trans_id = get_mongo_transient_id(madfile)
     rec = trans_db.find_one({'_id': trans_id})
+
     nowtime = datetime.datetime.utcnow()
     mtime = madfile.get('mtime')
     sha1sum = None

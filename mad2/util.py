@@ -344,6 +344,10 @@ def get_all_mad_files(app, args, use_stdin=True, warn_on_errors=True):
             yield maf
         except MadNotAFile:
             pass
+        except FileNotFoundError:
+            #possibly a broken symlink?
+            lg.warning("Cannot find %s", filename)
+            pass
         except MadPermissionDenied:
             lg.warning("Permission denied: {}".format(
                 filename))
@@ -351,9 +355,7 @@ def get_all_mad_files(app, args, use_stdin=True, warn_on_errors=True):
             if warn_on_errors:
                 lg.warning("Error instantiating %s", filename)
                 lg.warning("Error: %s", str(e))
-                raise
-            else:
-                raise
+            raise
 
 # Thanks: http://tinyurl.com/kq5hxtr
 
