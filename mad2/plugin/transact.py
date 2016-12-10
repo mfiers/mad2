@@ -44,6 +44,7 @@ def ta_tree(app, args):
     db_t, db_s2t = get_mongo_transact_db(app)
     trans_db = get_mongo_transient_db(app)
 
+
     if len(args.object) == 40 and not os.path.exists(args.object):
         sha1sum = args.object
     else:

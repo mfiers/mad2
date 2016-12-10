@@ -25,8 +25,8 @@ def cleanup_stores(app):
 @leip.arg('table')
 @leip.command
 def apply_from_table(app, args):
-    """apply key/values from a tsv file'
-
+    """apply key/values from a tsv file' 
+    
     expects a tsv table. First column is the full file name, each column
     contains metadata (key == column header)
     """
@@ -63,7 +63,6 @@ def apply_from_table(app, args):
     for madfile in get_all_mad_files(app, args):
         madfile.update(outdict)
         madfile.save()
-
 
 @leip.command
 def version(app, args):

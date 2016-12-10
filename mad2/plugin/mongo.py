@@ -141,6 +141,7 @@ def madfile_init(app, madfile):
 
     trans_id = get_mongo_transient_id(madfile)
     rec = trans_db.find_one({'_id': trans_id})
+
     nowtime = datetime.datetime.utcnow()
     mtime = madfile.get('mtime')
     sha1sum = None
