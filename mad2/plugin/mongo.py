@@ -225,6 +225,7 @@ def madfile_init(app, madfile):
 
 
 @leip.arg('-w', '--watch', action='store_true')
+@leip.flag('-q', '--quiet')
 @leip.arg('-s', '--min_file_size', type=int, default=100,
           help='minimal file size to consider')
 @leip.command
@@ -242,29 +243,31 @@ def update(app, args):
 
     transient_db = get_mongo_transient_db(app)
     ignore_dirs = ['.*', '.git', 'tmp']
-    ignore_files = ['.*', '*.log', '*~', '*#', 'SHA1SUMS*', 'mad.config']
+    ignore_files = ['.*', '*.log', '*~', '*#', 'SHA1SUMS*']
     basedir = os.getcwd()
 
     find_dir_regex = re.compile('^{}'.format(basedir))
     find_dir_regex = '^{}'.format(basedir)#.replace('/', '\/')
     lg.debug("searching for dirs with regex: %s", find_dir_regex)
     tradirs = []
+    
     query = {'host': socket.gethostname(),
              'dirname': { "$regex": find_dir_regex }}
-#    query = {'host': socket.gethostname(),
-#             'dirname': find_dir_regex}
 
-#    expl = transient_db.find(query).explain()
-#    print(yaml.dump(expl, default_flow_style=False))
     trans_dirs = list(transient_db.find(query).distinct('dirname'))
-    lg.warning("found %d files below this directory in transient db", len(trans_dirs))
+    if args.quiet:
+        lg.debug("found %d directories below this directory in transient db", len(trans_dirs))
+    else:
+        lg.warning("found %d directories below this directory in transient db", len(trans_dirs))
+
     #to be safe - strip trailing slashes
     trans_dirs = [x.rstrip('/') for x in trans_dirs]
     dirs_to_delete = copy.copy(trans_dirs)
     lg.info("%d dirs with data in the transient db", len(trans_dirs))
 
-
+    
     def screen_update(cnt, lud = 0, msg=""):
+        if args.quiet: return
         ts = shutil.get_terminal_size().columns - 1
 
         if (time.time() > lud) < 1:
@@ -369,7 +372,16 @@ def update(app, args):
             # this file is in both the db & on disk - check mtime
             remove_dir = False  # stuff in this folder - do not delete!
             fullpath = os.path.abspath(os.path.realpath(os.path.join(root, trec['filename'])))
-            fstat = os.lstat(fullpath)
+            try:
+                fstat = os.lstat(fullpath)
+            except FileNotFoundError:
+                # this happens for broken symlinks - in which case we should remove the
+                # trans_record
+                COUNTER['broken'] += 1
+                MONGO_REMOVE_CACHE.append(trec['_id_transient'])
+                continue
+
+                                
             mtime = datetime.datetime.utcfromtimestamp(fstat.st_mtime)
 
             if 'sha1sum_time' in trec:
@@ -809,7 +821,7 @@ def _complex_sum(app, name, fields=['username', 'host'],
 
 @leip.flag('-f', '--force', help='force query (otherwise use cache, and'
            + ' query only once per day')
-@leip.arg('output_file', help='{stamp} will be replaced by a timestamp')
+@leip.arg('-o', '--output_file', help='{stamp} will be replaced by a timestamp')
 @leip.subcommand(mongo, "csum")
 def complex_sum(app, args):
     """
@@ -849,15 +861,17 @@ def complex_sum(app, args):
             prec[f] = _id.get(f)
         precords.append(prec)
 
-    out = args.output_file.format(stamp=stamp)
-
     #HACK: for whatever reason yaml does not want to output bson/int64's
     #so - now I make sure they're all int :(
     for r in precords:
         r['sum'] = int(r['sum'])
 
-    with open(out, 'w') as F:
-        F.write(yaml.safe_dump(precords, default_flow_style=False))
+
+    if args.output_file:
+        out = args.output_file.format(stamp=stamp)
+
+        with open(out, 'w') as F:
+            F.write(yaml.safe_dump(precords, default_flow_style=False))
 
     #store in mongodb
     dbrec = dict(data=precords,
@@ -866,22 +880,25 @@ def complex_sum(app, args):
     db = get_mongo_db(app)
     csum_coll = db['csum']
     csum_coll.insert_one(dbrec)
-#    d =
+
 
 
 def get_latest_csum(app, args):
 
     import pandas as pd
 
-    # elect the correct csum file
+    # select the correct csum file
     csum_path = app.conf['plugin.mongo.csum_path']
     assert '{stamp}' in csum_path
     csum_glob = csum_path.replace('{stamp}', '*')
     csums = []
     css = csum_path.index('{stamp}')
+    
     for f in glob.glob(csum_glob):
+
         cdate = f[css:].split('.')[0]
         csums.append((cdate, f))
+        
     csums.sort()
     cdate, csum_file = csums[-1]
     lg.info("Using csum file: %s", csum_file)
@@ -902,6 +919,11 @@ def get_latest_csum(app, args):
     return data
 
 
+@leip.subcommand(mongo, "csum_generate")
+def mongo_csum_generate(app, args):
+    d = get_latest_csum(app, args)
+
+    
 @leip.arg("-s", "--select", nargs=2, action='append')
 @leip.arg("group", nargs='+')
 @leip.subcommand(mongo, "csum_group")
@@ -1132,12 +1154,12 @@ def _run_mongo_command(app, name, collection, query, kwargs={}, force=False):
 @leip.arg('-p', '--path_fragment')
 @leip.flag('-e', '--echo', help='echo files for which >1 file is found'
            + '(taking -v & -p into account)')
-@leip.arg('file', nargs="*")
 @leip.flag('-r', '--raw_output')
+@leip.arg('file', nargs="*")
 @leip.command
 def repl(app, args):
     """
-    ??
+    Show copies of a file
     """
 
     MONGO_mad = get_mongo_transient_db(app)
@@ -1159,6 +1181,7 @@ def repl(app, args):
 
     def _process_query(query, madfile_in):
         res = MONGO_mad.find(query)
+        res = list(res)
         for r in res:
             if args.volume and \
                r['volume'] != args.volume:
@@ -1169,7 +1192,8 @@ def repl(app, args):
                 continue
 
             if args.echo:
-                print(madfile_in['inputfile'])
+                if len(res) > 1:
+                    print(madfile_in['inputfile'])
                 break
 
             days = (arrow.now() - arrow.get(r['save_time'])).days
